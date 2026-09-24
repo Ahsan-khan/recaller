@@ -1114,6 +1114,22 @@ body.is-dragging .card-actions { opacity: 0 !important; }
 .card-act { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 7px; color: var(--ink-2); }
 .card-act .icon { width: 15px; height: 15px; }
 .card-act:hover { background: var(--accent-tint); color: var(--accent-ink); }
+/* "↓ Cooked": the action used ~90% of the time, so it's the one filled button, in the
+   Cooked stage's slate. (Editing moved to right-click / E in 1.11.) */
+.card-act.act-primary {
+  width: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 9px 0 7px;
+  background: var(--aug-bar);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.card-act.act-primary .icon { width: 13px; height: 13px; stroke-width: 2.4; }
+.card-act.act-primary:hover { background: var(--aug-bar-hover); color: #fff; }
 
 /* highlight ("check again" etc.) wins over the stage look */
 .card-wrap.is-hl .card { background: var(--hl-bg); border-color: color-mix(in srgb, var(--hl) 55%, transparent); }

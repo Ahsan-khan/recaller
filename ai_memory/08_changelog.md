@@ -83,7 +83,13 @@ Dates are 2026-09-23 and 2026-09-24. Versions 1.0.0 to 1.5.0 were built in one l
 - **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
 - **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
 
-## 1.10.0 (current)
+## 1.11.0 (current)
+
+- **Card hover bar:** now just the highlighter and a filled slate **↓ Cooked** button (the owner moves prompts to Cooked ~90% of the time). The edit pencil was removed: right-click the card or press E / F2.
+- Help panel and guide say "hover a prompt and click ↓ Cooked" instead of "the stack icon".
+- **Tests:** features 113 checks (new: the hover bar has exactly the highlighter and a prominent ↓ Cooked).
+
+## 1.10.0
 
 - **Served is lighter:** a light sage section (#e4eee8, border #c6dccd) with a deep-green label and a near-white text box, instead of the solid deep-green block. The owner: "it will always be served", so it needs less emphasis. Cooked (slate band) is now the strongest stage.
 - **Right-click to edit:** right-clicking a prompt card opens its editor. On the Cooked note or the Served text it opens the whole-text editor; on a row of a Notes list it edits that part alone. If text is selected, the normal Copy menu shows instead.

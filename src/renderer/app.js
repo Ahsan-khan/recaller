@@ -549,8 +549,7 @@
         <div class="card-meta"><span class="card-hl-tag"></span><span class="card-time"></span><span class="card-copies"></span><button class="card-more" hidden>Show more</button></div>
         <div class="card-actions">
           <button class="card-act act-hl" title="Highlight (H)" aria-label="Highlight">${I.highlighter}</button>
-          <button class="card-act act-used" title="Move to Cooked (U)" aria-label="Move to Cooked">${I.layers}</button>
-          <button class="card-act act-edit" title="Edit (E)" aria-label="Edit">${I.edit}</button>
+          <button class="card-act act-used act-primary" title="Move to Cooked (U)" aria-label="Move to Cooked">${I.arrowDown}<span>Cooked</span></button>
         </div>
       </article>`;
     if (fresh.has(note.id)) {
@@ -2799,7 +2798,6 @@
       openLightbox(e.target.closest('.card-img').dataset.img, wrap?.dataset.id);
       return;
     }
-    if (e.target.closest('.act-edit') && wrap) return startEdit(wrap.dataset.id);
     if (e.target.closest('.act-used') && wrap) return toggleUsed(wrap.dataset.id);
     if (e.target.closest('.act-hl') && wrap) return openHighlightMenu(wrap.dataset.id, e.target.closest('.act-hl'));
     if (e.target.closest('.card-more') && wrap) {

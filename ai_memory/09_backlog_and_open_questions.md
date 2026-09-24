@@ -91,6 +91,6 @@ These were covered only by simulations: a fake microphone, a mock OpenAI server,
 ## Suggested next steps for whoever continues
 
 1. Read `README.md` → `03` → `04` in this folder.
-2. Run `npm install`, then `npm test` and confirm everything is green: 12 + 21 + 112 checks.
+2. Run `npm install`, then `npm test` and confirm everything is green: 12 + 21 + 113 checks.
 3. Check which version the owner has installed (see `13`) and ask how 1.6.0 feels, especially the new stage colours, the title font and resizing.
 4. Ask the owner the open questions above before building bigger features.

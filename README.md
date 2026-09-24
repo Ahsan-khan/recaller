@@ -15,7 +15,7 @@ npm install
 npm run dist
 ```
 
-This builds `dist/Recaller Setup 1.10.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
+This builds `dist/Recaller Setup 1.11.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
 
@@ -36,7 +36,7 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Copy several notes at once | Hold `Ctrl` and click each note. The clipboard holds them all, in click order, with a blank line between each. Numbered badges show that order. A note you plain-clicked just before counts as the first one, like in File Explorer. `Ctrl`+click a note again to drop it. `Esc`, clicking empty space, or switching to another app starts a fresh selection. The bar at the bottom can also move the picked notes to Cooked |
 | Delete a note | Hold the mouse on it and swipe left |
 | Undo anything | `Ctrl+Z`, the ↶ button in the top bar, or **Undo** on the toast. `Ctrl+Y` redoes |
-| Add a prompt to Cooked | Drag it down onto **Cooked**, or hover and click the stack icon. It joins the end of the Cooked note |
+| Add a prompt to Cooked | Hover it and click **↓ Cooked** (or press `U`), or drag it down onto **Cooked**. It joins the end of the Cooked note |
 | Move the Cooked note into Served | Click **Move to Served**, swipe the note left, or drag it onto **Served**. Its text is added to the end of Served, and Cooked starts empty for the next batch |
 | Edit Cooked or Served | The pencil in the footer edits the whole text (it's then saved as one note). **Notes** lists the separate notes inside: hover one to move it up ↑ or down ↓, edit just that one ✎, or send it back ↩ |
 | Read a long Cooked or Served text | Both start at a fixed height (6 lines). **Show more** under the text opens it up, and a very long text scrolls inside. They always start small again next time |
@@ -52,7 +52,7 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Dictate | Click the mic beside **New prompt**. Text appears phrase by phrase as you speak, and you can keep typing and editing while it listens. Click the red **Stop** pill when done |
 | Add a screenshot | Click the camera in the editor, then drag over the area you want. Click once to capture the whole screen, or press `Esc` to cancel. You can also paste an image or drop an image file |
 | View an image | Hover the thumbnail and click the expand icon |
-| Edit | Right-click a prompt, the Cooked note or the Served text. Or hover and click the pencil. Right-click a row under **Notes** to edit just that part |
+| Edit | Right-click a prompt, the Cooked note or the Served text (or focus a prompt and press `E`). Right-click a row under **Notes** to edit just that part |
 | Rename a project | Double-click its title |
 | Scroll sideways | Mouse wheel over a header or empty space, the ‹ › buttons, or drag the empty background |
 | Resize a column | Drag its right edge. Double-click the edge (or **⋯ → Reset width**) for the default width again |

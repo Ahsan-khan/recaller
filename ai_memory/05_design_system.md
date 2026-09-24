@@ -139,7 +139,7 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
   - cards in Deep have no border, just a soft two-layer shadow;
   - canvas dots are at 3.5% white.
   Keep repeated per-column furniture light; weight belongs to content.
-- **Cards:** radius 12px. On hover, an action pill appears top-right (highlighter, stack "to Cooked", edit) with 26px buttons.
+- **Cards:** radius 12px. On hover, an action pill appears top-right with two buttons (1.11): the highlighter (26px icon) and **↓ Cooked**, a filled `--aug-bar` slate button with a down arrow and the word "Cooked" (white, 11.5px / 650), hover `--aug-bar-hover`. The edit pencil was removed (right-click or E edits).
 - **Cooked and Served:** blocks radius 12px (Cooked's header band 11px top corners), inner note or box radius 9px. The text shows `--stage-lines` (6) lines with a fade. Under it, a slim full-width **Show more / Show less** bar (`.stage-more`, 24px, chevron that flips) opens it to min(56vh, 480px), scrolling inside. The Notes lists are capped at 220px. The footer gap is 4px so "n prompts · w words" fits next to Notes and the pencil at slim width.
 - **Dialogs:** Settings and Help share `.modal-card`. `.modal-section` headings are 12px / 700 / uppercase / `--ink-2` with a hairline above. The Help stage cards are white with a coloured square per stage. `kbd` inside Help is forced light, because Deep theme otherwise styles `kbd` for the dark top bar.
 - **Top bar:** brand, search, then (right) undo/redo, the ↔ reset-widths icon button, the ? help button (1.7), the settings gear. No "+ Project" button since 1.6. Disabled top-bar icon buttons are drawn at 30% opacity.

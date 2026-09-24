@@ -133,7 +133,7 @@ Terms used below:
 
 ### Prompts → Cooked
 
-- **Ways to move a prompt:** the stack icon on a card's hover bar, U on a focused card, dragging onto the Cooked block, or Ctrl+click several and then "Move to Cooked".
+- **Ways to move a prompt:** the filled **↓ Cooked** button on a card's hover bar (1.11: the main action, used ~90% of the time), U on a focused card, dragging onto the Cooked block, or Ctrl+click several and then "Move to Cooked".
 - The prompt is **appended to the end** of the Cooked list, so the combined note reads in the order the prompts were added.
 - The Cooked note shows all its prompts' exact texts joined by the separator.
 
@@ -184,7 +184,7 @@ Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New lin
 
 ## 11. Editing a card
 
-1. **Right-click the card** (1.10), hover it and click the pencil, or press E or F2 on a focused card. The card turns into a composer holding its text and images.
+1. **Right-click the card** (1.10), or press E or F2 on a focused card. (The hover-bar pencil was removed in 1.11; the hover bar now has only the highlighter and **↓ Cooked**.) The card turns into a composer holding its text and images.
 2. Save (Ctrl+Enter) updates the text, images and updated time; this is undoable ("Edit note") only if something changed. Cancel (× or Esc) discards the edit. The trash button deletes the card.
 3. While a card is being edited, it stays visible even if search would hide it.
 

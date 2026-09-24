@@ -31,7 +31,8 @@ Recaller keeps prompts and notes that the owner reuses when working with AI tool
 - **Order:** new prompts go at the **bottom** of a column (round 10), so a column reads top to bottom and flows into Combined.
 - **Size:** stage texts must start at a fixed, modest size and expand on demand (round 10); nothing should grow without limit by default.
 - **Served is quiet (round 13):** the final stage "will always be served", so it's light (sage), not a deep block. Emphasis goes to what still needs doing (Cooking, Cooked).
-- **Right-click is edit (round 13):** they expect right-click on any prompt or stage text to edit it.
+- **Right-click is edit (round 13):** they expect right-click on any prompt or stage text to edit it. So the card hover bar needs no pencil (round 14).
+- **The main action gets the emphasis (round 14):** "Move to Cooked" is ~90% of their clicks on a card, so it's the one filled, labelled button.
 - **Save closes the editor (round 13):** after saving a prompt they want the buttons back, not an empty editor waiting.
 - **Calm with many columns (round 12):** they find a wide board of columns "cluttered" and want it "open" without using more space. Keep per-column furniture (labels, buttons, empty stages) light and uniform; let the header colour and the content carry the weight.
 - **Data safety is paramount.** Every update must keep everything identical: notes, drafts, images, colours, layout, scroll positions, window position and settings.

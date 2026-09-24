@@ -221,6 +221,10 @@ async function run() {
   key('Z', ['control']); // take "Temporary prompt" out again
   await sleep(300);
 
+  // hovering a prompt offers just two actions: highlight, and the main one, "↓ Cooked" (edit is right-click / E)
+  const acts = await js(`[...document.querySelectorAll('.column[data-id="p1"] .active-list .card-actions')[0].children].map((b) => b.className + '|' + b.textContent.trim())`);
+  check('hovering a prompt offers highlight and a prominent "↓ Cooked" (no edit button)', acts.length === 2 && /act-hl/.test(acts[0]) && /act-used act-primary\|Cooked$/.test(acts[1]), JSON.stringify(acts));
+
   // ---------------------------------------------------------------- Cooking: a stage header like the others; New prompt | Dictate in halves
   const bar = await js(`(() => {
     const c = document.querySelector('.column[data-id="p1"]');
