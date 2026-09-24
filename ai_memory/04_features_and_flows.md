@@ -23,11 +23,11 @@ Terms used below:
 2. **Stage**: a dotted canvas (dark forest green in Deep theme) with faint monstera leaves. The **board** holds the columns side by side, plus a dashed "+ New project" tile at the end. Round ‹ › scroll buttons appear at the left and right edges when there is more to scroll.
 3. **Each column**, from top to bottom (its right edge is a resize handle, see §22):
    - **Header**, a solid colour in Deep theme. It holds a small leaf icon, the project name (wraps to two lines, then "…") and a ⋯ menu button. (The prompt count moved to the Cooking header in 1.8.)
-   - **Cooking header** (1.8): a light row in the column's colour reading "⌄ 🔥 COOKING · n" (n = prompts; "m/n" while searching). Click it to fold the prompt cards away and back; that's saved as `project.notesCollapsed` (written only while folded). A search, a new prompt, a prompt sent back or a prompt dropped in all unfold it.
-   - **New prompt bar**: two equal halves (1.8), **(+) New prompt** and **(🎙) Dictate**, each with its icon in a small accent square. Dictate is as big as New prompt because the owner starts about half their prompts by voice. With an unsaved draft the left half reads **Draft** and its + gets an amber dot. In narrow columns (bar under 244px) it reads **New**. The bar is hidden while the composer is open, and the composer takes its place.
+   - **Cooking header** (1.8; a plain label since 1.9): "⌄ 🔥 COOKING · n" in the column's colour, no box (n = prompts; "m/n" while searching). Click it to fold the prompt cards away and back; that's saved as `project.notesCollapsed` (written only while folded). A search, a new prompt, a prompt sent back or a prompt dropped in all unfold it.
+   - **New prompt bar**: two equal halves (1.8), **(+) New prompt** and **(🎙) Dictate**: soft white pills with the icon in the column's colour, no outline until hover (1.9). Dictate is as big as New prompt because the owner starts about half their prompts by voice. With an unsaved draft the left half reads **Draft** and its + gets an amber dot. In narrow columns (bar under 244px) it reads **New**. The bar is hidden while the composer is open, and the composer takes its place.
    - **Scroll area**:
-     - **Prompt cards**, oldest at the top: since 1.7 new prompts are added at the bottom. "No prompts yet. Click New prompt to add one." is shown when there are none.
-     - **Cooked block** (1.7: muted slate, with a slate-navy header band reading "COOKED · n" and a collapse arrow). Inside is one near-white **Cooked note** with the combined text, 6 lines tall with a fade when longer, and a slim **Show more** bar under it. Its footer shows "n prompts · w words", a **Notes** toggle and a pencil (edit). Under the note is a full-width slate **↓ Move to Served** bar. When empty, only its faint name shows ("⌄ COOKED", 60% opacity); while a card is being dragged it becomes a dashed drop zone with "Move prompts here and they join into one note".
+     - **Prompt cards**, oldest at the top: since 1.7 new prompts are added at the bottom. "Nothing cooking yet. Click New prompt or Dictate." is shown when there are none. Hovering a card shows two buttons top-right: the highlighter and a filled **↓ Cooked** (1.11).
+     - **Cooked block** (1.13: a light section in the Cooked palette, Ocean blue by default, with the label "COOKED · n" and a collapse arrow; no dark band). Inside is one near-white **Cooked note** with the combined text, 6 lines tall with a fade when longer, and a slim **Show more** bar under it. Its footer shows "n prompts · w words", a **Notes** toggle and a pencil (edit). Under the note is a full-width **↓ Move to Served** bar in the palette's accent. When empty, only its faint name shows ("⌄ COOKED", 60% opacity); while a card is being dragged it becomes a dashed drop zone with "Move prompts here and they join into one note".
      - **Served block** (1.10: a light sage section with a deep-green label, shown only when Cooked or Served has content). Its header reads "SERVED" with a collapse arrow; there is no counter and no Copy all button (both removed in 1.6). Inside is a near-white box with the final text, 6 lines tall with a fade and a **Show more** bar when longer, then the footer "n notes · w words", a **Notes** toggle and a pencil (edit). When empty, only its faint name shows; while dragging it becomes a dashed drop zone saying "Move the Cooked note down to add it here".
 4. **Floating elements:**
    - toasts (bottom centre);
@@ -48,18 +48,18 @@ Terms used below:
    6. Sets permissions, the image protocol, IPC and global hotkeys.
    7. Creates the window at the saved bounds and theme colours, and shows it when ready.
 2. The renderer loads the data file:
-   - With no file, it seeds a "Welcome" project containing seven tip cards.
+   - With no file, it seeds a "Welcome" project containing ten tip cards (copying, swipe-delete, dragging, dictating, screenshots, Ctrl+click, the three stages, highlighting, resizing, shortcuts).
    - Otherwise it normalises the file without writing it.
-   - It then applies the theme, density and title font, renders, restores scroll positions and the last-used column, fades in, and asks main to clean up unreferenced images.
+   - It then applies the theme, density, title font and Cooked colour, renders, restores scroll positions and the last-used column, fades in, and asks main to clean up unreferenced images.
 
 ## 3. Projects (columns)
 
 - **Create:**
-  - Trigger: **+ Project** in the top bar, the "+ New project" tile, the empty-board button, or Ctrl+Shift+N.
+  - Trigger: the "+ New project" tile at the end of the board, the empty-board button, or Ctrl+Shift+N. (The top-bar **+ Project** button was removed in 1.6.)
   - It creates "New project" with the next unused palette colour, scrolls it into view, and opens an inline rename field. Enter saves, Esc cancels, and clicking away saves.
   - Undoable.
 - **Rename:** double-click the name, or ⋯ → Rename. Undoable.
-- **Recolour:** ⋯ menu → one of eight swatches. Undoable.
+- **Recolour:** ⋯ menu → one of 18 swatches. Undoable.
 - **Reorder:** drag a column by its header. A tilted ghost and a dashed placeholder show the position, and the board auto-scrolls near the edges. ⋯ → Move left / Move right also works. Undoable.
 - **Delete:** ⋯ → Delete project. It happens immediately, with an Undo toast (9s). Undoable.
 - **⋯ menu, full list:** New from screenshot, Rename, 18 colour swatches (two rows of nine), Move left, Move right, Reset width (enabled when the column is resized), Sort prompts oldest first (enabled when there are 2+ prompts not already in date order), Clear Cooked (n), Clear Served (n), Delete project.
@@ -75,7 +75,7 @@ Terms used below:
    - The note is added at the **bottom** of the prompts (since 1.7; it used to be the top), the column scrolls it into view, and the draft is cleared. Undoable, labelled "New note".
    - (Before 1.10 the composer stayed open and empty for the next prompt.)
    - Saving with no text and no images shakes the composer instead.
-4. **Close** with × or Esc. The text is kept as a draft, and the bar shows a "Draft" badge. If recording is on, the first Esc only stops recording.
+4. **Close** with × or Esc. The text is kept as a draft, and the New prompt half reads **Draft** with an amber dot. If recording is on, the first Esc only stops recording.
 5. Clicking anywhere outside an *empty*, idle composer closes it. It closes on pointer release, so the layout doesn't shift mid-click.
 6. Only one composer or editor is open at a time. Opening another saves the first one's draft and closes it.
 
@@ -167,7 +167,7 @@ All three **append every Cooked prompt to the end of Served**, in order, and emp
 Each row shows the part's number and first line. The list is capped at 220px and scrolls. Hovering (or focusing inside) a row shows:
 - **↑ / ↓**: move the part up or down (disabled at the ends). The combined text follows the new order. Undoable ("Reorder").
 - **✎**: edit just this part. The composer opens in the stage's editor spot with only that part's text and images; saving changes only that note (undo label "Edit note"), so the others stay separate. The composer's trash button deletes the part ("Note deleted · Undo").
-- **↩**: in Cooked, send the prompt back to the bottom of the prompts ("Moved back to prompts"); in Served, send it back to the end of Cooked ("Sent back to Cooked").
+- **↩**: in Cooked, send the prompt back to the bottom of Cooking ("Moved back to Cooking"); in Served, send it back to the end of Cooked ("Sent back to Cooked").
 
 Only one editor is open at a time anywhere: opening a stage editor closes the new-prompt composer and any card editor, and vice versa. Undo and redo close an open stage editor.
 
@@ -191,7 +191,7 @@ Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New lin
 ## 12. Voice dictation (live, phrase by phrase)
 
 **Starting.**
-- Ways to start: the mic next to "New prompt", the mic inside any composer, or Ctrl+M (in a composer it toggles; otherwise it opens the current column's composer and starts).
+- Ways to start: **Dictate** (the right half of the New prompt bar), the mic inside any composer, or Ctrl+M (in a composer it toggles; otherwise it opens the current column's composer and starts).
 - **If no API key is available**, an inline error "Voice needs an OpenAI API key" appears with an **Add key** button that opens Settings.
 - The composer's mic becomes a red **Stop** pill showing a ■, a timer (m:ss) and four level bars that move with the voice.
 
@@ -291,7 +291,7 @@ Since 1.7 the fields are grouped under section headings: **Appearance** (1–4),
 1. **Colour:** Deep or Soft. Applies instantly, including the Windows title bar. Stored in settings.
 2. **Column width:** Compact (236px), Slim (268px, the default) or Roomy (330px). Stored in `data.prefs.density`. This is the default width; columns the user resized keep their own width (§22).
 3. **Join notes with:** Blank line or New line (`prefs.joiner`).
-3b. **Cooked colour** (1.12): six tiles, each a mini "COOKED" band on its own block colour: Caramel (default), Espresso, Petrol, Graphite, Terracotta, Slate. Applies instantly to everything Cooked-coloured. Stored in `prefs.cookedColor`.
+3b. **Cooked colour** (1.12; light since 1.13): four tiles, each a mini light "COOKED" note in its palette: Ocean (default), Teal, Midnight, Graphite. Applies instantly to everything Cooked-coloured. Stored in `prefs.cookedColor`.
 4. **Column title font:** nine preview tiles in a 3×3 grid, each rendered on an emerald header ("Wildfire RL"): Instrument Sans (default since 1.6), Plus Jakarta Sans, Onest, Sora, Space Grotesk, Inter Display, Manrope, Geist, Sora Caps. Applies instantly. Stored in `prefs.titleFont` only when picked.
 5. **OpenAI API key:** a password field showing "•••• last4" when a key is set, with a status line ("Saved and encrypted on this PC…" or "Using OPENAI_API_KEY from your environment…"). **Remove** is shown only for a saved key. A link points to platform.openai.com/api-keys. The key is saved when the field loses focus or the dialog closes.
 6. **Transcription model:** gpt-transcribe (recommended), gpt-4o-mini-transcribe (fastest), gpt-4o-transcribe, or whisper-1 (no live text). **Language** is optional (for example `en`).
@@ -354,7 +354,7 @@ The footer holds **Open data folder** and **Done**.
 - "Added to Cooked · Undo"
 - "Moved to Served · Undo"
 - "Added to Served · Undo"
-- "Moved back to prompts · Undo"
+- "Moved back to Cooking · Undo"
 - "Sent back to Cooked · Undo"
 - "Moved n to Cooked · Undo"
 - "Deleted “Name” · Undo"
@@ -373,7 +373,7 @@ At most three toasts show at once. Hovering a toast pauses its timer.
 
 ## 21b. Right-click to edit (1.10)
 
-- **On a prompt card:** opens the card editor (like the pencil).
+- **On a prompt card:** opens the card editor (the same one as E / F2; the card's hover pencil was removed in 1.11).
 - **On the Cooked note or the Served text:** opens that stage's whole-text editor (like its footer pencil).
 - **On a row of a Notes list** (Cooked or Served): edits that part alone (like its ✎).
 - **With text selected** (e.g. part of the Served text), the right-click is left alone, so the usual **Copy** menu appears.
@@ -393,8 +393,19 @@ At most three toasts show at once. Hovering a toast pauses its timer.
 
 The **?** in the top bar, `F1`, or `?` (when not typing) opens a dialog, "How Recaller works":
 - one line of intro;
-- the three stages as cards (Prompts, Cooked, Served), each with a colour dot and one sentence;
-- "Handy moves": Ctrl+click, swipe to delete + Ctrl+Z, editing Cooked/Served, highlight, resize, screenshots;
+- the three stages as cards (Cooking, Cooked, Served), each with a colour dot and one sentence (Cooked: "Hover a prompt and click ↓ Cooked (or drag it down)…");
+- "Handy moves": Ctrl+click, swipe to delete + Ctrl+Z, "Edit anything" (right-click a prompt, the Cooked note or the Served text; right-click a Notes row for one part), folding a stage by clicking its name, highlight, resize, screenshots;
 - "Shortcuts": a two-column list. The show/hide row shows the user's own global key, or "Off" with a pointer to Settings.
 
 Esc, ×, or **Got it** closes it. While it's open, the app's own shortcuts are ignored.
+
+## 24. A typical session, start to finish (the owner's everyday loop)
+
+1. Press **Ctrl+Alt+R** anywhere; Recaller comes up with the search box focused.
+2. In the right project column, click **Dictate** (or press Ctrl+M) and speak a prompt; the words stream in. Click the red Stop pill, then **Save** (Ctrl+Enter). The editor closes and the prompt appears at the bottom of **Cooking**.
+3. Click the card to copy it and paste it into Claude/ChatGPT. Ctrl+click several cards to copy them together.
+4. When a prompt is worth keeping in the working set, hover it and click **↓ Cooked**. Cooked shows every such prompt joined into one note; clicking it copies the whole combined text.
+5. When that combined text is done, click **↓ Move to Served** (or swipe the Cooked note left). Its text is added to the end of **Served**, and Cooked empties for the next batch.
+6. Click the Served text to copy the finished whole. **Show more** opens a long Served text for reading.
+7. Anything wrong? Right-click the prompt, the Cooked note, the Served text or a single Notes row to edit it. Ctrl+Z undoes any step.
+8. Press Ctrl+Alt+R again to hide Recaller. Everything is saved as it happens; backups are made daily and before every update.

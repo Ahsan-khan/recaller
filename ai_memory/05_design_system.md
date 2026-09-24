@@ -65,28 +65,28 @@ The canvas is a light green-grey gradient and the top bar is white. The column h
 
 ### Stage colours (the same in both themes)
 
-The owner asked twice for more difference between the stages. Since 1.6 each stage has its own frame *and* its own "paper". In 1.7 they then rejected the bright violet as "weird", "girly" and too bright, and asked for "modern and adult". So Cooked is now muted slate. Keep stage colours low in saturation; the saturated colour belongs to the column headers.
+The owner asked twice for more difference between the stages, and then, round after round, for less weight and less brightness. Where it ended (1.13): **Cooking** is white cards on the column's neutral surface, **Cooked** is a light section in a clean accent (Ocean blue by default, pickable), and **Served** is a light sage section. Both stage sections are light; the difference is carried by hue and label colour, not by heavy bands. Rejected on the way: bright violet ("girly", 1.7), a slate header band ("too ugly", 1.12), brown/caramel ("looks like shit", 1.13), and a deep-green Served block ("highlight it less", 1.10).
 
 | Stage | Look |
 | --- | --- |
 | New prompts | White cards with a 3px project-accent bar on the left (`--accent-deep` in Deep theme) |
-| Cooked (data `used`) | Pale cool-grey block (#e6e9ef, border #c9cfda, soft slate shadow) with a slate-navy header band (`--aug-band`) and white uppercase label "COOKED · n". One near-white note (#f9fafc, border #d6dbe4) with a 3px #3f4a62 bar. A full-width #3f4a62 "↓ Move to Served" bar (hover #2f384c). Collapsed, only the band shows. **Empty:** transparent with a 1.5px dashed slate outline and a slate label; it fills in while dragging |
+| Cooked (data `used`) | 1.13: a light section in the Cooked palette (Ocean by default): pale block (#e9f1fb, border #c9dbf1), label "COOKED · n" in #1d4f8c (no band), a white note with a 3px #3a6fb5 edge, and a full-width #3a6fb5 "↓ Move to Served" bar (hover #2d5b98). Collapsed, only the label row shows. **Empty:** only its faint name; a drop zone while dragging |
 | Served (data `combined`) | 1.10: a light sage section (`--final-bg` #e4eee8, border `--final-edge` #c6dccd, faint shadow) with the header label "SERVED" in `--final-ink` #0b5a3f (no counter, no Copy all since 1.6). A near-white text box (#fbfdfb, border #d3e6da) gets an emerald ring on hover and a "Copied" chip when clicked. Before 1.10 it was a deep-green gradient block; the owner asked for less emphasis because "it will always be served". **Empty:** only its faint name; a drop zone while dragging |
 
-### Cooked palettes (1.12)
+### Cooked palettes (1.12; light since 1.13)
 
-`body.cooked-<name>` (and `.co-<name>` for the Settings tiles) sets `--aug-band`, `--aug-bar`, `--aug-bar-hover`, `--aug-ink`, `--aug-bg`, `--aug-edge`, `--aug-card` and `--aug-card-edge`. Shadows and tints are `color-mix()` of `--aug-bar`, so one palette recolours everything Cooked.
+Cooked is a **light section like Served**: a pale block, the label in `--aug-ink` (no dark header band), a white note with a 3px `--aug-bar` edge, and one filled accent (`--aug-bar`) for the Move to Served bar and the card's ↓ Cooked button. `body.cooked-<name>` (and `.co-<name>` for the Settings tiles) sets `--aug-bar`, `--aug-bar-hover`, `--aug-ink`, `--aug-bg`, `--aug-edge`, `--aug-card` and `--aug-card-edge`. Shadows and tints are `color-mix()` of `--aug-bar`.
 
-| Name | Band (gradient) | Bar | Block bg | Note |
+| Name | Accent (bar) | Label ink | Block bg | Note |
 | --- | --- | --- | --- | --- |
-| **caramel** (default) | #9c6b3d → #85582f | #8a5c30 | #f3ece3 | #fffcf8 |
-| espresso | #5d4c41 → #4b3d34 | #56463b | #eeeae6 | #fcfbfa |
-| petrol | #2f5d66 → #244b53 | #2b5861 | #e5eff0 | #f8fbfc |
-| graphite | #3b3e44 → #2e3136 | #383b41 | #ebecee | #fbfbfc |
-| terracotta | #a55f47 → #8d4e39 | #9b5740 | #f5ece8 | #fffbf9 |
-| slate (1.7–1.11 default) | #47526b → #384259 | #3f4a62 | #e6e9ef | #f9fafc |
+| **ocean** (default) | #3a6fb5 | #1d4f8c | #e9f1fb | #fdfeff |
+| teal | #20807a | #145f59 | #e4f3f1 | #fcfefe |
+| midnight | #2c3b63 | #1f2c4d | #e8ebf3 | #fcfcfe |
+| graphite | #4a5059 | #2f343b | #eceef1 | #fdfdfd |
 
-The `:root` `--aug-*` values are the slate fallback; `render()` always puts one `cooked-*` class on `<body>` (default caramel).
+The `:root` `--aug-*` values are the ocean fallback; `render()` always puts one `cooked-*` class on `<body>`.
+
+**History:** violet band (1.4–1.6, "girly") → slate band (1.7–1.11, "too ugly") → caramel and other band palettes including three browns (1.12, "looks like shit"). All three rejected looks shared the heavy dark header band; Served only started working once it became light. Don't bring back the band or brown tones.
 
 ### Project palette
 
@@ -154,8 +154,8 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
   - cards in Deep have no border, just a soft two-layer shadow;
   - canvas dots are at 3.5% white.
   Keep repeated per-column furniture light; weight belongs to content.
-- **Cards:** radius 12px. On hover, an action pill appears top-right with two buttons (1.11): the highlighter (26px icon) and **↓ Cooked**, a filled `--aug-bar` slate button with a down arrow and the word "Cooked" (white, 11.5px / 650), hover `--aug-bar-hover`. The edit pencil was removed (right-click or E edits).
-- **Cooked and Served:** blocks radius 12px (Cooked's header band 11px top corners), inner note or box radius 9px. The text shows `--stage-lines` (6) lines with a fade. Under it, a slim full-width **Show more / Show less** bar (`.stage-more`, 24px, chevron that flips) opens it to min(56vh, 480px), scrolling inside. The Notes lists are capped at 220px. The footer gap is 4px so "n prompts · w words" fits next to Notes and the pencil at slim width.
+- **Cards:** radius 12px, no border in Deep (soft shadow). On hover, an action pill appears top-right with two buttons (1.11): the highlighter (26px icon) and **↓ Cooked**, a filled `--aug-bar` button (the Cooked accent, Ocean blue by default) with a down arrow and the word "Cooked" (white, 11.5px / 650), hover `--aug-bar-hover`. The edit pencil was removed (right-click or E edits).
+- **Cooked and Served:** blocks radius 12px (light sections; neither has a header band since 1.13), inner note or box radius 9px. The text shows `--stage-lines` (6) lines with a fade. Under it, a slim full-width **Show more / Show less** bar (`.stage-more`, 24px, chevron that flips) opens it to min(56vh, 480px), scrolling inside. The Notes lists are capped at 220px. The footer gap is 4px so "n prompts · w words" fits next to Notes and the pencil at slim width.
 - **Dialogs:** Settings and Help share `.modal-card`. `.modal-section` headings are 12px / 700 / uppercase / `--ink-2` with a hairline above. The Help stage cards are white with a coloured square per stage. `kbd` inside Help is forced light, because Deep theme otherwise styles `kbd` for the dark top bar.
 - **Top bar:** brand, search, then (right) undo/redo, the ↔ reset-widths icon button, the ? help button (1.7), the settings gear. No "+ Project" button since 1.6. Disabled top-bar icon buttons are drawn at 30% opacity.
 - **Composer:**

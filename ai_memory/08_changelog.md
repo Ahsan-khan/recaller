@@ -83,7 +83,14 @@ Dates are 2026-09-23 and 2026-09-24. Versions 1.0.0 to 1.5.0 were built in one l
 - **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
 - **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
 
-## 1.12.0 (current)
+## 1.13.0 (current)
+
+- **Cooked recoloured again, and restyled:** the owner said the caramel (brown) default "looks like shit". Cooked is now a **light section like Served**: a pale block, a coloured "COOKED" label with no dark header band, a white note, and one filled accent. The default is **Ocean** (#3a6fb5 on #e9f1fb).
+- **Settings › Cooked colour** now offers Ocean, Teal, Midnight and Graphite. The browns (Caramel, Espresso, Terracotta) and the band palettes (Petrol, Slate) are gone. A stored old value (e.g. `caramel`) draws as Ocean; the stored value itself is left alone.
+- **Tests:** the Cooked checks now expect a light section with no band, a blue accent by default, and 4 picker options (114 checks). The picker check now waits for the colour change instead of a fixed pause (it flaked once on the packaged build). The stage-contrast check compares the Cooked and Served label colours instead of requiring a band.
+- Verified: 12 + 21 + 114 on source and on the packaged build, 9/9 on a copy of the real data.
+
+## 1.12.0
 
 - **Cooked colour picker:** the owner called the slate Cooked "too ugly" (after rejecting violet in 1.7). Six palettes were rendered side by side on a real board. **Caramel** (warm golden-brown, fitting "Cooked") is the new default, and **Settings › Cooked colour** offers Caramel, Espresso, Petrol, Graphite, Terracotta and Slate as live preview tiles. Stored in `prefs.cookedColor` only when picked.
 - Every Cooked colour (band, block, note, Move to Served bar, the card's ↓ Cooked button, the help dot) now derives from one palette. The hard-coded slate shadows and tints became `color-mix()` of `--aug-bar`.

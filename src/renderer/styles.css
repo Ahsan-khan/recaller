@@ -93,14 +93,13 @@
   /* stage colours: new prompts are white cards; Cooked (data "used") is a muted
      slate block with a slate-navy header band; Served (data "combined") is a deep-green
      block. Kept low in saturation on purpose: the owner found bright violet "too much". */
-  --aug-bg: #e6e9ef;
-  --aug-edge: #c9cfda;
-  --aug-ink: #334058;
-  --aug-card: #f9fafc;
-  --aug-card-edge: #d6dbe4;
-  --aug-bar: #3f4a62;
-  --aug-bar-hover: #2f384c;
-  --aug-band: linear-gradient(180deg, #47526b 0%, #384259 100%);
+  --aug-bg: #e9f1fb;
+  --aug-edge: #c9dbf1;
+  --aug-ink: #1d4f8c;
+  --aug-card: #fdfeff;
+  --aug-card-edge: #d8e5f6;
+  --aug-bar: #3a6fb5;
+  --aug-bar-hover: #2d5b98;
   --final-card: #fbfdfb;
   --final-card-edge: #d3e6da;
   --final-bg: #e4eee8;   /* Served (1.10): a light sage section, not a deep block; it's the calm end of the line */
@@ -145,37 +144,26 @@
   --accent-deep: color-mix(in srgb, var(--accent) 80%, #000000);
 }
 
-/* Cooked colour: set on <body> from Settings › Cooked colour (1.12; default caramel). The .co-* classes style its preview tiles. Each option sets the
-   whole Cooked palette: header band, block, note, the Move to Served bar and "↓ Cooked". */
-body.cooked-caramel, .co-caramel {
-  --aug-band: linear-gradient(180deg, #9c6b3d 0%, #85582f 100%);
-  --aug-bar: #8a5c30; --aug-bar-hover: #734b26; --aug-ink: #6a4424;
-  --aug-bg: #f3ece3; --aug-edge: #e1d2c0; --aug-card: #fffcf8; --aug-card-edge: #ebdfd0;
+/* Cooked colour: set on <body> from Settings › Cooked colour (default ocean). The .co-*
+   classes style the preview tiles. Since 1.13 Cooked is a light section like Served (no dark
+   header band): a pale block, a coloured label, a white note, and one filled accent for the
+   Move to Served bar and the card's "↓ Cooked" button. Browns were dropped after the owner
+   rejected them ("looks like shit"); violet and the dark slate band were rejected before that. */
+body.cooked-ocean, .co-ocean {
+  --aug-bar: #3a6fb5; --aug-bar-hover: #2d5b98; --aug-ink: #1d4f8c;
+  --aug-bg: #e9f1fb; --aug-edge: #c9dbf1; --aug-card: #fdfeff; --aug-card-edge: #d8e5f6;
 }
-body.cooked-espresso, .co-espresso {
-  --aug-band: linear-gradient(180deg, #5d4c41 0%, #4b3d34 100%);
-  --aug-bar: #56463b; --aug-bar-hover: #45382f; --aug-ink: #4a3b31;
-  --aug-bg: #eeeae6; --aug-edge: #d9d0c9; --aug-card: #fcfbfa; --aug-card-edge: #e4ddd7;
+body.cooked-teal, .co-teal {
+  --aug-bar: #20807a; --aug-bar-hover: #196862; --aug-ink: #145f59;
+  --aug-bg: #e4f3f1; --aug-edge: #c2e0dc; --aug-card: #fcfefe; --aug-card-edge: #d3eae7;
 }
-body.cooked-petrol, .co-petrol {
-  --aug-band: linear-gradient(180deg, #2f5d66 0%, #244b53 100%);
-  --aug-bar: #2b5861; --aug-bar-hover: #20464e; --aug-ink: #214b53;
-  --aug-bg: #e5eff0; --aug-edge: #c7dade; --aug-card: #f8fbfc; --aug-card-edge: #d5e4e7;
+body.cooked-midnight, .co-midnight {
+  --aug-bar: #2c3b63; --aug-bar-hover: #222f50; --aug-ink: #1f2c4d;
+  --aug-bg: #e8ebf3; --aug-edge: #cdd3e3; --aug-card: #fcfcfe; --aug-card-edge: #dbe0ec;
 }
 body.cooked-graphite, .co-graphite {
-  --aug-band: linear-gradient(180deg, #3b3e44 0%, #2e3136 100%);
-  --aug-bar: #383b41; --aug-bar-hover: #2a2c31; --aug-ink: #34373c;
-  --aug-bg: #ebecee; --aug-edge: #d4d6da; --aug-card: #fbfbfc; --aug-card-edge: #e0e2e5;
-}
-body.cooked-terracotta, .co-terracotta {
-  --aug-band: linear-gradient(180deg, #a55f47 0%, #8d4e39 100%);
-  --aug-bar: #9b5740; --aug-bar-hover: #804534; --aug-ink: #7a3f2c;
-  --aug-bg: #f5ece8; --aug-edge: #e6d0c7; --aug-card: #fffbf9; --aug-card-edge: #eedcd4;
-}
-body.cooked-slate, .co-slate {
-  --aug-band: linear-gradient(180deg, #47526b 0%, #384259 100%);
-  --aug-bar: #3f4a62; --aug-bar-hover: #2f384c; --aug-ink: #334058;
-  --aug-bg: #e6e9ef; --aug-edge: #c9cfda; --aug-card: #f9fafc; --aug-card-edge: #d6dbe4;
+  --aug-bar: #4a5059; --aug-bar-hover: #3a3f47; --aug-ink: #2f343b;
+  --aug-bg: #eceef1; --aug-edge: #d4d8de; --aug-card: #fdfdfd; --aug-card-edge: #e1e4e8;
 }
 
 /* column title font: set on <body> from Settings › Column title font (default: Instrument Sans).
@@ -672,7 +660,7 @@ body.is-dragging .col-resize { display: none; }
   border-radius: 12px;
   background: var(--aug-bg);
   border: 1px solid var(--aug-edge);
-  box-shadow: 0 8px 18px -12px color-mix(in srgb, var(--aug-bar) 60%, transparent);
+  box-shadow: 0 6px 14px -12px color-mix(in srgb, var(--aug-bar) 45%, transparent);
 }
 /* Empty stages stay quiet: a dashed outline instead of a solid block, so a column
    with nothing combined yet isn't dominated by it. They light up while dragging. */
@@ -691,7 +679,7 @@ body.is-dragging .used.is-empty .used-head { opacity: 1; }
   margin: 0 -5px 5px;
   padding: 4px 5px;
   border-radius: 11px 11px 0 0;
-  background: var(--aug-band);
+  background: none;
 }
 .used.is-collapsed { padding-bottom: 0; }
 .used.is-collapsed .used-headrow { margin-bottom: 0; border-radius: 11px; }
@@ -705,7 +693,7 @@ body.is-dragging .used.is-empty .used-head { opacity: 1; }
   padding: 0 5px;
   border-radius: 8px;
   border: 1.5px solid transparent;
-  color: #fff;
+  color: var(--aug-ink);
   font-family: var(--font-ui);
   font-size: 11.5px;
   font-weight: 700;
@@ -713,7 +701,7 @@ body.is-dragging .used.is-empty .used-head { opacity: 1; }
   text-transform: uppercase;
   transition: background 0.15s, border-color 0.15s;
 }
-.used-head:hover { background: rgba(255, 255, 255, 0.14); }
+.used-head:hover { background: color-mix(in srgb, var(--aug-bar) 9%, transparent); }
 .used-head .icon { width: 14px; height: 14px; }
 .used-head .chev { display: inline-flex; transition: transform 0.2s var(--ease); }
 .used.is-collapsed .used-head .chev { transform: rotate(-90deg); }
@@ -1728,7 +1716,7 @@ body.theme-deep .sel-hint { color: var(--ink-3); }
 /* ------------------------------------------------------------------ column title font picker */
 
 /* Settings › Cooked colour: six preview tiles, each a mini Cooked header band */
-.cooked-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cooked-picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .cooked-opt {
   display: flex;
   flex-direction: column;
@@ -1743,7 +1731,7 @@ body.theme-deep .sel-hint { color: var(--ink-3); }
   transition: outline-color 0.15s, transform 0.1s;
 }
 .cooked-opt:hover { transform: translateY(-1px); }
-.cooked-opt .co-band { height: 20px; border-radius: 6px; background: var(--aug-band); display: flex; align-items: center; padding: 0 7px; color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; }
+.cooked-opt .co-band { height: 22px; border-radius: 6px; background: var(--aug-card); border: 1px solid var(--aug-card-edge); box-shadow: inset 3px 0 0 var(--aug-bar); display: flex; align-items: center; padding: 0 8px; color: var(--aug-ink); font-size: 10px; font-weight: 700; letter-spacing: 0.05em; }
 .cooked-opt small { font-size: 11.5px; font-weight: 650; color: var(--aug-ink); }
 .cooked-opt[aria-checked="true"] { outline-color: var(--primary); }
 .cooked-opt[aria-checked="true"] small::after { content: " ✓"; }

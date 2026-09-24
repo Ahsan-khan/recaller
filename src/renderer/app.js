@@ -59,9 +59,10 @@
   const TITLE_FONTS = ['instrument', 'jakarta', 'onest', 'sora', 'space', 'inter', 'manrope', 'geist', 'caps'];
   const DEFAULT_TITLE_FONT = 'instrument';
   const titleFont = () => (TITLE_FONTS.includes(data.prefs.titleFont) ? data.prefs.titleFont : DEFAULT_TITLE_FONT);
-  // Settings › Cooked colour (1.12). Stored in prefs.cookedColor only when picked.
-  const COOKED_COLORS = ['caramel', 'espresso', 'petrol', 'graphite', 'terracotta', 'slate'];
-  const cookedColor = () => (COOKED_COLORS.includes(data.prefs.cookedColor) ? data.prefs.cookedColor : 'caramel');
+  // Settings › Cooked colour (1.12; light palettes since 1.13). Stored in prefs.cookedColor only
+  // when picked; a value from an older version (e.g. caramel) falls back to ocean when drawing.
+  const COOKED_COLORS = ['ocean', 'teal', 'midnight', 'graphite'];
+  const cookedColor = () => (COOKED_COLORS.includes(data.prefs.cookedColor) ? data.prefs.cookedColor : 'ocean');
   // Column widths: drag a column's edge; the top-bar button puts them all back to the default.
   const MIN_COL_W = 200;
   const MAX_COL_W = 900;

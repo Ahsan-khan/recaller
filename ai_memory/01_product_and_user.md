@@ -18,7 +18,7 @@ Recaller keeps prompts and notes that the owner reuses when working with AI tool
 
 - **Theme:** deep green is the default look: a dark forest canvas with solid, deep-coloured column headers. The owner explicitly said they liked it when they thought it had changed. The light "Soft" theme remains optional in Settings.
 - **Density:** slim and compact, with about 268px columns and actions placed in headers or bars rather than extra rows. They complained that 340px columns wasted space. Since 1.6 they can resize individual columns, and a slim top-bar ↔ button puts them all back to this default.
-- **Distinctness:** neighbouring columns get clearly different hues (emerald, sky, sun, orchid, lime, blossom, teal, bark, then ten more since 1.6). The stages look different too: new prompts are white cards, Combined is a muted slate block with a slate-navy band, and Final is a deep-green block. They asked for more stage contrast twice (rounds 7 and 9), so don't make the stages more alike.
+- **Distinctness:** neighbouring columns get clearly different hues (emerald, sky, sun, orchid, lime, blossom, teal, bark, then ten more since 1.6). The stages look different too: Cooking is white cards on the column's neutral surface, Cooked is a light blue section (1.13; pickable), and Served is a light sage section (1.10). They asked for more stage contrast twice (rounds 7 and 9), so don't make the stages alike, but keep them light (rounds 10–16).
 - **Muted, "adult" colour, not bright:** in round 10 they rejected the bright violet Combined as "weird", "girly" and "too much brightness", and asked for "modern and adult". They like the dark green background. Keep stage and UI accents low in saturation; the only saturated colour is the column headers they picked.
 - **Typography:** sharp and modern. The UI uses Geist, and numbers and labels use Geist Mono.
   - Column titles use Instrument Sans by default (since 1.6; Sora before), with a live picker offering Instrument Sans, Plus Jakarta Sans, Onest, Sora, Space Grotesk, Inter Display, Manrope, Geist and Sora Caps. They have asked for a sharper, cleaner title font three times, so title-font taste isn't settled yet.
@@ -28,11 +28,11 @@ Recaller keeps prompts and notes that the owner reuses when working with AI tool
 - **The New prompt button** must be clearly visible and easy to reach, and not sit next to the column name. Since 1.8 the bar under the Cooking header is split in equal halves, **New prompt | Dictate**, because the owner starts about half their prompts by voice.
 - **Stage names are the owner's own:** Cooking → Cooked → Served (round 11). They have renamed the stages three times, so treat names as theirs to choose and keep the data names fixed.
 - **Less chrome:** in round 9 they removed the Final counter, the Copy all button and the top-bar "+ Project" button. Clicking already copies, and the board's "+ New project" tile creates projects.
-- **Order:** new prompts go at the **bottom** of a column (round 10), so a column reads top to bottom and flows into Combined.
+- **Order:** new prompts go at the **bottom** of a column (round 10), so a column reads top to bottom and flows into Cooked.
 - **Size:** stage texts must start at a fixed, modest size and expand on demand (round 10); nothing should grow without limit by default.
 - **Served is quiet (round 13):** the final stage "will always be served", so it's light (sage), not a deep block. Emphasis goes to what still needs doing (Cooking, Cooked).
 - **Right-click is edit (round 13):** they expect right-click on any prompt or stage text to edit it. So the card hover bar needs no pencil (round 14).
-- **Cooked colour is theirs to pick (round 15):** after rejecting violet ("girly") and then slate ("too ugly"), Cooked got a picker with Caramel as the default. Don't change its default again without showing options.
+- **Cooked colour (rounds 15–16):** they rejected violet ("girly"), then slate ("too ugly"), then brown/caramel ("looks like shit"). **No brown, no heavy dark bands.** Since 1.13 Cooked is a light section like Served, Ocean blue by default, with a picker (Ocean, Teal, Midnight, Graphite). Don't change its look again without showing options side by side.
 - **The main action gets the emphasis (round 14):** "Move to Cooked" is ~90% of their clicks on a card, so it's the one filled, labelled button.
 - **Save closes the editor (round 13):** after saving a prompt they want the buttons back, not an empty editor waiting.
 - **Calm with many columns (round 12):** they find a wide board of columns "cluttered" and want it "open" without using more space. Keep per-column furniture (labels, buttons, empty stages) light and uniform; let the header colour and the content carry the weight.
@@ -141,14 +141,25 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 15. **Round 13 → v1.10.0.**
     - The request: tone Served down (lighter, not deep); right-click a prompt, the Cooked note or the Served note to edit it; after saving a typed or dictated note, close the text field and show the buttons again.
     - What was built: all three. See `08` (1.10.0) and `10` (message 16).
+16. **Round 14 → v1.11.0.**
+    - The request: drop Edit from a card's hover options (right-click edits) and make "Move to Cooked" stand out, since it's ~90% of their clicks.
+    - What was built: the hover bar has only the highlighter and a filled "↓ Cooked" button. See `08` (1.11.0) and `10` (message 17).
+17. **Round 15 → v1.12.0.**
+    - The request: "Change cooked colors to something nicer. Current one is too ugly." (the slate)
+    - What was built: six palettes compared side by side, Caramel made the default, and a Settings › Cooked colour picker. See `08` (1.12.0).
+18. **Round 16 → v1.13.0.**
+    - The request: "The cooked color is still too ugly. It looks like shit… Why did you pick brown?"
+    - What was built: Cooked became a light section like Served (no dark band), Ocean blue by default; the picker now offers Ocean, Teal, Midnight and Graphite (browns removed). See `08` (1.13.0) and `10` (message 19).
+19. **"Brain dump everything" (again).** This folder was audited and brought up to date for 1.13.0 before the session ended.
 
 ## Things the owner has not decided or confirmed
 
 - **Separator:** whether they want a blank line or a single new line between joined notes. The default stays blank line; the setting exists.
-- **Archiving Final:** whether a cleared Final text should be archived. Since 1.6, ⋯ → Clear Final empties it (undoable until restart).
-- **Combined counter:** round 9 removed only the counter next to Final (then "Used"). Whether they want the Combined count gone too is unknown.
+- **Archiving Served:** whether a cleared Served text should be archived. ⋯ → Clear Served empties it (undoable until restart).
+- **Cooked counter:** round 9 removed only the counter next to Final (now Served). Whether they want the "· n" next to Cooked gone too is unknown.
+- **Cooked colour:** whether Ocean (1.13) finally pleases them. It hasn't been seen by the owner yet (1.12.0 was installed at the end of the session).
 - **Title font:** Instrument Sans is the new default; whether it finally satisfies "sharp, clean, modern" is unconfirmed.
-- **"All the colors are girly":** whether that included the project palette (pink Blossom, Orchid, Fuchsia), not just Combined.
+- **"All the colors are girly":** whether that included the project palette (pink Blossom, Orchid, Fuchsia), not just the Cooked (then Combined) colours.
 - **Going public:** whether they want to pursue the everyday-user roadmap in `09`, and in what order.
 - **Importing prompt files:** whether to import `Dev Prompts.txt` and `Longterm Prompts.txt`.
 - **Signing and auto-update:** whether they want code signing or auto-update. Both are currently absent.

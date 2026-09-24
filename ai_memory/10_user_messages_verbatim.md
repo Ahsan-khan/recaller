@@ -225,3 +225,17 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 > Change cooked colors to something nicer. Current one is too ugly.
 
 [Built as v1.12.0. It was the second rejection of the Cooked colour, so six palettes were rendered side by side (`tests/e2e/.out/cooked-colour-options.png`). Caramel became the default, and all six are in Settings › Cooked colour.]
+
+## Message 19
+
+> The cooked color is still too ugly. It looks like shit. It literally looks like shit. Why did you pick brown?
+
+[Built as v1.13.0. The answer given: brown was chosen as "cooked = golden-brown" and for contrast with the green; that was a bad call, and half the offered options were browns too. Cooked became a light section like Served (no dark band), Ocean blue by default. The browns were removed from the picker, which now has Ocean, Teal, Midnight and Graphite.]
+
+## Message 20: the second handoff request
+
+> okay we are leaving this conversation forever now. i need you to brain dump and update everything any human or ai or llm will need to proceed forward and develop from this convo. make it organized and make sure everything important and required is there. this will essentially be memory for everyone and everything to access. make sure everything is text and describe every flow in text as well.
+>
+> update the files in C:\Users\User\Documents\recaller\ai_memory
+
+[Done at the end of the second session. 1.13.0 was finished and tested, and every file in this folder was audited against the code: stale names, counts, git state and looks were corrected, the everyday loop was added to `04` §24, the release checklist in `06` was tightened, and the playbook in `13` gained this session's working lessons.]

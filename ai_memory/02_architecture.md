@@ -41,10 +41,10 @@ recaller/
     renderer/
       index.html          DOM shell: SVG sprite (monstera symbol and mask), top bar, stage with board, scroll arrows,
                           selection bar, toasts, lightbox dialog, settings dialog; CSP meta tag
-      styles.css          all styling: tokens, themes, densities, title fonts, components (~1600 lines)
+      styles.css          all styling: tokens, themes, densities, title fonts, Cooked palettes, components (~1770 lines)
       icons.js            window.ICONS: inline SVG strings (stroke icons on a 24px grid)
       voice.js            window.Voice: mic capture, voice-activity segmentation, transcribe() wrapper
-      app.js              the whole UI app (~3400 lines, one IIFE; see "Renderer design")
+      app.js              the whole UI app (~3500 lines, one IIFE; see "Renderer design")
       fonts/              Geist, Geist Mono, Instrument Sans, Plus Jakarta Sans, Onest, Sora, Space Grotesk,
                           Manrope, Inter (woff2) plus OFL licence files
   tests/e2e/              end-to-end suites (see 06_build_test_release.md)
@@ -181,6 +181,7 @@ One IIFE, organised in commented sections, in this order:
   - The Cooked note and the Served text are rendered per column with their own signatures (`augSig`, `finalSig`), which include the search key so matches get highlighted. Their Notes lists come from `partsHtml()`.
   - Column widths: `updateColumn()` sets `style.width` from `colWidth(id)` (reads `data.prefs.colWidths`), except for the column being resized. `render()` ends with `paintWidthReset()`, which enables or disables the top-bar ↔ button.
   - `render()` is skipped while a drag is active.
+- **Body classes (the look switches):** `render()` sets `density-<compact|slim|roomy>`, `title-<font>` and `cooked-<ocean|teal|midnight|graphite>` on `<body>` from `data.prefs` (with fallbacks `slim`, `instrument`, `ocean`); `applyTheme()` sets `theme-<deep|soft>` from the settings file. `index.html` ships `density-slim theme-deep title-instrument cooked-ocean` so the first paint already looks right.
 - **Persistence:** `persist()` sends the whole `data` object to main after every change. `persistSoon()` debounces draft typing by 400ms.
 - **Undo/redo:**
   - Snapshot-based: `checkpoint(label)` stores `JSON.stringify(data.projects)` before every user-visible change. The stack holds at most 80.
@@ -192,13 +193,15 @@ One IIFE, organised in commented sections, in this order:
 - **New-prompt composer closes on save (1.10):** its `onSave` calls `addNote()` then `closeComposer('', [])`.
 - **Fixed-size stage texts (1.7):** `.aug-text` / `.final-text` are limited by CSS to `--stage-lines` (6). `measureCards()` → `paintMore()` shows the slim "Show more / Show less" bar (`.aug-more` / `.final-more`, class `stage-more`) when the text overflows. `col.augExpanded` / `col.finalExpanded` are session-only (always `false` at start). The `fits` class only removes the fade; the height limit never depends on measurement.
 - **Scrollers inside columns (1.7):** `SCROLLERS` lists what scrolls on its own (`.col-scroll`, `textarea`, the opened-up texts, the Notes lists). The board wheel handler walks up from the target and leaves the wheel alone if any of them can scroll. `onScrollbar(e)` stops a pointerdown or click on one of their scrollbars from starting a gesture or a copy.
+- **Card hover bar (1.11):** `createCard()` renders only `.act-hl` (highlighter menu) and `.act-used.act-primary` ("↓ Cooked" → `toggleUsed()` → `moveBetween(id, 'used')`). Editing a card is right-click or E/F2 (`startEdit()`).
+- **Sorting (1.7):** `sortOldestFirst(projectId)` (⋯ menu) sorts `notes` by `createdAt`, as an undoable step.
 - **Help (1.7):** `<dialog id="help">` in `index.html`. `openHelp()` fills in the user's show/hide key; it opens from `#open-help`, `F1`, or `?` when not typing. The global key handler ignores keys while it's open.
 - **Stage editors (1.6):** `editStage(projectId, list, partId?)` opens a composer for the Cooked note (`list` `'used'`, placed in `.aug-wrap`) or the Served text (`'combined'`, placed in `.final-edit-host`). Without `partId` it edits the whole text and `saveStageEdit()` replaces the list with ONE note (only if the text or images changed). With `partId` it edits that note alone, and its trash button calls `deletePart()`. The open editor is `col.stageEditor = { list, partId, composer }`; `closeStageEditors()` runs before any other editor opens and on undo/redo. `isEditing()` reports whether any editor is open. `movePart(id, ±1)` reorders parts; `clearStage(id, list)` backs the Clear Cooked / Clear Served menu items.
 - **Gestures:** a custom pointer-event engine, not HTML5 drag-and-drop.
   - `trackPointer(e, { onMove, onEnd })` listens on `window`. It cancels if a move arrives with no buttons pressed, or if the window loses focus.
   - Card gesture: a press shorter than 240ms without moving copies. Moving 7px or more to the left (mostly horizontally) swipes. Any other movement, or holding for 240ms, drags. A long press that never moved still counts as a click.
   - The Cooked note has its own gesture (`startAugGesture`): click copies, swipe left moves it down, dragging it onto Served moves it down.
-  - Column resize (`startColumnResize`): a pointerdown on `.col-resize` (checked before any other card or header gesture) drags the width, snapping to the default within 6px. It sets `resizing` and `dragActive` so re-renders don't fight it, and on release saves through `setColWidth()`. Double-click (board `dblclick`) calls `resetColumnWidth()`; the top-bar button calls `resetColumnWidths()`, whose toast Undo restores the previous `prefs.colWidths` object. `remeasure(cols)` re-checks "Show more"/"Show all" after width or density changes.
+  - Column resize (`startColumnResize`): a pointerdown on `.col-resize` (checked before any other card or header gesture) drags the width, snapping to the default within 6px. It sets `resizing` and `dragActive` so re-renders don't fight it, and on release saves through `setColWidth()`. Double-click (board `dblclick`) calls `resetColumnWidth()`; the top-bar button calls `resetColumnWidths()`, whose toast Undo restores the previous `prefs.colWidths` object. `remeasure(cols)` re-checks the "Show more" buttons after width or density changes.
   - Columns can be dragged by their header to reorder them.
   - Dragging uses a fixed-position ghost clone, a placeholder, FLIP animations (`flip()`), and auto-scroll near the edges of the board and columns.
 - **Startup sequence (`init`):**

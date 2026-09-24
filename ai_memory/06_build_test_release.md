@@ -48,7 +48,7 @@ The owner's VS Code / Claude Code terminal sets `ELECTRON_RUN_AS_NODE=1`, which 
 
 1. Give them `dist\Recaller Setup X.Y.Z.exe`. They double-click it; it installs over the previous version (closing the running app if needed) and relaunches.
 2. Their data in `%APPDATA%\Recaller` is untouched, and the new version makes an `upgrade` backup on first start.
-3. **Currently installed:** 1.6.0 when the 1.7.0 work started (2026-09-24). The 1.7.0 installer was built and handed over; check the installed version at session start (see `13`).
+3. **Currently installed:** 1.12.0 at the end of the second session (2026-09-24). The 1.13.0 installer (`dist\Recaller Setup 1.13.0.exe`) was built and tested but not yet installed. Installers for 1.5.0–1.13.0 sit in `dist\` (1.10.0's was deleted after a mislabelled rebuild; see `07` #52). Always check the installed version at session start (see `13`).
 
 ## End-to-end test suites (`tests/e2e/`)
 
@@ -233,17 +233,19 @@ Every suite checks that `APP_MAIN` exists and otherwise prints `HARNESS FAIL: no
 
 1. Make the change. Keep the invariants in `03`.
 2. Run `node --check` on every edited JavaScript file.
-3. Run the relevant suites on source, and add checks for new behaviour to `features.e2e.js`.
-4. Bump `version` in `package.json`.
-5. Update the user guide in `README.md`, and `ai_memory/08_changelog.md`.
-6. Clean `dist`, then `npm run dist` (retry once if it exits with 127).
-7. Run all suites against `dist/win-unpacked/resources/app.asar/src/main.js`, including `MODE=real`.
-8. Hand the owner the installer path, and explain what changed and how to use it.
+3. Look at it: `npm run capture` (or a scratch render), and view the PNGs. For taste changes, render options side by side.
+4. Run the relevant suites on source, and add checks for new behaviour to `features.e2e.js`.
+5. Bump `version` in `package.json` **as its own step** (never chained behind `&&`), then confirm it with `grep '"version"' package.json` (see `07` #52).
+6. Update the user guide in `README.md` (the "This builds …" line and any changed rows), `ai_memory/08_changelog.md`, and every other affected `ai_memory` file (counts in `06`, `09`, `13` and `tests/e2e/README.md`; status line in `ai_memory/README.md`).
+7. Clean `dist/win-unpacked*`, then `npm run dist` (retry once if it exits with 127). Confirm the build log line `building target=nsis file=dist\Recaller Setup X.Y.Z.exe` shows the new version.
+8. Run all suites against the packaged app, including `MODE=real`, then delete `tests/e2e/.out/data-real`. Use `$(pwd -W)` for `APP_MAIN` in Git Bash. A single failure that passes on re-run is usually timing or the owner's mouse; re-run before debugging, and say so in the report.
+9. Hand the owner the installer path, and explain what changed and how to use it (short, one line per item they asked for).
+10. Don't commit; the owner commits each version themselves.
 
 ## Git status (important)
 
-- **Repository:** since 2026-09-24 Recaller is its own repo at `C:\Users\User\Documents\recaller` (moved out of `Documents\iresine\recaller`). Branch `main`, remote `origin` = https://github.com/Ahsan-khan/recaller. The first commit `3876950` ("Initial commit: Recaller desktop prompt board (v1.5.0)") is on GitHub.
-- **Branches:** 1.6.0 is committed on branch `v1` (`296fd32`, pushed to `origin/v1`); `main` still has the 1.5.0 commit. 1.7.0 work was left uncommitted.
-- **When committing is requested:** make a branch (unless told to use `main`), then commit with the attribution the environment requires. Push only when asked.
+- **Repository:** since 2026-09-24 Recaller is its own repo at `C:\Users\User\Documents\recaller` (moved out of `Documents\iresine\recaller`), remote `origin` = https://github.com/Ahsan-khan/recaller.
+- **Branches:** `main` has the 1.5.0 commit (`3876950`). `v1` is the working branch: the owner commits each version there with a short message ("initial commits" = 1.6, `ee2572a` "v1" = 1.7, then "1.8", "1.9", "1.10", "1.11", "1.12" = `290c74d`) and pushes. At the end of the second session `v1` was 1 commit ahead of `origin/v1`, and the 1.13.0 work was uncommitted in the working tree.
+- **When committing is requested:** follow the owner's pattern (commit on `v1` with the version as the message) unless told otherwise, and add the attribution the environment requires. Push only when asked.
 - **Ignored:** `.gitignore` ignores `node_modules/`, `dist/` and `tests/e2e/.out/`.
 - **GitHub CLI:** `gh` isn't on PATH; use `C:\Program Files\GitHub CLI\gh.exe`.

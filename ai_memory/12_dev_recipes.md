@@ -85,6 +85,7 @@ Function and variable names below are real; search for them in the files. Line n
 
 - **Theme tokens:** the `:root` block and `body.theme-deep` in `styles.css`.
 - **Title-bar colours:** `THEMES` in `main.js`. Keep them identical to `--topbar`.
+- **Cooked palette (Settings › Cooked colour):** add a `body.cooked-x, .co-x { --aug-bar; --aug-bar-hover; --aug-ink; --aug-bg; --aug-edge; --aug-card; --aug-card-edge }` block in `styles.css` (next to the others), add `'x'` to `COOKED_COLORS` in `app.js`, and add a tile `<button type="button" class="cooked-opt co-x" data-value="x" role="radio"><span class="co-band">COOKED</span><small>Name</small></button>` inside `#set-cooked` in `index.html`. The picker is a 4-column grid. To change the default, edit `cookedColor()`'s fallback, the `cooked-…` class on `<body>` in `index.html`, and the `:root` `--aug-*` fallback values. Update the picker check in `features.e2e.js` (option count, default). Keep palettes light; never brown or violet (see `05`).
 - **Project palette:** `PALETTE` in `app.js`. **Never change existing ids;** users' files store them. Append new entries at the end. The array order is the order new projects take. The ⋯ menu grid is 9 columns (`.menu-swatches`); with more than 27 colours, add a row or widen it.
 - **Highlight colours:** `HIGHLIGHTS` in `app.js` (id, name, color, bg). The ids are stored in notes, so never rename them.
 - **Stage colours:** the `--aug-*` tokens and the `.final` rules.

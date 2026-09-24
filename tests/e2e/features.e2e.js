@@ -279,11 +279,12 @@ async function run() {
   check('an empty Cooked section is just its quiet name: no block, no helper sentence at rest', emptyAug[0] === 'rgba(0, 0, 0, 0)' && emptyHelp === 'none', `${emptyAug.join(' ')} | helper ${emptyHelp}`);
   const bodies = await js(`['p1', 'p2', 'p3'].map((id) => getComputedStyle(document.querySelector('.column[data-id="' + id + '"]')).backgroundColor)`);
   check('every column shares one calm background (colour stays in the headers)', new Set(bodies).size === 1, bodies.join(' | '));
-  const band = await js(`getComputedStyle(document.querySelector('.column[data-id="p1"] .used-headrow')).backgroundImage`);
-  const bandRgb = (band.match(/rgba?\(([^)]*)\)/) || [])[1]?.split(',').map(Number) || [];
-  // hue of the band's first colour: deep and muted (no channel above 180), and not violet/pink (hue 250°–340°)
-  const hue = (() => { const [r, g, b] = bandRgb.map((v) => v / 255); const mx = Math.max(r, g, b); const mn = Math.min(r, g, b); const d = mx - mn; if (!d) return 0; const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (h * 60 + 360) % 360; })();
-  check('Cooked uses a deep, muted band (Caramel by default), not bright violet', bandRgb.length >= 3 && Math.max(...bandRgb.slice(0, 3)) < 180 && !(hue >= 250 && hue <= 340) && await js(`document.body.classList.contains('cooked-caramel')`), `${band.slice(0, 50)} hue ${Math.round(hue)}`);
+  // Cooked (1.13): a light section like Served, Ocean blue by default: no dark header band, a pale block, a blue accent
+  const cookedLook = await js(`(() => { const c = document.querySelector('.column[data-id="p1"]'); const h = getComputedStyle(c.querySelector('.used-headrow')); return { band: h.backgroundImage, bandBg: h.backgroundColor, block: getComputedStyle(c.querySelector('.used')).backgroundColor, bar: getComputedStyle(c.querySelector('.aug-move')).backgroundColor, ocean: document.body.classList.contains('cooked-ocean') }; })()`);
+  const rgbOf = (c) => (c.match(/\d+/g) || []).slice(0, 3).map(Number);
+  const hueOf = ([r, g, b]) => { [r, g, b] = [r / 255, g / 255, b / 255]; const mx = Math.max(r, g, b); const d = mx - Math.min(r, g, b); if (!d) return 0; const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (h * 60 + 360) % 360; };
+  const barHue = hueOf(rgbOf(cookedLook.bar));
+  check('Cooked is a light section, Ocean blue by default (no dark band, no brown)', cookedLook.ocean && cookedLook.band === 'none' && cookedLook.bandBg === 'rgba(0, 0, 0, 0)' && Math.min(...rgbOf(cookedLook.block)) > 200 && barHue > 190 && barHue < 235, `${cookedLook.block} | bar ${cookedLook.bar} hue ${Math.round(barHue)}`);
   await clickSel('#open-help');
   await sleep(300);
   const helpText = await js(`document.querySelector('#help').open && document.querySelector('#help h2').textContent`);
@@ -445,9 +446,9 @@ async function run() {
   check('a prompt can be sent back out of Cooked', (await colTexts('px1')).includes(partText.split('\n')[0]) && (await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-empty')`)));
   const stageColours = await js(`(() => {
     const c = (sel, prop = 'backgroundColor') => getComputedStyle(document.querySelector('.column[data-id="p1"] ' + sel))[prop];
-    return [c('.active-list .card'), c('.used'), c('.final', 'backgroundImage'), c('.aug-note'), c('.final-body'), c('.used-headrow', 'backgroundImage')];
+    return [c('.active-list .card'), c('.used'), c('.final'), c('.aug-note'), c('.final-body'), c('.used-head', 'color'), c('.final-toggle', 'color')];
   })()`);
-  check('new, Cooked and Served each look different (blocks, headers and inner notes)', new Set(stageColours.slice(0, 3)).size === 3 && new Set([stageColours[0], stageColours[3], stageColours[4]]).size === 3 && stageColours[5].includes('gradient'), stageColours.map((x) => x.slice(0, 40)).join(' | '));
+  check('new, Cooked and Served each look different (blocks, labels and inner notes)', new Set(stageColours.slice(0, 3)).size === 3 && new Set([stageColours[0], stageColours[3], stageColours[4]]).size === 3 && stageColours[5] !== stageColours[6], stageColours.map((x) => x.slice(0, 40)).join(' | '));
   await shot('03b-stages');
   // separator setting
   await clickSel('#open-settings');
@@ -808,16 +809,17 @@ async function run() {
   await js(`document.querySelector('#open-settings').click()`);
   await sleep(300);
   const cookedOpts = await js(`[...document.querySelectorAll('#set-cooked [data-value]')].map((b) => b.dataset.value + (b.getAttribute('aria-checked') === 'true' ? '*' : ''))`);
-  const bandBefore = await js(`getComputedStyle(document.querySelector('.column[data-id="p1"] .used-headrow')).backgroundImage`);
-  await js(`document.querySelector('#set-cooked [data-value="petrol"]').click()`);
-  await sleep(600);
-  const bandPetrol = await js(`getComputedStyle(document.querySelector('.column[data-id="p1"] .used-headrow')).backgroundImage`);
+  const barBefore = await js(`getComputedStyle(document.querySelector('.column[data-id="p1"] .aug-move')).backgroundColor`);
+  await js(`document.querySelector('#set-cooked [data-value="teal"]').click()`);
+  let barTeal = barBefore;
+  for (let t = 0; t < 20 && barTeal === barBefore; t++) { await sleep(100); barTeal = await js(`getComputedStyle(document.querySelector('.column[data-id="p1"] .aug-move')).backgroundColor`); }
+  await sleep(500); // let the save land
   const savedCooked = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8')).prefs.cookedColor;
-  await js(`document.querySelector('#set-cooked [data-value="caramel"]').click()`);
+  await js(`document.querySelector('#set-cooked [data-value="ocean"]').click()`);
   await sleep(300);
   key('Escape');
   await sleep(250);
-  check('Settings › Cooked colour: 6 options, Caramel by default, a pick recolours Cooked and is saved', cookedOpts.length === 6 && cookedOpts[0] === 'caramel*' && bandPetrol !== bandBefore && savedCooked === 'petrol' && await js(`document.body.classList.contains('cooked-caramel')`), `${cookedOpts.join(',')} | saved ${savedCooked}`);
+  check('Settings › Cooked colour: 4 options, Ocean by default, a pick recolours Cooked and is saved', cookedOpts.length === 4 && cookedOpts[0] === 'ocean*' && barTeal !== barBefore && savedCooked === 'teal' && await js(`document.body.classList.contains('cooked-ocean')`), `${cookedOpts.join(',')} | saved ${savedCooked} | bar ${barBefore} → ${barTeal} | ocean now ${await js(`document.body.classList.contains('cooked-ocean')`)}`);
 
   // ---------------------------------------------------------------- resize columns, then reset them from the top bar
   const prefsNow = () => JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8')).prefs;

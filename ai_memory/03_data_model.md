@@ -29,11 +29,12 @@ The installed program lives separately in `%LOCALAPPDATA%\Programs\recaller\`.
   "version": 2,                       // max(2, whatever the file had); never lowered
   "prefs": {                          // renderer-owned UI preferences
     "density": "slim",                // "compact" | "slim" | "roomy" (unknown values kept, drawn as slim)
-    "cookedColor": "caramel",         // 1.12+: "caramel" | "espresso" | "petrol" | "graphite" | "terracotta" | "slate"
-                                      //   (absent → caramel). Only written when picked in Settings
+    "cookedColor": "ocean",           // 1.13+: "ocean" | "teal" | "midnight" | "graphite" (absent or unknown → ocean).
+                                      //   1.12 had caramel/espresso/petrol/graphite/terracotta/slate; old values draw as ocean.
+                                      //   Only written when picked in Settings
     "titleFont": "instrument",        // "instrument" | "jakarta" | "onest" | "sora" | "space" | "inter" | "manrope" | "geist" | "caps"
                                       //   (absent → instrument since 1.6; it was sora before, so an absent value now draws differently by design)
-    "joiner": "blank",                // "blank" (\n\n) | "line" (\n) — separator for Combined, Final and Ctrl+click copies (absent → blank)
+    "joiner": "blank",                // "blank" (\n\n) | "line" (\n) — separator for Cooked, Served and Ctrl+click copies (absent → blank)
     "colWidths": { "<project id>": 330 }, // 1.6+: columns the user resized, in px (200–900). Absent → Settings density width.
                                       //   Only written when the user resizes; the top-bar reset deletes the whole key.
     "lastProjectId": "<project id>",  // column last worked in; Ctrl+N / Ctrl+M target it
@@ -77,7 +78,7 @@ The installed program lives separately in `%LOCALAPPDATA%\Programs\recaller\`.
   "createdAt": ms, "updatedAt": ms,
   "copied": 3,                // times copied (click, Ctrl+click, search-Enter, keyboard)
   "lastCopiedAt": ms,
-  "usedAt": ms,               // when it entered Combined or Final
+  "usedAt": ms,               // when it entered Cooked or Served
   "highlight": "amber",       // optional: "amber" (Check again) | "rose" (Important) | "sky" (Idea) | "lime" (Ready)
   "expanded": true,           // optional: card shows all lines instead of the clamp
   ...unknown keys preserved
@@ -121,7 +122,7 @@ The last ten were added in 1.6. An older version shows them as Emerald (first pa
 
 ## The stage naming trap
 
-The on-screen names changed twice; the data field names never did, so existing files load unchanged:
+The on-screen names changed three times; the data field names never did, so existing files load unchanged:
 
 | Data field | 1.0–1.3 UI | 1.4–1.5 UI | 1.6–1.7 UI | 1.8+ UI | DOM / CSS classes |
 | --- | --- | --- | --- | --- | --- |
@@ -175,7 +176,7 @@ Unknown keys are preserved. The whole object (defaults included) is rewritten on
 ## Update-safety invariants (never break these)
 
 1. **No rewrite on startup.** An up-to-date data file stays byte-for-byte identical when a new version starts. `init()` writes only when there was no file, or the file's version is below `DATA_VERSION`.
-2. **Loading is lossless.** `normalize()` fixes only broken values (bad ids, non-string text, invalid image ids). It spreads the original object (`...n`, `...p`, `...raw`), so unknown fields survive. User choices (`color`, `density`, `titleFont`, `joiner`) are never rewritten; fallbacks happen only when drawing.
+2. **Loading is lossless.** `normalize()` fixes only broken values (bad ids, non-string text, invalid image ids). It spreads the original object (`...n`, `...p`, `...raw`), so unknown fields survive. User choices (`color`, `density`, `titleFont`, `joiner`, `cookedColor`, `colWidths`, the collapsed flags) are never rewritten; fallbacks happen only when drawing (e.g. an old `cookedColor: "caramel"` draws as ocean but stays in the file).
 3. **The only allowed additions** when saving after an edit are new fields for new features. For example, 1.4 adds `combined: []` to each project on the first save. Never remove, rename or reinterpret existing fields.
 4. **Downgrades are safe:** older versions (1.3.0 and later) also preserve unknown fields.
 5. **The data folder path, `productName` and `appId` never change.**
@@ -191,7 +192,11 @@ Unknown keys are preserved. The whole object (defaults included) is rewritten on
 - **1.3.0 added** backups, `lastVersion`, `prefs.scroll`, `prefs.lastProjectId`, `note.expanded`, `project.augExpanded` and `prefs.titleFont`.
 - **1.4.0 added** `project.combined`, `note.highlight` and the stage swap (labels only; data unchanged).
 - **1.5.0 added** `prefs.joiner` and `project.usedExpanded`. Augmented changed from a list of cards to one combined note (display only; the data is still a list of notes in `used`).
-- **1.12.0** added `prefs.cookedColor` (only when picked).
-- **1.8.0** added `project.notesCollapsed` (only while Cooking is folded). The stage labels changed again: prompts → Cooking, Combined → Cooked, Final → Served; data unchanged.
-- **1.7.0** added no fields. New prompts are appended to `notes` instead of prepended. `usedExpanded` / `augExpanded` are no longer read (Combined and Final always start at their fixed size); they're left in the file untouched.
 - **1.6.0 added** `prefs.colWidths` (only when the user resizes a column), ten palette ids and three title-font ids. The default title font (when `prefs.titleFont` is absent) became `instrument`. Stage labels changed (Augmented → Combined, Used → Final); data unchanged. `DATA_VERSION` is still 2.
+- **1.7.0** added no fields. New prompts are appended to `notes` instead of prepended. `usedExpanded` / `augExpanded` are no longer read (the stage texts always start at their fixed size); they're left in the file untouched.
+- **1.8.0** added `project.notesCollapsed` (only while Cooking is folded). The stage labels changed again: prompts → Cooking, Combined → Cooked, Final → Served; data unchanged.
+- **1.9.0–1.11.0** added no fields (look and interaction only).
+- **1.12.0** added `prefs.cookedColor` (only when picked).
+- **1.13.0** changed the allowed `cookedColor` values to ocean/teal/midnight/graphite. Stored 1.12 values are not rewritten; they draw as ocean.
+
+`DATA_VERSION` has been 2 since 1.1.0. Every change since then was additive or display-only, so no migration code exists beyond the one-time v1 → v2 rewrite.
