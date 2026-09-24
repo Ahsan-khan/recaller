@@ -2,7 +2,7 @@
 
 ## The product in one paragraph
 
-Recaller keeps prompts and notes that the owner reuses when working with AI tools such as Claude, ChatGPT and Claude Code. Speed of reuse matters most: one click copies a prompt, Ctrl+click copies several at once, and a global shortcut shows or hides the app from anywhere. Prompts are organised per project, with each project as a column on a single board. Inside each column a prompt moves through three stages: new → **Augmented** (joined into one note) → **Used** (the final text that everything is added to). The owner can dictate prompts by voice (OpenAI speech-to-text), attach screenshots, highlight prompts to revisit, and undo anything.
+Recaller keeps prompts and notes that the owner reuses when working with AI tools such as Claude, ChatGPT and Claude Code. Speed of reuse matters most: one click copies a prompt, Ctrl+click copies several at once, and a global shortcut shows or hides the app from anywhere. Prompts are organised per project, with each project as a column on a single board. Inside each column a prompt moves through three stages: new → **Combined** (joined into one note; called Augmented before 1.6) → **Final** (the final text that everything is added to; called Used before 1.6). The owner can dictate prompts by voice (OpenAI speech-to-text), attach screenshots, highlight prompts to revisit, and undo anything.
 
 ## The owner
 
@@ -17,14 +17,15 @@ Recaller keeps prompts and notes that the owner reuses when working with AI tool
 ## Settled taste and preferences (do not undo these)
 
 - **Theme:** deep green is the default look: a dark forest canvas with solid, deep-coloured column headers. The owner explicitly said they liked it when they thought it had changed. The light "Soft" theme remains optional in Settings.
-- **Density:** slim and compact, with about 268px columns and actions placed in headers or bars rather than extra rows. They complained that 340px columns wasted space.
-- **Distinctness:** neighbouring columns get clearly different hues (emerald, sky, sun, orchid, lime, blossom, teal, bark). The stages look different too: new prompts are white cards, Augmented is an indigo tray, and Used is a deep-green block.
+- **Density:** slim and compact, with about 268px columns and actions placed in headers or bars rather than extra rows. They complained that 340px columns wasted space. Since 1.6 they can resize individual columns, and a slim top-bar ↔ button puts them all back to this default.
+- **Distinctness:** neighbouring columns get clearly different hues (emerald, sky, sun, orchid, lime, blossom, teal, bark, then ten more since 1.6). The stages look different too: new prompts are white cards, Combined is an indigo block with a solid header band and a lavender note, and Final is a deep-green block with a mint text box. They asked for more stage contrast twice (rounds 7 and 9), so don't make the stages more alike.
 - **Typography:** sharp and modern. The UI uses Geist, and numbers and labels use Geist Mono.
-  - Column titles use Sora by default, with a live picker offering Sora, Space Grotesk, Inter Display, Manrope, Geist and Sora Caps.
+  - Column titles use Instrument Sans by default (since 1.6; Sora before), with a live picker offering Instrument Sans, Plus Jakarta Sans, Onest, Sora, Space Grotesk, Inter Display, Manrope, Geist and Sora Caps. They have asked for a sharper, cleaner title font three times, so title-font taste isn't settled yet.
   - They rejected tight negative letter-spacing, small grey labels, and a text-shadow on white titles; all looked "not clear".
   - Headings stay at 15px or larger and bold.
 - **Layout:** nothing may overlap. They reported a "Copy all" button overlapping text, and a long column name hidden behind header buttons.
 - **The New prompt button** must be clearly visible and easy to reach, and not sit next to the column name. It is now a full-width bar under the header.
+- **Less chrome:** in round 9 they removed the Final counter, the Copy all button and the top-bar "+ Project" button. Clicking already copies, and the board's "+ New project" tile creates projects.
 - **Data safety is paramount.** Every update must keep everything identical: notes, drafts, images, colours, layout, scroll positions, window position and settings.
 
 ## Every request, in order, and what was built
@@ -110,11 +111,20 @@ The owner's words are paraphrased closely; full detail is in `08_changelog.md`.
      - Augmented became one combined note, with prompts appended in the order they were added;
      - a "Move to Used" button, swipe left and drag onto Used, all of which append the whole note to Used and empty Augmented;
      - a **Join notes with: Blank line (default) / New line** setting, because the owner's wording ("a new line") differed from earlier behaviour (blank line).
-9. **Final: "brain dump everything".** This folder was written, and the test suites were moved into the repo at `tests/e2e/`.
+9. **"Brain dump everything".** This folder was written, and the test suites were moved into the repo at `tests/e2e/`.
+
+Second session (2026-09-24), after the project moved to `C:\Users\User\Documents\recaller` (its own git repo, on GitHub):
+
+10. **"Read every file in ai_memory; prepare yourself."** Every file was read, the repo state checked, and a baseline `npm test` run (101/101).
+11. **Round 9 → v1.6.0.**
+    - The request: fix the known issues; remove the counter next to Used and its Copy all button; try a new sharper, cleaner column-title font; be able to edit the Augmented and Used notes, "all" of them; rename Used → **Final** and Augmented → **Combined**; slightly more visual difference between the three stages; remove the + Project button from the top bar; resizable columns plus a slim top-bar button that resets every width to today's default; more column colours.
+    - What was built: all of it. See `08` (1.6.0) for details and `10` (message 12) for how each item was read.
 
 ## Things the owner has not decided or confirmed
 
 - **Separator:** whether they want a blank line or a single new line between joined notes. The default stays blank line; the setting exists.
-- **Clearing Used:** whether the final Used text should ever be cleared or archived. Today there is no "clear Used" action; see known issue #1 in `09`.
+- **Archiving Final:** whether a cleared Final text should be archived. Since 1.6, ⋯ → Clear Final empties it (undoable until restart).
+- **Combined counter:** round 9 removed only the counter next to Final (then "Used"). Whether they want the Combined count gone too is unknown.
+- **Title font:** Instrument Sans is the new default; whether it finally satisfies "sharp, clean, modern" is unconfirmed.
 - **Importing prompt files:** whether to import `Dev Prompts.txt` and `Longterm Prompts.txt`.
 - **Signing and auto-update:** whether they want code signing or auto-update. Both are currently absent.

@@ -41,11 +41,12 @@ recaller/
     renderer/
       index.html          DOM shell: SVG sprite (monstera symbol and mask), top bar, stage with board, scroll arrows,
                           selection bar, toasts, lightbox dialog, settings dialog; CSP meta tag
-      styles.css          all styling: tokens, themes, densities, title fonts, components (~1550 lines)
+      styles.css          all styling: tokens, themes, densities, title fonts, components (~1600 lines)
       icons.js            window.ICONS: inline SVG strings (stroke icons on a 24px grid)
       voice.js            window.Voice: mic capture, voice-activity segmentation, transcribe() wrapper
-      app.js              the whole UI app (~3200 lines, one IIFE; see "Renderer design")
-      fonts/              Geist, Geist Mono, Sora, Space Grotesk, Manrope, Inter (woff2) plus OFL licence files
+      app.js              the whole UI app (~3400 lines, one IIFE; see "Renderer design")
+      fonts/              Geist, Geist Mono, Instrument Sans, Plus Jakarta Sans, Onest, Sora, Space Grotesk,
+                          Manrope, Inter (woff2) plus OFL licence files
   tests/e2e/              end-to-end suites (see 06_build_test_release.md)
   ai_memory/              this handoff
 ```
@@ -177,18 +178,21 @@ One IIFE, organised in commented sections, in this order:
   - `columns` (Map projectId → column view) and `cards` (Map noteId → card view) keep DOM nodes alive across renders.
   - `render()` rebuilds the order with `syncChildren(parent, nodes)`, which moves only the nodes that changed. This keeps focus, scroll, animations and open editors intact.
   - Each card view keeps a signature string (text, stage, search, expanded, copy count, images, highlight) and only rewrites its DOM when that changes.
-  - The Augmented note and the Used text are rendered per column with their own signatures (`augSig`, `finalSig`).
+  - The Combined note and the Final text are rendered per column with their own signatures (`augSig`, `finalSig`), which include the search key so matches get highlighted. Their Notes lists come from `partsHtml()`.
+  - Column widths: `updateColumn()` sets `style.width` from `colWidth(id)` (reads `data.prefs.colWidths`), except for the column being resized. `render()` ends with `paintWidthReset()`, which enables or disables the top-bar ↔ button.
   - `render()` is skipped while a drag is active.
 - **Persistence:** `persist()` sends the whole `data` object to main after every change. `persistSoon()` debounces draft typing by 400ms.
 - **Undo/redo:**
   - Snapshot-based: `checkpoint(label)` stores `JSON.stringify(data.projects)` before every user-visible change. The stack holds at most 80.
   - `applySnapshot()` restores projects but carries over live UI and counter fields: drafts, draft images, collapsed and expanded flags, copy counts, last-copied time and the note `expanded` flag. So undo only rewinds what the user actually did.
   - Toasts carrying Undo are dismissed whenever a new checkpoint is made, so "Undo" always means the latest change.
-- **Composer component:** `createComposer(options)` returns `{ root, focus, startVoice, toggleVoice, screenshot, addImage, value, images, isBusy, destroy }`. It is used for new prompts, editing a card, and editing the Augmented note. It holds all voice, screenshot, paste and drop logic for its textarea.
+- **Composer component:** `createComposer(options)` returns `{ root, focus, startVoice, toggleVoice, screenshot, addImage, value, images, isBusy, destroy }`. It is used for new prompts, editing a card, and the stage editors. It holds all voice, screenshot, paste and drop logic for its textarea.
+- **Stage editors (1.6):** `editStage(projectId, list, partId?)` opens a composer for the Combined note (`list` `'used'`, placed in `.aug-wrap`) or the Final text (`'combined'`, placed in `.final-edit-host`). Without `partId` it edits the whole text and `saveStageEdit()` replaces the list with ONE note (only if the text or images changed). With `partId` it edits that note alone, and its trash button calls `deletePart()`. The open editor is `col.stageEditor = { list, partId, composer }`; `closeStageEditors()` runs before any other editor opens and on undo/redo. `isEditing()` reports whether any editor is open. `movePart(id, ±1)` reorders parts; `clearStage(id, list)` backs the Clear Combined / Clear Final menu items.
 - **Gestures:** a custom pointer-event engine, not HTML5 drag-and-drop.
   - `trackPointer(e, { onMove, onEnd })` listens on `window`. It cancels if a move arrives with no buttons pressed, or if the window loses focus.
   - Card gesture: a press shorter than 240ms without moving copies. Moving 7px or more to the left (mostly horizontally) swipes. Any other movement, or holding for 240ms, drags. A long press that never moved still counts as a click.
-  - The Augmented note has its own gesture (`startAugGesture`): click copies, swipe left moves it down, dragging it onto Used moves it down.
+  - The Combined note has its own gesture (`startAugGesture`): click copies, swipe left moves it down, dragging it onto Final moves it down.
+  - Column resize (`startColumnResize`): a pointerdown on `.col-resize` (checked before any other card or header gesture) drags the width, snapping to the default within 6px. It sets `resizing` and `dragActive` so re-renders don't fight it, and on release saves through `setColWidth()`. Double-click (board `dblclick`) calls `resetColumnWidth()`; the top-bar button calls `resetColumnWidths()`, whose toast Undo restores the previous `prefs.colWidths` object. `remeasure(cols)` re-checks "Show more"/"Show all" after width or density changes.
   - Columns can be dragged by their header to reorder them.
   - Dragging uses a fixed-position ghost clone, a placeholder, FLIP animations (`flip()`), and auto-scroll near the edges of the board and columns.
 - **Startup sequence (`init`):**

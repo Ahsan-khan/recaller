@@ -22,12 +22,13 @@ Function and variable names below are real; search for them in the files. Line n
    - on change, call `saveSetting({ key: value })`.
 5. Document it in the root `README.md` and in `ai_memory/03` and `04`.
 
-## Add a UI preference stored in the data file (like density, title font or separator)
+## Add a UI preference stored in the data file (like density, title font, separator or column widths)
 
 1. Read it as `data.prefs.<name>` with a fallback where it is used; don't write the default. `normalize()` already keeps unknown `prefs` keys.
 2. Add a control in Settings, then paint it in `paintDensity()`. The joiner and title-font controls are the examples to copy.
 3. On click: set `data.prefs.<name>`, then `persist()`, then `render()`.
 4. If it changes a class on `<body>`, do that in `render()` (see `density-*` and `title-*`).
+5. Keep it out of `data.projects` if undo shouldn't rewind it (see how `prefs.colWidths` works: `colWidth()`, `setColWidth()`, `resetColumnWidths()`).
 
 ## Add a new action on a prompt card
 
@@ -38,12 +39,14 @@ Function and variable names below are real; search for them in the files. Line n
 5. `yourAction(id)`: `const loc = locate(id)`, then `checkpoint('Label')` BEFORE changing anything, then mutate, then `persist()`, then `render()`. Show a toast with Undo if the change is visible: `toast('Done', { action: 'Undo', onAction: undo, history: true })`.
 6. Buttons inside cards are skipped by the card gesture engine (its `closest('button, …')` check), so they won't trigger copy or drag.
 
-## Add an action on the Augmented note or the Used text
+## Add an action on the Combined note or the Final text
 
-- **Markup:** in `createColumn()`, in the `section.used` (Augmented) or `section.final` (Used) template. Keep a reference in the column view object.
-- **Rendering:** in `updateColumn()`, in the "Augmented" and "Used (final)" blocks. If a new state affects the markup, add it to `augSig` or `finalSig`.
-- **Clicks:** in the board `click` listener, which already handles `.aug-move`, `.aug-edit`, `.aug-parts-btn`, `.ap-back`, `.final-copy`, `.final-parts-btn`, `.fp-back`, and so on.
-- **Remember:** data `used` is Augmented and `combined` is Used. Combined texts come from `augmentedText(project)` and `finalText(project)`, both using `joiner()`.
+- **Markup:** in `createColumn()`, in the `section.used` (Combined) or `section.final` (Final) template. Keep a reference in the column view object.
+- **Rendering:** in `updateColumn()`, in the "Combined" and "Final" blocks. If a new state affects the markup, add it to `augSig` or `finalSig`.
+- **Notes-list row buttons:** add them in `partsHtml()` (shared by both stages) and handle them in the board `click` listener's `.final-part` branch, which already routes `.fp-up`, `.fp-down`, `.fp-edit`, `.ap-back` (Combined → prompts) and `.fp-back` (Final → Combined). Tell the stages apart with `part.closest('.aug-parts')`.
+- **Clicks:** the board `click` listener also handles `.aug-move`, `.aug-edit`, `.final-edit`, `.aug-parts-btn`, `.final-parts-btn`, `.aug-more`, `.final-more` and clicks on `.final-text` (copy).
+- **Editing:** reuse `editStage(projectId, list, partId?)`; don't create another composer host.
+- **Remember:** data `used` is Combined and `combined` is Final (`STAGE_NAME` maps them). Combined texts come from `augmentedText(project)` and `finalText(project)` (or `stageText(project, list)`), all using `joiner()`.
 
 ## Add or change a data field
 
@@ -82,7 +85,7 @@ Function and variable names below are real; search for them in the files. Line n
 
 - **Theme tokens:** the `:root` block and `body.theme-deep` in `styles.css`.
 - **Title-bar colours:** `THEMES` in `main.js`. Keep them identical to `--topbar`.
-- **Project palette:** `PALETTE` in `app.js`. **Never change existing ids;** users' files store them. Append new entries at the end. The array order is the order new projects take.
+- **Project palette:** `PALETTE` in `app.js`. **Never change existing ids;** users' files store them. Append new entries at the end. The array order is the order new projects take. The ⋯ menu grid is 9 columns (`.menu-swatches`); with more than 27 colours, add a row or widen it.
 - **Highlight colours:** `HIGHLIGHTS` in `app.js` (id, name, color, bg). The ids are stored in notes, so never rename them.
 - **Stage colours:** the `--aug-*` tokens and the `.final` rules.
 
@@ -90,9 +93,9 @@ Function and variable names below are real; search for them in the files. Line n
 
 1. Copy the Latin `.woff2` (for example from an `@fontsource-variable` package via `npm pack`) into `src/renderer/fonts/`, with its licence.
 2. `styles.css`: add an `@font-face` (with a `unicode-range`), plus a `body.title-x, .t-x { --title-font…; --title-size…; --title-weight…; --title-track…; --title-case… }` rule.
-3. `app.js`: add `x` to `TITLE_FONTS`.
-4. `index.html`: add a tile `<button class="title-opt t-x" data-value="x" role="radio"><span>Wildfire RL</span><small>Name</small></button>`.
-5. Compare visually with `npm run capture` before making it the default.
+3. `app.js`: add `x` to `TITLE_FONTS`. To make it the default, change `DEFAULT_TITLE_FONT` in `app.js`, the `:root, body.title-x, .t-x` rule in `styles.css`, and the `title-…` class on `<body>` in `index.html`. Users who picked a font keep theirs; only users without `prefs.titleFont` see the new default.
+4. `index.html`: add a tile `<button class="title-opt t-x" data-value="x" role="radio"><span>Wildfire RL</span><small>Name</small></button>` (the picker is a 3-column grid; keep the count a multiple of 3).
+5. Compare visually before making it the default. For quick side-by-side comparisons of many candidates, render a standalone HTML page of mock headers with an *offscreen-rendering* Electron window (`new BrowserWindow({ show: false, webPreferences: { offscreen: true } })` + `capturePage()`). No window ever appears, and the output is at the owner's 1× scale. Then confirm in the app with `npm run capture`.
 
 ## Change voice behaviour
 

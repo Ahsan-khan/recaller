@@ -1,5 +1,6 @@
 'use strict';
-// Captures a close-up of the column headers (project names + Used/Augmented labels).
+// Renders a fixed sample board for visual review: the stages (prompts, Combined, Final),
+// highlights, a long two-line name, a resized column, the top bar, Settings and the colour menu.
 const path = require('node:path');
 const fs = require('node:fs');
 const { app, BrowserWindow, screen } = require('electron');
@@ -15,7 +16,7 @@ const now = Date.now();
 const note = (id, text, extra = {}) => ({ id, text, images: [], createdAt: now - 7e6, updatedAt: now - 7e6, copied: 0, lastCopiedAt: 0, usedAt: 0, ...extra });
 const proj = (id, name, color, used = []) => ({ id, name, color, usedCollapsed: false, augCollapsed: false, draft: '', draftImages: [], createdAt: now, notes: [note(id + 'n', `A prompt in ${name}`)], used });
 const hl = (n, h) => ({ ...n, highlight: h });
-fs.writeFileSync(path.join(DATA_DIR, 'recaller-data.json'), JSON.stringify({ version: 2, prefs: { density: 'slim' }, projects: [
+fs.writeFileSync(path.join(DATA_DIR, 'recaller-data.json'), JSON.stringify({ version: 2, prefs: { density: 'slim', colWidths: { c: 330 } }, projects: [
   { ...proj('a', 'Wildfire RL', 'monstera'), notes: [note('a1', 'Review the fire spread model — wind should bias ignition probability.'), hl(note('a2', 'Benchmark heuristic_ai vs PPO over 50 seeded maps.'), 'amber'), note('a3', 'Summarize the websocket protocol in 10 bullets.')],
     used: [note('u1', 'Write the stage two memory doc'), hl(note('u2', 'Refactor agents.py with typed dataclasses'), 'rose')],
     combined: [note('c1', 'You are an expert RL engineer.'), note('c2', 'Here is the current reward function:\n\nreward = -burned_cells')] },
@@ -37,17 +38,29 @@ app.on('browser-window-created', (_e, w) => {
   const showInactive = w.showInactive.bind(w);
   w.show = () => { w.setBounds(OFF()); showInactive(); w.setBounds(OFF()); };
 });
-require(process.env.APP_MAIN || path.join(__dirname, '..', '..', 'src', 'main.js'));
+const APP_MAIN = process.env.APP_MAIN || path.join(__dirname, '..', '..', 'src', 'main.js');
+if (!fs.existsSync(APP_MAIN)) { console.error(`HARNESS FAIL: no app at ${APP_MAIN} (APP_MAIN must be a Windows path)`); process.exit(1); }
+require(APP_MAIN);
 app.whenReady().then(async () => {
   await sleep(2200);
   const wc = BrowserWindow.getAllWindows()[0].webContents;
-  const img = await wc.capturePage({ x: 0, y: 48, width: 1160, height: 700 });
+  const js = (code) => wc.executeJavaScript(code);
+  // open the Notes list under the Combined note and the Final text of the first column
+  await js("document.querySelector('.column[data-id=\"a\"] .aug-parts-btn').click(); document.querySelector('.column[data-id=\"a\"] .final-parts-btn').click()");
+  await sleep(300);
+  const img = await wc.capturePage({ x: 0, y: 0, width: 1360, height: 780 });
   fs.writeFileSync(path.join(SCRATCH, `${OUT}.png`), img.toPNG());
   const zoom = await wc.capturePage({ x: 10, y: 55, width: 580, height: 240 });
   fs.writeFileSync(path.join(SCRATCH, `${OUT}-zoom.png`), zoom.resize({ width: 1160, quality: 'best' }).toPNG());
-  await wc.executeJavaScript("document.querySelector('#open-settings').click()");
+  await js("document.querySelector('.column[data-id=\"a\"] .col-menu').click()");
+  await sleep(300);
+  const m = await js("(() => { const b = document.querySelector('.menu').getBoundingClientRect(); return { x: Math.round(b.left) - 4, y: Math.round(b.top) - 4, width: Math.round(b.width) + 8, height: Math.round(b.height) + 8 }; })()");
+  fs.writeFileSync(path.join(SCRATCH, `${OUT}-menu.png`), (await wc.capturePage(m)).toPNG());
+  await js("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))");
+  await sleep(200);
+  await js("document.querySelector('#open-settings').click()");
   await sleep(700);
-  const r = await wc.executeJavaScript("(() => { const b = document.querySelector('.modal-card').getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), width: Math.round(b.width), height: 260 }; })()");
+  const r = await js("(() => { const b = document.querySelector('.modal-card').getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), width: Math.round(b.width), height: 400 }; })()");
   fs.writeFileSync(path.join(SCRATCH, `${OUT}-settings.png`), (await wc.capturePage(r)).toPNG());
   console.log('captured');
   app.exit(0);

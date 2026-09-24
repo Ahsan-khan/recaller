@@ -5,8 +5,8 @@ Terms used below:
 - **Column**: a project.
 - **Board**: the horizontally scrolling area that holds all columns.
 - **Composer**: the text editor used for new prompts and edits.
-- **Augmented**: the middle stage (data field `used`), shown as ONE combined note.
-- **Used**: the bottom stage (data field `combined`), the final combined text.
+- **Combined** (called Augmented before 1.6): the middle stage (data field `used`), shown as ONE combined note.
+- **Final** (called Used before 1.6): the bottom stage (data field `combined`), the final combined text.
 
 ## 1. Screen layout (top to bottom, left to right)
 
@@ -14,16 +14,18 @@ Terms used below:
    - the brand: a monstera leaf mark and "Recaller";
    - the search box, showing a "Ctrl K" hint;
    - the undo ↶ and redo ↷ buttons, disabled when there is nothing to undo or redo, with the action named in the tooltip;
-   - a green **+ Project** button;
+   - the **↔ reset column widths** button (`#reset-widths`), disabled while no column is resized;
    - the settings gear.
+
+   The green **+ Project** button was removed in 1.6; new projects come from the "+ New project" tile or Ctrl+Shift+N.
 2. **Stage**: a dotted canvas (dark forest green in Deep theme) with faint monstera leaves. The **board** holds the columns side by side, plus a dashed "+ New project" tile at the end. Round ‹ › scroll buttons appear at the left and right edges when there is more to scroll.
-3. **Each column**, from top to bottom:
+3. **Each column**, from top to bottom (its right edge is a resize handle, see §22):
    - **Header**, a solid colour in Deep theme. It holds a small leaf icon, the project name (wraps to two lines, then "…"), a count of prompts, and a ⋯ menu button.
    - **New prompt bar**: a full-width white button "(+) New prompt" plus a separate mic button. It shows a "Draft" badge when unsaved text exists. It is hidden while the composer is open, and the composer takes its place.
    - **Scroll area**:
      - **Prompt cards**, newest first. "No prompts yet" is shown when there are none.
-     - **Augmented tray** (indigo), with the header "AUGMENTED · n" and a collapse arrow. Inside is one white **Augmented note** with the combined text (clamped to 8 lines, with "Show all"). Its footer shows "n prompts · w words", a **Notes** toggle and a pencil (edit). Under the note is a full-width indigo **↓ Move to Used** bar. When the tray is empty it says "Move prompts here and they join into one note".
-     - **Used block** (deep green, shown only when Augmented or Used has content). Its header reads "USED · n" with a collapse arrow and a bright **Copy all** button. Inside is a white box with the combined final text, the footer "n notes · w words", a **Notes** toggle, and "Show all" when the text is long. When it is empty it says "Move the Augmented note down to add it here".
+     - **Combined block** (indigo, with a solid indigo header band reading "COMBINED · n" and a collapse arrow). Inside is one lavender **Combined note** with the combined text (clamped to 8 lines, with "Show all"). Its footer shows "n prompts · w words", a **Notes** toggle and a pencil (edit). Under the note is a full-width indigo **↓ Move to Final** bar. When the block is empty it says "Move prompts here and they join into one note".
+     - **Final block** (deep green, shown only when Combined or Final has content). Its header reads "FINAL" with a collapse arrow; there is no counter and no Copy all button (both removed in 1.6). Inside is a mint box with the combined final text, the footer "n notes · w words", a **Notes** toggle, a pencil (edit), and "Show all" when the text is long. When it is empty it says "Move the Combined note down to add it here".
 4. **Floating elements:**
    - toasts (bottom centre);
    - the Ctrl+click selection bar (bottom centre; toasts move up above it);
@@ -57,8 +59,8 @@ Terms used below:
 - **Recolour:** ⋯ menu → one of eight swatches. Undoable.
 - **Reorder:** drag a column by its header. A tilted ghost and a dashed placeholder show the position, and the board auto-scrolls near the edges. ⋯ → Move left / Move right also works. Undoable.
 - **Delete:** ⋯ → Delete project. It happens immediately, with an Undo toast (9s). Undoable.
-- **⋯ menu, full list:** New from screenshot, Rename, colour swatches, Move left, Move right, Clear used (n), Delete project.
-  - **Warning:** "Clear used" currently empties **Augmented** (data field `used`), not the final Used. See `09`.
+- **⋯ menu, full list:** New from screenshot, Rename, 18 colour swatches (two rows of nine), Move left, Move right, Reset width (enabled when the column is resized), Clear Combined (n), Clear Final (n), Delete project.
+- **Clear Combined / Clear Final:** empties that stage (data `used` / `combined`) with an Undo toast ("Cleared Combined" / "Cleared Final", 7s). Undoable. An open editor on that stage is closed first.
 - **Current project:** the last column the user pressed the mouse in. It is remembered across restarts and is the target of Ctrl+N, Ctrl+M and Ctrl+Shift+S.
 
 ## 4. New prompt flow
@@ -84,8 +86,8 @@ Terms used below:
 - **A slow click** (held longer than 240ms without moving) still copies. It briefly starts a drag, which is cancelled because nothing moved.
 - **Keyboard:** focus a card (Tab or ↑/↓) and press Enter or Space.
 - **Search:** type in search, then press Enter to copy the first matching prompt.
-- **Augmented note**: click it to copy the whole combined text. A "Copied" chip appears in its top-right corner.
-- **Used text**: click **Copy all**, which turns into "✓ Copied" for 1.4s and briefly flashes the block, or click the text itself. Clicking the text doesn't copy if the user is in the middle of selecting part of it with the mouse.
+- **Combined note**: click it to copy the whole combined text. A "Copied" chip appears in its top-right corner.
+- **Final text**: click the text to copy all of it. A "Copied" chip appears in the box's top-right corner and the block flashes. Clicking doesn't copy if the user is in the middle of selecting part of the text with the mouse. (The Copy all button was removed in 1.6.)
 - **Clipboard writes** go through main and are serialised, so they can't finish out of order.
 
 ## 6. Ctrl+click multi-copy (Explorer-style selection)
@@ -93,7 +95,7 @@ Terms used below:
 1. Hold Ctrl and click prompt cards. Each Ctrl+click adds the card to the selection and **immediately** puts all selected texts on the clipboard.
    - The order is the click order, joined by the separator setting (blank line by default).
    - Selected cards get an accent ring and a numbered badge (1, 2, 3…) showing the paste order.
-   - A bar at the bottom shows "n notes copied · Ctrl+click to add or remove" with **Move to Augmented** and **Clear** buttons.
+   - A bar at the bottom shows "n notes copied · Ctrl+click to add or remove" with **Move to Combined** and **Clear** buttons.
 2. Ctrl+clicking an already selected card removes it, and the clipboard is rewritten without it.
 3. **Anchor rule:** if the user plain-clicked (copied) a card within the last two minutes and has done nothing else since, the first Ctrl+click also includes that card as number 1. "Nothing else" means no other pointer press on the board and no key other than Ctrl, Shift or Alt. Ctrl+clicking the anchor card itself doesn't add it twice.
 4. **The selection clears when:**
@@ -102,7 +104,7 @@ Terms used below:
    - the user clicks empty canvas;
    - the window loses focus, typically when switching away to paste, so the next Ctrl+click starts fresh.
 5. **Image-only cards** can't be combined; a toast explains this.
-6. **Move to Augmented** (in the bar) appends the selected prompts to Augmented in click order. Undoable.
+6. **Move to Combined** (in the bar) appends the selected prompts to Combined in click order. Undoable.
 7. **Counts:** each newly selected card's copy count goes up by one.
 
 ## 7. Swipe left to delete (prompt cards only)
@@ -117,46 +119,56 @@ Terms used below:
 1. Press and hold for 240ms, or press and move in any direction other than a left swipe. The card lifts: a tilted ghost follows the pointer, and a dashed placeholder marks where it will land.
 2. **Drop targets:**
    - **within the prompt list** (any column): reorder, with other cards animating out of the way. Undo label "Reorder", or "Move to \<project\>" across columns.
-   - **on the Augmented tray** of any column: the tray gets a dashed outline, and dropping appends the prompt to the end of Augmented ("Added to Augmented · Undo").
-   - **on the Used block**: appends the prompt directly to the end of the final text ("Added to Used · Undo").
+   - **on the Combined block** of any column: the block gets a dashed outline, and dropping appends the prompt to the end of Combined ("Added to Combined · Undo").
+   - **on the Final block**: appends the prompt directly to the end of the final text ("Added to Final · Undo").
 3. **Auto-scroll:** the board scrolls sideways within 64px of its left or right edge. A column scrolls vertically within 64px of its top or bottom.
 4. **Landing:** after the drop, the card glides from the ghost's position into place. When dropped into a stage, the ghost shrinks into that stage's header.
 5. **Cancelling:** if the mouse button is released outside the window, or a move arrives with no button pressed, the drag is cancelled safely.
 
 ## 9. The three stages
 
-### Prompts → Augmented
+### Prompts → Combined
 
-- **Ways to move a prompt:** the stack icon on a card's hover bar, U on a focused card, dragging onto the tray, or Ctrl+click several and then "Move to Augmented".
-- The prompt is **appended to the end** of the Augmented list, so the combined note reads in the order the prompts were added.
-- The Augmented note shows all its prompts' exact texts joined by the separator.
+- **Ways to move a prompt:** the stack icon on a card's hover bar, U on a focused card, dragging onto the Combined block, or Ctrl+click several and then "Move to Combined".
+- The prompt is **appended to the end** of the Combined list, so the combined note reads in the order the prompts were added.
+- The Combined note shows all its prompts' exact texts joined by the separator.
 
-### The Augmented note
+### The Combined note
 
 - **Click:** copies the combined text.
-- **Notes:** lists each prompt (number, first line) with a ↩ button that sends it back to the top of the prompts. Undoable ("Moved back to prompts").
-- **Pencil (edit):** opens a composer holding the combined text and all the prompts' images. Saving replaces Augmented with ONE note containing the edited text. Undoable ("Edit Augmented"). Cancel leaves it untouched.
+- **Notes:** a toggle (looks pressed while open) that lists each part: number, first line, and on hover four buttons (see "The Notes list" below).
+- **Pencil (edit):** opens a composer in place of the note, holding the combined text and all the prompts' images. Saving a changed text replaces Combined with ONE note containing it (undo label "Edit Combined"). Saving it unchanged does nothing, so the parts stay separate. Cancel (× or Esc) leaves it untouched.
 - **Show all / Show less:** expands the note (remembered per project).
 
-### Augmented → Used
+### Combined → Final
 
-The Augmented note has three ways down:
-1. the **↓ Move to Used** bar;
-2. **swipe it left** past 36%, with a green "Move to Used" backdrop;
-3. **drag it** onto the Used block.
+The Combined note has three ways down:
+1. the **↓ Move to Final** bar;
+2. **swipe it left** past 36%, with a green "Move to Final" backdrop;
+3. **drag it** onto the Final block.
 
-All three **append every Augmented prompt to the end of Used**, in order, and empty Augmented for the next batch. The Used block flashes and a "Moved to Used · Undo" toast appears. Undoable ("Move to Used").
+All three **append every Combined prompt to the end of Final**, in order, and empty Combined for the next batch. The Final block flashes and a "Moved to Final · Undo" toast appears. Undoable ("Move to Final").
 
-### Used (final text)
+### Final (the final text)
 
 - It shows the exact texts of every note moved there, in order, joined by the separator.
-- **Copy all** copies it.
-- **Notes** lists each note with a ↩ that sends it back to the end of Augmented. Undoable.
-- There is currently **no action to clear Used**; see `09`.
+- **Click the text** to copy it all.
+- **Pencil (edit):** like Combined's: the whole Final text in a composer (placed under the Final header, the text box hidden meanwhile). A changed text is saved as ONE note ("Edit Final"); unchanged does nothing.
+- **Notes** lists the parts, with the same row buttons; ↩ sends one back to the end of Combined ("Sent back to Combined · Undo").
+- **Clearing:** ⋯ → Clear Final (undoable).
+
+### The Notes list (Combined and Final)
+
+Each row shows the part's number and first line. Hovering (or focusing inside) a row shows:
+- **↑ / ↓**: move the part up or down (disabled at the ends). The combined text follows the new order. Undoable ("Reorder").
+- **✎**: edit just this part. The composer opens in the stage's editor spot with only that part's text and images; saving changes only that note (undo label "Edit note"), so the others stay separate. The composer's trash button deletes the part ("Note deleted · Undo").
+- **↩**: in Combined, send the prompt back to the top of the prompts ("Moved back to prompts"); in Final, send it back to the end of Combined ("Sent back to Combined").
+
+Only one editor is open at a time anywhere: opening a stage editor closes the new-prompt composer and any card editor, and vice versa. Undo and redo close an open stage editor.
 
 ### Separator
 
-Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New line" (`\n`). It applies to the Augmented note, the Used text and Ctrl+click copies. It takes effect immediately, since the texts are combined each time they are shown.
+Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New line" (`\n`). It applies to the Combined note, the Final text and Ctrl+click copies. It takes effect immediately, since the texts are combined each time they are shown.
 
 ## 10. Highlighting
 
@@ -245,10 +257,10 @@ Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New lin
 - **Undo:** Ctrl+Z (when not typing in a text field), the ↶ button, or **Undo** on a toast. **Redo:** Ctrl+Y or Ctrl+Shift+Z, the ↷ button, or **Redo** on the "Undone: …" toast.
 - **Undoable actions:**
   - notes: new note, edit note, delete note, reorder;
-  - moving between projects, stages and parts: move to another project, Add to Augmented, Move to Augmented (selection), Move back to prompts, Add to Used (card dropped on Used), Move to Used (Augmented → Used), Send back to Augmented, Edit Augmented;
+  - moving between projects, stages and parts: move to another project, Add to Combined, Move to Combined (selection), Move back to prompts, Add to Final (card dropped on Final), Move to Final (Combined → Final), Send back to Combined, Reorder (parts), Edit note (a part), Edit Combined, Edit Final, Delete note (a part);
   - highlights: highlight, remove highlight;
-  - projects: new, rename, delete, reorder, move left/right, change colour, clear used.
-- **Not undoable, by design:** copies (and copy counts), collapsing and expanding, drafts, settings, theme and density changes, scrolling.
+  - projects: new, rename, delete, reorder, move left/right, change colour, Clear Combined, Clear Final.
+- **Not undoable through history, by design:** copies (and copy counts), collapsing and expanding, drafts, settings, theme and density changes, scrolling, column widths. (The "Column widths reset" toast has its own Undo.)
 - Up to 80 steps, in memory only (lost on restart).
 
 ## 15. Search
@@ -256,7 +268,7 @@ Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New lin
 - **Opening it:** Ctrl+K or Ctrl+F focuses the search box. The global show/hide hotkey also focuses it, unless the user is composing, editing, dictating or in a dialog.
 - **Matching:** space-separated terms, all of which must appear, case-insensitive, in a prompt card's text. Matches are highlighted in green.
   - Columns show "matching/total" counts and "No matches" where nothing matches.
-  - The Augmented and Used combined texts are not filtered.
+  - The Combined and Final texts are never filtered, but every term is highlighted inside them (and in their Notes rows). When a combined text contains all the terms, it opens up to its full length while the search lasts.
 - **Keys:** Enter copies the first matching prompt. ↓ moves focus to the first card. Esc clears the text, and a second Esc leaves the box.
 
 ## 16. Moving around the board horizontally
@@ -272,9 +284,9 @@ Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New lin
 
 Fields, in order:
 1. **Colour:** Deep or Soft. Applies instantly, including the Windows title bar. Stored in settings.
-2. **Column width:** Compact (236px), Slim (268px, the default) or Roomy (330px). Stored in `data.prefs.density`.
+2. **Column width:** Compact (236px), Slim (268px, the default) or Roomy (330px). Stored in `data.prefs.density`. This is the default width; columns the user resized keep their own width (§22).
 3. **Join notes with:** Blank line or New line (`prefs.joiner`).
-4. **Column title font:** six preview tiles, each rendered on an emerald header ("Wildfire RL"): Sora, Space Grotesk, Inter Display, Manrope, Geist, Sora Caps. Applies instantly. Stored in `prefs.titleFont`.
+4. **Column title font:** nine preview tiles in a 3×3 grid, each rendered on an emerald header ("Wildfire RL"): Instrument Sans (default since 1.6), Plus Jakarta Sans, Onest, Sora, Space Grotesk, Inter Display, Manrope, Geist, Sora Caps. Applies instantly. Stored in `prefs.titleFont` only when picked.
 5. **OpenAI API key:** a password field showing "•••• last4" when a key is set, with a status line ("Saved and encrypted on this PC…" or "Using OPENAI_API_KEY from your environment…"). **Remove** is shown only for a saved key. A link points to platform.openai.com/api-keys. The key is saved when the field loses focus or the dialog closes.
 6. **Transcription model:** gpt-transcribe (recommended), gpt-4o-mini-transcribe (fastest), gpt-4o-transcribe, or whisper-1 (no live text). **Language** is optional (for example `en`).
 7. **Vocabulary hint:** words to spell correctly.
@@ -318,7 +330,7 @@ The footer holds **Open data folder** and **Done**.
 | Composer | Ctrl+M / Ctrl+Shift+S | Mic / screenshot |
 | Focused card | Enter or Space | Copy |
 | Focused card | E or F2 | Edit |
-| Focused card | U | Add to Augmented |
+| Focused card | U | Add to Combined |
 | Focused card | H | Toggle amber highlight |
 | Focused card | Delete / Backspace | Delete (with Undo) |
 | Focused card | ↑ / ↓ | Move focus between cards |
@@ -326,19 +338,21 @@ The footer holds **Open data folder** and **Done**.
 | Rename field | Enter / Esc | Save / cancel |
 | Shortcut field (Settings) | any combo / Backspace | Set / clear |
 | Snip overlay | drag / click / Enter / Esc / right-click | Area / whole screen / whole screen or current area / cancel / cancel |
+| Column edge | drag / double-click | Resize / back to the default width |
 | OS-wide | Ctrl+Alt+R (default) | Show/hide Recaller |
 
 ## 21. Toast messages (for reference)
 
 - "Note deleted · Undo"
-- "Added to Augmented · Undo"
-- "Moved to Used · Undo"
-- "Added to Used · Undo"
+- "Added to Combined · Undo"
+- "Moved to Final · Undo"
+- "Added to Final · Undo"
 - "Moved back to prompts · Undo"
-- "Sent back to Augmented · Undo"
-- "Moved n to Augmented · Undo"
+- "Sent back to Combined · Undo"
+- "Moved n to Combined · Undo"
 - "Deleted “Name” · Undo"
-- "Cleared n used · Undo"
+- "Cleared Combined · Undo" / "Cleared Final · Undo"
+- "Column widths reset to default · Undo"
 - "Undone: X · Redo" / "Redone: X · Undo"
 - "Nothing to undo"
 - "Backup saved"
@@ -348,3 +362,13 @@ The footer holds **Open data folder** and **Done**.
 - "Nothing matches"
 
 At most three toasts show at once. Hovering a toast pauses its timer.
+
+## 22. Column widths (1.6)
+
+1. **Resize:** hover a column's right edge (the gap to its right) and a thin vertical line appears; the cursor becomes ↔. Drag to make the column wider or narrower (200–900px). While dragging, the line runs the full height.
+2. **Snap:** passing within 6px of the default width snaps to it, and a column at the default width is stored as "not resized".
+3. **Saved:** on release the width is saved in `data.prefs.colWidths[projectId]`. Nothing is written if the width didn't change (a plain click or double-click on the edge).
+4. **Reset one column:** double-click its edge, or ⋯ → Reset width.
+5. **Reset all:** the ↔ button in the top bar (tooltip "Reset all n resized columns to the default width"; disabled with an explanatory tooltip when nothing is resized). A toast "Column widths reset to default · Undo" offers to put the widths back.
+6. **Default width** comes from Settings → Column width (Compact/Slim/Roomy); resized columns ignore it.
+7. After any width change, the "Show more" / "Show all" buttons are measured again for that column.

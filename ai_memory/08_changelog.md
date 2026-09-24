@@ -1,6 +1,6 @@
 # 08: Changelog
 
-Dates are 2026-09-23 and 2026-09-24; everything was built in one long session. Versions refer to `package.json` and the installer `dist/Recaller Setup <version>.exe`.
+Dates are 2026-09-23 and 2026-09-24. Versions 1.0.0 to 1.5.0 were built in one long session; 1.6.0 in a second session on 2026-09-24. Versions refer to `package.json` and the installer `dist/Recaller Setup <version>.exe`.
 
 ## 1.0.0 (first build)
 
@@ -83,7 +83,29 @@ Dates are 2026-09-23 and 2026-09-24; everything was built in one long session. V
 - **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
 - **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
 
-## 1.5.0 (current)
+## 1.6.0 (current)
+
+- **Stages renamed on screen:** Augmented → **Combined**, Used → **Final**. The data names did not change (`used` = Combined, `combined` = Final). Every label, tooltip, toast, menu item and undo label follows.
+- **Final:** the counter next to its title and the **Copy all** button were removed. Clicking the Final text still copies all of it, with a "Copied" chip.
+- **Editing Combined and Final:**
+  - The footer pencil edits the whole text of either stage (Final gained one). Saving an unchanged text now does nothing, so the separate notes are kept.
+  - Each row in the **Notes** list has ↑ / ↓ (reorder), ✎ (edit just that note; the others stay separate; the editor's trash deletes it) and ↩ (send back up a stage). The buttons show on hover.
+  - The toggle reads "Notes" in both states and looks pressed while open, so the word counts fit.
+  - A prompt that lands in the stage while its whole-text editor is open is kept on save, after the edited note (in 1.5 it would have been overwritten).
+- **Stage look, more distinct:** Combined is an indigo block with a solid header band and a lavender note; Final keeps its deep-green block, with a mint text box instead of white.
+- **Column resizing:** drag a column's right edge (a line appears on hover). The width snaps to the default within 6px. Double-click the edge, or **⋯ → Reset width**, resets one column. A new ↔ button in the top bar resets every column (Undo on the toast restores them). Widths are stored in `prefs.colWidths`.
+- **Top bar:** the green **+ Project** button was removed. The "+ New project" tile at the end of the board and Ctrl+Shift+N remain.
+- **Column colours:** 10 more (Indigo, Ember, Lagoon, Ruby, Forest, Fuchsia, Slate, Mustard, Navy, Wine), 18 in all, shown in two rows in the ⋯ menu.
+- **Column title font:** Instrument Sans is the new default (sharper and cleaner than Sora). Plus Jakarta Sans and Onest were added to the picker, now nine tiles. A title font the user picked explicitly is kept.
+- **Known issues fixed:**
+  - The old "Clear used" emptied the wrong stage. The menu now has **Clear Combined (n)** and **Clear Final (n)**, both undoable.
+  - The dead card "move back" button, the swipe-to-Used path and its CSS were removed.
+  - Search now also marks matches inside the Combined and Final texts, and opens a matching text up to its full length.
+  - Parts inside Combined and Final can be reordered (the mixed-order issue from 1.4).
+- **Welcome tips** (first run only) mention the new names and resizing.
+- **Tests:** features now has 96 checks and update-safety 21 (a saved column width survives an update). Every suite refuses a missing `APP_MAIN` with a console message instead of an Electron error dialog.
+
+## 1.5.0
 
 - **Augmented is one combined note:** moved prompts are appended in order.
   - Click it to copy it.

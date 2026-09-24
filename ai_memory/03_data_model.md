@@ -29,8 +29,11 @@ The installed program lives separately in `%LOCALAPPDATA%\Programs\recaller\`.
   "version": 2,                       // max(2, whatever the file had); never lowered
   "prefs": {                          // renderer-owned UI preferences
     "density": "slim",                // "compact" | "slim" | "roomy" (unknown values kept, drawn as slim)
-    "titleFont": "sora",              // "sora" | "space" | "inter" | "manrope" | "geist" | "caps" (absent → sora)
-    "joiner": "blank",                // "blank" (\n\n) | "line" (\n) — separator for Augmented, Used and Ctrl+click copies (absent → blank)
+    "titleFont": "instrument",        // "instrument" | "jakarta" | "onest" | "sora" | "space" | "inter" | "manrope" | "geist" | "caps"
+                                      //   (absent → instrument since 1.6; it was sora before, so an absent value now draws differently by design)
+    "joiner": "blank",                // "blank" (\n\n) | "line" (\n) — separator for Combined, Final and Ctrl+click copies (absent → blank)
+    "colWidths": { "<project id>": 330 }, // 1.6+: columns the user resized, in px (200–900). Absent → Settings density width.
+                                      //   Only written when the user resizes; the top-bar reset deletes the whole key.
     "lastProjectId": "<project id>",  // column last worked in; Ctrl+N / Ctrl+M target it
     "scroll": { "board": 240, "cols": { "<project id>": 120 } }  // only saved when the USER scrolls
   },
@@ -46,16 +49,16 @@ The installed program lives separately in `%LOCALAPPDATA%\Programs\recaller\`.
   "id": "uuid",
   "name": "Wildfire RL",
   "color": "monstera",        // palette id, see below. Unknown ids are KEPT and drawn with the first palette colour
-  "usedCollapsed": false,     // Augmented section collapsed (data name "used"; see the naming trap below)
-  "augCollapsed": false,      // Used (final) section collapsed
-  "usedExpanded": true,       // optional: Augmented note shows all lines (absent = clamped to 8 lines)
-  "augExpanded": true,        // optional: Used text shows all lines
+  "usedCollapsed": false,     // Combined section collapsed (data name "used"; see the naming trap below)
+  "augCollapsed": false,      // Final section collapsed
+  "usedExpanded": true,       // optional: Combined note shows all lines (absent = clamped to 8 lines)
+  "augExpanded": true,        // optional: Final text shows all lines
   "draft": "",                // unsaved text in the New prompt editor
   "draftImages": [Image],     // unsaved images in the New prompt editor
   "createdAt": 1758690000000,
   "notes":    [Note, ...],    // stage 1: NEW PROMPTS (cards). New ones are added at the top (index 0)
-  "used":     [Note, ...],    // stage 2: shown as "AUGMENTED" — displayed as ONE combined note; appended in order added
-  "combined": [Note, ...],    // stage 3: shown as "USED" — the final text; Augmented notes are appended at the end
+  "used":     [Note, ...],    // stage 2: shown as "COMBINED" — displayed as ONE combined note; appended in order added
+  "combined": [Note, ...],    // stage 3: shown as "FINAL" — the final text; Combined notes are appended at the end
   ...unknown keys preserved
 }
 ```
@@ -70,7 +73,7 @@ The installed program lives separately in `%LOCALAPPDATA%\Programs\recaller\`.
   "createdAt": ms, "updatedAt": ms,
   "copied": 3,                // times copied (click, Ctrl+click, search-Enter, keyboard)
   "lastCopiedAt": ms,
-  "usedAt": ms,               // when it entered Augmented or Used
+  "usedAt": ms,               // when it entered Combined or Final
   "highlight": "amber",       // optional: "amber" (Check again) | "rose" (Important) | "sky" (Idea) | "lime" (Ready)
   "expanded": true,           // optional: card shows all lines instead of the clamp
   ...unknown keys preserved
@@ -99,15 +102,33 @@ The stored id is on the left. For historical reasons the ids don't match the dis
 | clay | Blossom | #db2777 |
 | eucalyptus | Teal | #0d9488 |
 | sage | Bark | #78716c |
+| indigo | Indigo | #4f46e5 |
+| ember | Ember | #ea580c |
+| lagoon | Lagoon | #0891b2 |
+| ruby | Ruby | #dc2626 |
+| forest | Forest | #15803d |
+| fuchsia | Fuchsia | #c026d3 |
+| slate | Slate | #475569 |
+| mustard | Mustard | #a16207 |
+| navy | Navy | #1e3a8a |
+| wine | Wine | #9f1239 |
+
+The last ten were added in 1.6. An older version shows them as Emerald (first palette colour) but keeps the stored id.
 
 ## The stage naming trap
 
-In round 7, the owner asked to swap what the Used and Augmented sections mean. The data field names were deliberately kept so existing files load unchanged:
+The on-screen names changed twice; the data field names never did, so existing files load unchanged:
 
-- **Data `used`** is the UI stage **"Augmented"**: the middle, indigo section, displayed as one combined note. The CSS and DOM classes also still say `used` (`.used`, `.used-head`, `.used-count`). The Augmented note's own parts use `.aug-*` classes (`.aug-note`, `.aug-text`, `.aug-move`, …).
-- **Data `combined`** is the UI stage **"Used"**: the bottom, deep-green final text, with DOM classes `.final*`.
-- **Flags:** `usedCollapsed` and `usedExpanded` belong to Augmented; `augCollapsed` and `augExpanded` belong to Used (final). They followed screen *position*, not name.
-- **Known bug from this:** the project menu item "Clear used (N)" empties **Augmented** (data `used`). There is no way to clear the final Used text. See `09`, issue #1.
+| Data field | 1.0–1.3 UI | 1.4–1.5 UI | 1.6+ UI | DOM / CSS classes |
+| --- | --- | --- | --- | --- |
+| `notes` | prompts | prompts | prompts | `.active-list`, `.card*` |
+| `used` | Used (cards) | **Augmented** | **Combined** | `.used`, `.used-head`, `.used-count`, and `.aug-*` for the note (`.aug-note`, `.aug-text`, `.aug-move`, `.aug-parts`) |
+| `combined` | (none) | **Used** | **Final** | `.final*` (`.final-text`, `.final-body`, `.final-parts`, `.final-edit`) |
+
+- **Data `combined` is NOT the "Combined" stage.** It is Final. Read every `combined` in code as "Final" and every `used` as "Combined".
+- **Flags:** `usedCollapsed` and `usedExpanded` belong to Combined; `augCollapsed` and `augExpanded` belong to Final. They followed screen *position*, not name.
+- In `app.js`, `STAGE_NAME = { used: 'Combined', combined: 'Final' }` gives the screen name for a data list.
+- The pre-1.6 bug where "Clear used (N)" emptied the wrong stage is fixed: the menu has **Clear Combined** (`used`) and **Clear Final** (`combined`).
 
 ## `recaller-settings.json` schema (owned by main)
 
@@ -166,3 +187,4 @@ Unknown keys are preserved. The whole object (defaults included) is rewritten on
 - **1.3.0 added** backups, `lastVersion`, `prefs.scroll`, `prefs.lastProjectId`, `note.expanded`, `project.augExpanded` and `prefs.titleFont`.
 - **1.4.0 added** `project.combined`, `note.highlight` and the stage swap (labels only; data unchanged).
 - **1.5.0 added** `prefs.joiner` and `project.usedExpanded`. Augmented changed from a list of cards to one combined note (display only; the data is still a list of notes in `used`).
+- **1.6.0 added** `prefs.colWidths` (only when the user resizes a column), ten palette ids and three title-font ids. The default title font (when `prefs.titleFont` is absent) became `instrument`. Stage labels changed (Augmented → Combined, Used → Final); data unchanged. `DATA_VERSION` is still 2.

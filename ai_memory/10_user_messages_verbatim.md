@@ -121,3 +121,51 @@ These are the owner's requests exactly as sent, with typos kept, because the exa
 > is there ano other thing you should add to ai_memory for future you
 
 [Files 10–13 were added in response.]
+
+---
+
+Second session (2026-09-24), after the project moved to `C:\Users\User\Documents\recaller`:
+
+## Message 11
+
+> Read through every file in C:\Users\User\Documents\recaller\ai_memory. prepare yourself so we can continue building
+
+[All 14 files were read, the repo state checked (own git repo, pushed), and `npm test` run as a baseline: 101/101.]
+
+## Message 12: first 1.6 request
+
+> fix the issues you mentioned
+
+(interrupted, then re-sent as:)
+
+> fix the known issues and also:
+>
+> Remove the counter next to used.
+>
+> Remove the copy all button. From used.
+>
+> Try new sharper cleaner font for new column header name.
+>
+> i should be able edit augmented and used notes, all
+>
+> Changed use to final. Change augmented to combined names.
+>
+> Still need. Slightly more visual difference between. The new prompts, the used and the augmented ones in column sections
+>
+> Remove the project plus button in the very top bar of the application.
+>
+> I want the ability to resize the column width, but then I also want a button in the very top bar that resets the column width back to default. Like reset all the column widths back to default to the one that's currently now. So they should be resizable, but also. Go back to default. We want to click a button, like in a slim way, exactly how it is right now.
+>
+> Add more color options to the columns
+
+[Built as v1.6.0. How each item was read:
+
+- "the known issues": the five in `09` (Clear used on the wrong stage, dead move-back button, dead swipe-to-Used code, search skipping combined texts, mixed Augmented order).
+- "counter next to used" / "copy all button from used": the "· n" and the Copy all button in the Used (now Final) header. The Combined count was kept.
+- "new sharper cleaner font for new column header name": the column title font. Nine candidates were rendered on real headers; Instrument Sans became the default, with Plus Jakarta Sans and Onest added to the picker.
+- "edit augmented and used notes, all": a whole-text pencil on both stages (Final gained one), plus ✎ on every part in the Notes lists so each note can be edited on its own.
+- "Changed use to final. Change augmented to combined names": UI labels only; the data names stayed.
+- "Slightly more visual difference": Combined got a solid indigo header band and a lavender note; Final got a mint text box.
+- "project plus button in the very top bar": the green + Project button; the "+ New project" tile and Ctrl+Shift+N remain.
+- Resize: drag a column's edge; the top-bar ↔ button resets every column to the current default width ("in a slim way": a small icon button).
+- "more color options": 10 more colours, 18 in all.]

@@ -7,7 +7,7 @@
   <title>Recaller</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="density-slim theme-deep title-sora">
+<body class="density-slim theme-deep title-instrument">
   <!-- Shared SVG symbols. Kept renderable (not display:none) so masks and gradients work. -->
   <svg class="sprite" aria-hidden="true" focusable="false">
     <defs>
@@ -64,9 +64,8 @@
           <svg class="icon" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5" /><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" /></svg>
         </button>
       </div>
-      <button class="btn btn-primary btn-sm" id="new-project" title="New project (Ctrl+Shift+N)">
-        <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
-        <span>Project</span>
+      <button class="icon-btn" id="reset-widths" disabled aria-label="Reset column widths">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 5v14M20 5v14M8 12h8" /><path d="m11 9-3 3 3 3M13 9l3 3-3 3" /></svg>
       </button>
       <button class="icon-btn" id="open-settings" title="Settings (Ctrl+,)" aria-label="Settings">
         <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" /></svg>
@@ -91,7 +90,7 @@
   <div class="selection-bar" id="selection-bar" hidden>
     <span class="sel-count" id="sel-count"></span>
     <span class="sel-hint">Ctrl+click to add or remove</span>
-    <button class="sel-btn" id="sel-used">Move to Augmented</button>
+    <button class="sel-btn" id="sel-used">Move to Combined</button>
     <button class="sel-btn" id="sel-clear">Clear</button>
   </div>
 
@@ -133,7 +132,7 @@
       </section>
 
       <section class="field">
-        <label>Join notes with <span class="muted">(Augmented, Used and Ctrl+click copies)</span></label>
+        <label>Join notes with <span class="muted">(Combined, Final and Ctrl+click copies)</span></label>
         <div class="segmented" id="set-joiner" role="radiogroup">
           <button type="button" data-value="blank" role="radio">Blank line</button>
           <button type="button" data-value="line" role="radio">New line</button>
@@ -143,6 +142,9 @@
       <section class="field">
         <label>Column title font</label>
         <div class="title-picker" id="set-title-font" role="radiogroup">
+          <button type="button" class="title-opt t-instrument" data-value="instrument" role="radio"><span>Wildfire RL</span><small>Instrument Sans</small></button>
+          <button type="button" class="title-opt t-jakarta" data-value="jakarta" role="radio"><span>Wildfire RL</span><small>Plus Jakarta Sans</small></button>
+          <button type="button" class="title-opt t-onest" data-value="onest" role="radio"><span>Wildfire RL</span><small>Onest</small></button>
           <button type="button" class="title-opt t-sora" data-value="sora" role="radio"><span>Wildfire RL</span><small>Sora</small></button>
           <button type="button" class="title-opt t-space" data-value="space" role="radio"><span>Wildfire RL</span><small>Space Grotesk</small></button>
           <button type="button" class="title-opt t-inter" data-value="inter" role="radio"><span>Wildfire RL</span><small>Inter Display</small></button>

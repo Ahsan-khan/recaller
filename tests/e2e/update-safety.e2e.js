@@ -13,6 +13,7 @@ fs.mkdirSync(SCRATCH, { recursive: true });
 const MODE = process.env.MODE || 'synthetic';
 const DATA_DIR = path.join(SCRATCH, MODE === 'real' ? 'data-real' : 'data3');
 const APP_MAIN = process.env.APP_MAIN || path.join(__dirname, '..', '..', 'src', 'main.js');
+if (!fs.existsSync(APP_MAIN)) { console.error(`HARNESS FAIL: no app at ${APP_MAIN} (APP_MAIN must be a Windows path)`); process.exit(1); }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const DATA = path.join(DATA_DIR, 'recaller-data.json');
 const SETTINGS = path.join(DATA_DIR, 'recaller-settings.json');
@@ -46,7 +47,7 @@ if (MODE === 'real') {
   const data = {
     version: 2,
     futureTopLevel: { keep: true },
-    prefs: { density: 'roomy', lastProjectId: 'pB', futurePref: { a: 1 } },
+    prefs: { density: 'roomy', lastProjectId: 'pB', futurePref: { a: 1 }, colWidths: { pC: 300 } },
     projects: [
       {
         id: 'pA', name: 'Alpha — ünïcode ✓', color: 'sun', usedCollapsed: true, augCollapsed: false,
@@ -172,6 +173,8 @@ async function run() {
   if (MODE === 'synthetic') {
     const accents = await js(`[...document.querySelectorAll('.column')].map(c => c.style.getPropertyValue('--accent')).join(',')`);
     check('project colours kept (incl. one unknown to this version)', accents.startsWith('#d97706,#0e9f6e,'), accents);
+    const widths = await js(`['pC', 'pD'].map((id) => Math.round(document.querySelector('.column[data-id="' + id + '"]').getBoundingClientRect().width))`);
+    check('a resized column keeps its width; the others keep the default', widths[0] === 300 && widths[1] === 330, JSON.stringify(widths));
     check('unsaved draft kept (dot on +)', await js(`document.querySelector('.column[data-id="pA"] .col-add').classList.contains('has-draft')`));
     check('collapsed sections kept', await js(`document.querySelector('.column[data-id="pA"] .used').classList.contains('is-collapsed') && document.querySelector('.column[data-id="pB"] .final').classList.contains('is-collapsed')`));
     key('N', ['control']);

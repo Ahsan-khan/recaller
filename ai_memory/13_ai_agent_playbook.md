@@ -3,20 +3,20 @@
 ## Session start (about 5 minutes)
 
 1. Read `README.md`, then `03_data_model.md`, then `04_features_and_flows.md` in this folder. Skim `09` for open issues and `10` for how the owner phrases things.
-2. **Installed version:** `npx @electron/asar extract-file "%LOCALAPPDATA%\Programs\recaller\resources\app.asar" package.json`, then read `version` and delete the extracted file. As of the handoff, 1.5.0 is installed and 1.5.0 is the source version.
-3. **Git state:** `git -C C:\Users\User\Documents\iresine status`. `recaller/` is untracked, and `ReinforcementLearning/` has unrelated uncommitted work; don't touch it.
-4. **Tests:** `npm install` if needed, then `npm test`. Expect 12 + 20 + 69 passing; a single drag or pan failure is usually the owner's mouse (see `06`).
+2. **Installed version:** in the scratchpad, `npx @electron/asar extract-file "%LOCALAPPDATA%\Programs\recaller\resources\app.asar" package.json`, then read `version` and delete the extracted file. When the 1.6.0 session ended, the source was 1.6.0 and its installer was built; the owner installs it themselves.
+3. **Git state:** `git -C C:\Users\User\Documents\recaller status -sb`. The project is its own repo (branch `main`, remote `origin` on GitHub). Work since the last commit may be uncommitted on purpose; don't commit or push unless asked.
+4. **Tests:** `npm install` if needed, then `npm test`. Expect 12 + 21 + 96 passing; a single drag or pan failure is usually the owner's mouse (see `06`).
 
 ## The per-request workflow that worked
 
 1. **Understand.** Messages are often dictated and fragmented (see `10`). Separate them into numbered items. For ambiguous structural requests, choose the most coherent interpretation and state it plainly at the top of your reply, inviting correction. Ask a question first only if a wrong guess would be expensive.
 2. **Check constraints:**
    - update safety (`03`);
-   - the stage naming trap (`used` = Augmented, `combined` = Used);
+   - the stage naming trap (`used` = Combined, `combined` = Final; before 1.6 they were Augmented and Used);
    - design taste (`05`);
    - known issues (`09`).
 3. **Implement** in small, exact edits.
-   - For big multi-part edits, write a Python patch script to a file. Have it assert that each old string matches exactly once, then run it. Inline heredocs in Git Bash fail with very long scripts.
+   - For big multi-part edits, write a Python patch script to a file. Have it assert that each old string matches exactly once, then run it. Inline heredocs in Git Bash fail with very long scripts and mangle backslashes (Windows paths). Put the replacement pairs in their own `.py` file as raw strings (use triple single quotes when the text ends with a double quote).
    - Run `node --check` on every edited JS file.
 4. **Look at it.**
    - `npm run capture`, or the `shot()` screenshots from the suites in `tests/e2e/.out/`, then view the PNGs.
@@ -65,7 +65,10 @@
 - **Board:** the horizontally scrolling area holding the columns.
 - **Column / project:** one project, holding the three stages.
 - **Card / prompt / note:** one item in the top stage.
-- **Stage:** one of the three sections of a column: new prompts, **Augmented** (data `used`, one combined note), **Used** (data `combined`, the final text).
+- **Stage:** one of the three sections of a column: new prompts, **Combined** (data `used`, one combined note; "Augmented" before 1.6), **Final** (data `combined`, the final text; "Used" before 1.6).
+- **Part:** one of the notes inside Combined or Final, listed under **Notes**; it can be reordered, edited alone or sent back.
+- **Stage editor:** the composer opened by a Combined/Final pencil (whole text) or a part's ✎ (that part only).
+- **Column width / resize handle:** the draggable right edge of a column; widths live in `prefs.colWidths`, and the top-bar ↔ button resets them.
 - **Combined note / combined text:** notes joined with the separator (`joiner()`: blank line or new line).
 - **Composer:** the inline text editor used for new prompts and edits; it holds voice, screenshot, paste and drop.
 - **Draft:** unsaved composer text and images, kept per project.

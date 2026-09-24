@@ -48,7 +48,7 @@ The owner's VS Code / Claude Code terminal sets `ELECTRON_RUN_AS_NODE=1`, which 
 
 1. Give them `dist\Recaller Setup X.Y.Z.exe`. They double-click it; it installs over the previous version (closing the running app if needed) and relaunches.
 2. Their data in `%APPDATA%\Recaller` is untouched, and the new version makes an `upgrade` backup on first start.
-3. **Currently installed:** 1.5.0 (as of 2026-09-24).
+3. **Currently installed:** 1.5.0 at the start of the 1.6.0 session (2026-09-24). The 1.6.0 installer was built and handed over; check the installed version at session start (see `13`).
 
 ## End-to-end test suites (`tests/e2e/`)
 
@@ -70,7 +70,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **Check syntax first:** run `node --check` on a suite before launching it. A syntax error makes Electron show an "App threw an error" dialog on the owner's screen until it times out.
 - **Real captures are deleted:** the features suite's real screen-snip test captures the owner's actual screen once. The suite deletes the images afterwards. Never view or keep those files.
 
-### `features.e2e.js` (69 checks, about 3 minutes)
+### `features.e2e.js` (96 checks, about 4 minutes)
 
 **Setup:**
 - **Seed data:** seven projects in the old v1 format, which also exercises loading old data.
@@ -85,6 +85,8 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 **Coverage:**
 - **Layout:**
   - slim width ≈268px;
+  - column titles use Instrument Sans (the 1.6 default) and the font is loaded;
+  - the top bar has no + Project button;
   - the New prompt bar is under the header, not in it;
   - it opens the composer in its place;
   - long names wrap to two lines, clear of ⋯;
@@ -97,24 +99,34 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
   - undo via Ctrl+Z, the toolbar button and the toast;
   - redo with Ctrl+Y.
 - **Drag:**
-  - drag into Augmented (joins into the note);
+  - drag into Combined (joins into the note);
   - the move toast and its Undo;
-  - dropping on a collapsed Augmented header;
+  - dropping on a collapsed Combined header;
   - vertical reorder.
 - **Stages** (built in a spare column):
+  - the labels read Combined and Final; the old card move-back button is gone;
   - three typed prompts;
-  - two moved to Augmented join as "Gamma three\n\nBeta two";
+  - two moved to Combined join as "Gamma three\n\nBeta two";
   - clicking copies the combined note;
-  - a left swipe moves it into Used;
-  - a second batch via the **Move to Used** button is appended with the separator;
-  - a third batch dragged onto Used;
-  - Copy all copies the text and says "Copied";
-  - the Copy all button overlaps nothing;
-  - a prompt is sent back out of Augmented;
-  - the three stages have different colours;
+  - a left swipe moves it into Final;
+  - a second batch via the **Move to Final** button is appended with the separator;
+  - a third batch dragged onto Final;
+  - Final has no counter and no Copy all; clicking the Final text copies it with a "Copied" chip;
+  - the Final footer (stats, Notes, pencil) doesn't overlap;
+  - a prompt is sent back out of Combined;
+  - the three stages differ in block colour, header and inner note colour;
   - the "New line" separator setting works.
+- **Parts and editing** (same column):
+  - the Final Notes list shows ↑ ↓ ✎ ↩ per part; ↓ then ↑ reorders and restores;
+  - ✎ edits one Final part alone (the others stay separate);
+  - the Final pencil edits the whole text into one note; two Ctrl+Z undo both edits;
+  - a Combined part can be edited alone; the Combined pencil opens the whole note and Esc cancels;
+  - a prompt that lands in Combined while its editor is open survives the save.
+- **Clearing:** the menu lists "Clear Combined (1)" and "Clear Final (5)"; each empties only its own stage; Ctrl+Z restores.
+- **Search in combined texts:** terms are marked inside the Combined and Final texts.
+- **Colours:** the menu has 18 swatches; picking Navy applies it (then undone).
 - **Highlight:** the menu offers four colours and shows the "Check again" tag; Ctrl+Z removes it; H toggles it.
-- **Ctrl+click:** two notes in click order with a blank line between; badges 1 and 2 and the bar; Ctrl+click again removes; Esc clears; "Move to Augmented" joins them in, and Ctrl+Z undoes it.
+- **Ctrl+click:** two notes in click order with a blank line between; badges 1 and 2 and the bar; Ctrl+click again removes; Esc clears; "Move to Combined" joins them in, and Ctrl+Z undoes it.
 - **Live dictation:**
   - the mic starts from the column;
   - text appears while still recording;
@@ -135,16 +147,17 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
   - the lightbox opens.
 - **Scrolling:** the arrow is visible and scrolls one column; the wheel over a header scrolls sideways; dragging empty canvas pans.
 - **Settings:** the Compact density narrows columns; the Soft theme can be picked and is saved.
+- **Column widths:** the ↔ button starts disabled; dragging two column edges resizes them (+90px, −40px) and saves `prefs.colWidths`; the button enables; it resets every column and removes the key; Undo on its toast restores; double-clicking an edge resets one column.
 - **Columns:** reorder, then undo.
 - **Real screen snip** (last): the overlay opens and Recaller hides; the snip attaches and Recaller returns; a full PNG and a thumbnail are stored.
 - **Persistence:** v2 format, images on notes, density preference.
 - **No renderer console errors.**
 
-### `update-safety.e2e.js` (20 checks synthetic, 9 in real mode; about 40s)
+### `update-safety.e2e.js` (21 checks synthetic, 9 in real mode; about 40s)
 
 **Synthetic "old install":**
 - v2 data with unknown future fields at every level (top level, prefs, project, note, image);
-- a project colour unknown to this version (`galaxy`), density `roomy`;
+- a project colour unknown to this version (`galaxy`), density `roomy`, and a saved column width (`prefs.colWidths: { pC: 300 }`);
 - an unsaved draft with an image, collapsed stages, six projects and a long column;
 - settings with theme `soft`, the model, language, hint, `hideAfterCopy`, a plain key, `lastVersion: "1.2.0"` and an unknown `futureSetting`;
 - image files that are referenced, orphaned (old) and referenced only by a backup;
@@ -157,7 +170,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
   - `lastVersion` is updated;
   - an upgrade backup exists and is identical to the old data;
   - a daily backup exists.
-- **On screen:** every project and note is shown; the theme, density and colours are kept (including the unknown one); the draft, collapsed states, last-used project, and draft text and image are all restored.
+- **On screen:** every project and note is shown; the theme, density and colours are kept (including the unknown one); the resized column is 300px and the others keep the density width; the draft, collapsed states, last-used project, and draft text and image are all restored.
 - **Images:** the orphan is deleted; the others are kept.
 - **After a real edit:** the file equals the original except for the edited counters and the allowed empty `combined: []` lists.
 - **Scroll positions** come back after a reload (within ±4px).
@@ -187,7 +200,7 @@ It tests Ctrl+click as a real person would:
 
 ### `capture-board.js`
 
-It renders a fixed sample (stages, highlights, a long two-line column name, an empty Used) and writes `tests/e2e/.out/<OUT>.png`, `<OUT>-zoom.png` (2× the left area) and `<OUT>-settings.png`. Use it to check visual changes; set `OUT` to name the files.
+It renders a fixed sample (stages with their Notes lists open, highlights, a long two-line column name, an empty Final, one resized column) and writes `tests/e2e/.out/<OUT>.png` (the whole window including the top bar), `<OUT>-zoom.png` (2× the left area), `<OUT>-menu.png` (the ⋯ menu with its swatches) and `<OUT>-settings.png`. Use it to check visual changes; set `OUT` to name the files.
 
 ### Running the suites against the packaged build (do this before every release)
 
@@ -199,6 +212,14 @@ $env:MODE = "real"; npm run test:update; Remove-Item Env:MODE
 Remove-Item -Recurse -Force tests\e2e\.out\data-real
 Remove-Item Env:APP_MAIN
 ```
+
+Git Bash (note `pwd -W`: `$PWD` is a POSIX path like `/c/Users/...` that Electron on Windows can't load, and `cygpath -w` fails on a path through the `.asar` file):
+```
+export APP_MAIN="$(pwd -W)/dist/win-unpacked/resources/app.asar/src/main.js"
+npm test && MODE=real npm run test:update; rm -rf tests/e2e/.out/data-real; unset APP_MAIN
+```
+
+Every suite checks that `APP_MAIN` exists and otherwise prints `HARNESS FAIL: no app at …` and exits. Without that guard, a bad path makes Electron pop an "App threw an error" dialog on the owner's screen (this happened once in the 1.6.0 session).
 
 ## Release checklist
 
@@ -213,8 +234,8 @@ Remove-Item Env:APP_MAIN
 
 ## Git status (important)
 
-- **Repository:** `C:\Users\User\Documents\iresine` (branch `main`, with one initial commit `52faa2d` that predates Recaller).
-- **Nothing committed:** the whole `recaller/` folder is **untracked**. The owner never asked for a commit, so nothing from this project has been committed or pushed.
-- **When committing is requested:** make a branch, then commit with the attribution the environment requires.
-- **Ignored:** `.gitignore` in `recaller/` ignores `node_modules/`, `dist/` and `tests/e2e/.out/`.
-- **Unrelated changes:** the iresine repo also has uncommitted changes in `ReinforcementLearning/` that belong to other work. Don't touch them.
+- **Repository:** since 2026-09-24 Recaller is its own repo at `C:\Users\User\Documents\recaller` (moved out of `Documents\iresine\recaller`). Branch `main`, remote `origin` = https://github.com/Ahsan-khan/recaller. The first commit `3876950` ("Initial commit: Recaller desktop prompt board (v1.5.0)") is on GitHub.
+- **1.6.0 work:** left uncommitted in the working tree; the owner didn't ask for a commit.
+- **When committing is requested:** make a branch (unless told to use `main`), then commit with the attribution the environment requires. Push only when asked.
+- **Ignored:** `.gitignore` ignores `node_modules/`, `dist/` and `tests/e2e/.out/`.
+- **GitHub CLI:** `gh` isn't on PATH; use `C:\Program Files\GitHub CLI\gh.exe`.

@@ -38,7 +38,7 @@ Read this before reversing any of these choices. Each entry gives the decision, 
 12. **Data names `used` and `combined` kept when the UI labels were swapped (1.4 and 1.5).**
     - Why: renaming fields would need a migration, which risks the owner's data. The mismatch is documented everywhere instead.
 13. **Deep theme as default, Soft kept as an option.** The owner asked for deeper colour, then said they liked it.
-14. **Fonts: Geist for the UI, Sora for column titles, plus a picker.** The owner rejected two title attempts. After a side-by-side comparison, Sora was chosen, and the picker hands the final taste decision to them.
+14. **Fonts: Geist for the UI, Sora for column titles, plus a picker.** The owner rejected two title attempts. After a side-by-side comparison, Sora was chosen, and the picker hands the final taste decision to them. (Superseded for titles in 1.6 by #26: Instrument Sans.)
 15. **Separator defaults to a blank line, with a "New line" setting.** The owner's wording varied: "copied line by line with space between" and "space new line in between" earlier, then "a new line between each text". A blank line was the established behaviour, so it stayed the default and the setting resolves the ambiguity.
 16. **Ctrl+click selection works like File Explorer.**
     - The anchor rule: a plain click just before Ctrl+clicks includes that note.
@@ -52,4 +52,18 @@ Read this before reversing any of these choices. Each entry gives the decision, 
 20. **Tests are end-to-end suites driving the real app.**
     - Why: the value is in gestures, timing, IPC and persistence, which unit tests wouldn't catch.
     - How: they run off-screen with a mock OpenAI server and a fake microphone.
-21. **No git commits unless the owner asks.** This follows the operating rules this project was built under. The tests and docs are in the repo folder, ready to commit whenever the owner wants.
+21. **No git commits unless the owner asks.** This follows the operating rules this project was built under. Since 2026-09-24 the project is its own repo on GitHub; new work stays uncommitted until the owner asks.
+22. **Stage names changed on screen only (1.6: Augmented → Combined, Used → Final).**
+    - Why: same reason as #12. The owner's files keep `used` and `combined`; `STAGE_NAME` maps them to screen names. The price is that data `combined` is the stage called Final.
+23. **Column widths live in `prefs.colWidths`, not on each project.**
+    - Why: widths are layout, not content. Keeping them out of `data.projects` means undo snapshots never rewind them, an undone project delete gets its width back for free, and "reset all" is one `delete`.
+    - The reset toast has its own Undo closure instead of using the history stack.
+    - A width within 6px of the default snaps to it and is stored as "not resized", so the default stays reachable by dragging.
+24. **Reset-widths button is an icon in the top bar, not a text button.** The owner asked for it "in a slim way". It sits next to undo/redo, since it's a similar kind of action, and is disabled while nothing is resized.
+25. **Whole-text edit still merges into one note; per-part edit keeps the others.**
+    - Why: the owner asked to edit "all" of the notes in Combined and Final. The whole-text pencil (existing behaviour on Combined, new on Final) gives free editing. ✎ per part in the Notes lists edits one without touching the rest. Saving an unchanged whole text no longer merges anything.
+26. **Instrument Sans as the column-title default (1.6).**
+    - Why: the owner asked a third time for a sharper, cleaner title font. Following lesson 40 in `07`, candidates were rendered side by side on real headers at 1× scale. Instrument Sans read crispest and differs from Geist (the UI font), so it became the default and two runners-up joined the picker.
+    - The owner had never picked a font (`prefs.titleFont` was absent), so changing the default reached them without touching their data. Anyone who picked Sora keeps Sora.
+27. **Stage contrast by frame *and* paper.** In 1.5 all three stages had white inner boxes, so the Combined note looked like a prompt card. 1.6 gives each stage its own inner colour (white / lavender / mint) and a solid header band for Combined to match Final's dark band.
+28. **Ten more palette colours, appended.** Existing ids are untouched and the first eight keep their order, so automatic colour assignment for the first eight projects is unchanged. All new colours are mid-to-dark so white header text stays readable.

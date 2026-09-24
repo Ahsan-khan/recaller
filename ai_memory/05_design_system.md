@@ -4,7 +4,7 @@ All styling is in `src/renderer/styles.css`, driven by CSS custom properties.
 
 - **Theme** is a class on `<body>`: `theme-deep` (default) or `theme-soft`.
 - **Density:** `density-compact`, `density-slim` or `density-roomy`.
-- **Column title font:** `title-sora`, `title-space`, `title-inter`, `title-manrope`, `title-geist` or `title-caps`.
+- **Column title font:** `title-instrument` (default), `title-jakarta`, `title-onest`, `title-sora`, `title-space`, `title-inter`, `title-manrope`, `title-geist` or `title-caps`.
 
 The renderer swaps these classes in `render()` and `applyTheme()`.
 
@@ -12,7 +12,7 @@ The renderer swaps these classes in `render()` and `applyTheme()`.
 
 1. **Nature and monstera, but modern:** deep forest greens, emerald accents, a monstera leaf in the logo and as faint background art.
 2. **Every region is visibly distinct:** the canvas, columns, column headers, the three stages and cards each have their own tone. Neighbouring projects get different hues.
-3. **Dense:** slim columns (268px default), with actions in headers or bars rather than extra rows. The Compact and Roomy options exist.
+3. **Dense:** slim columns (268px default), with actions in headers or bars rather than extra rows. The Compact and Roomy options exist, and since 1.6 each column can be resized by dragging its edge (the top-bar ↔ button resets all of them).
 4. **Sharp, readable type:**
    - titles are at least 15px and bold, with neutral letter-spacing;
    - no text-shadow on text over a colour (it renders soft on Windows);
@@ -37,7 +37,10 @@ The renderer swaps these classes in `render()` and `applyTheme()`.
 | `--highlight` | #b6f2cd | search match marks |
 | `--rec` | #e5484d | recording pill |
 | `--danger` | #dc4f3a | delete swipe, errors |
-| `--aug-bg` / `--aug-edge` / `--aug-ink` / `--aug-card` / `--aug-bar` | #e8ebfb / #c3cbf1 / #3b46a0 / #fafbff / #6366f1 | Augmented stage (indigo) |
+| `--aug-bg` / `--aug-edge` / `--aug-ink` | #e0e4fc / #aeb8ef / #3730a3 | Combined block background, border, text (data `used`) |
+| `--aug-card` / `--aug-card-edge` | #f6f6ff / #cbd1f6 | the lavender Combined note |
+| `--aug-bar` / `--aug-band` | #4f46e5 / gradient #5b56ee → #4840d8 | Combined accent bar, Move to Final bar, and the solid header band |
+| `--final-card` / `--final-card-edge` | #eefcf4 / #b9ebcf | the mint Final text box (data `combined`) |
 
 **Per-column accent tokens** are set inline on each `.column` as `--accent: <project colour>`. The derived shades are redeclared on `:root, .column, .drag-ghost`, because custom properties resolve where they are declared:
 
@@ -61,15 +64,17 @@ The canvas is a light green-grey gradient and the top bar is white. The column h
 
 ### Stage colours (the same in both themes)
 
+The owner asked twice for more difference between the stages. Since 1.6 each stage has its own frame *and* its own "paper": white cards, an indigo block with a lavender note, a deep-green block with a mint box.
+
 | Stage | Look |
 | --- | --- |
 | New prompts | White cards with a 3px project-accent bar on the left (`--accent-deep` in Deep theme) |
-| Augmented (data `used`) | Indigo tray (#e8ebfb, border #c3cbf1), header text #3b46a0. One white note with a 3px #6366f1 bar. A full-width #6366f1 "↓ Move to Used" bar (hover #4f46e5) |
-| Used (data `combined`) | A deep-green block with gradient #11523c → #0b3a2a (border #0a2f22), header text #d1fae5, a **Copy all** button in #34d399 with #053b28 text (white when "Copied"), and a white inner text box |
+| Combined (data `used`) | Indigo block (#e0e4fc, border #aeb8ef, soft indigo shadow) with a solid indigo header band (`--aug-band`) and white uppercase label "COMBINED · n". One lavender note (#f6f6ff, border #cbd1f6) with a 3px #4f46e5 bar. A full-width #4f46e5 "↓ Move to Final" bar (hover #4338ca). Collapsed, only the band shows |
+| Final (data `combined`) | A deep-green block with gradient #11523c → #0b3a2a (border #0a2f22), header label "FINAL" in #d1fae5 (no counter, no Copy all since 1.6), and a mint inner text box (#eefcf4, border #b9ebcf) that gets an emerald ring on hover and a "Copied" chip when clicked |
 
 ### Project palette
 
-See `03`. The order is emerald #0e9f6e, sky #0284c7, sun #d97706, orchid #9333ea, lime #65a30d, blossom #db2777, teal #0d9488, bark #78716c. New projects take the first unused colour.
+See `03`. The order is emerald #0e9f6e, sky #0284c7, sun #d97706, orchid #9333ea, lime #65a30d, blossom #db2777, teal #0d9488, bark #78716c, then (1.6) indigo #4f46e5, ember #ea580c, lagoon #0891b2, ruby #dc2626, forest #15803d, fuchsia #c026d3, slate #475569, mustard #a16207, navy #1e3a8a, wine #9f1239. New projects take the first unused colour. The ⋯ menu shows them as a 9-column grid of 19px swatches. All are mid-to-dark so white header text stays readable in Deep theme.
 
 ### Highlight colours
 
@@ -85,8 +90,10 @@ A highlighted card gets a tinted background, a 55% border, a 4px bar in the colo
 ### Other states
 
 - **Selected (Ctrl+click):** a 2px accent ring, a light accent background, and a round `--accent-deep` badge with the order number (top-left, white outline).
-- **Drop targets:** a dashed outline (Augmented in indigo, Used in #34d399). Dashed placeholders in the accent colour.
-- **Swipe backdrops:** red gradient for delete; green gradient (#0e9f6e) for "Move to Used" on the Augmented note.
+- **Drop targets:** a dashed outline (Combined in indigo, Final in #34d399). Dashed placeholders in the accent colour.
+- **Swipe backdrops:** red gradient for delete; green gradient (#0e9f6e) for "Move to Final" on the Combined note.
+- **Notes-list rows** (Combined and Final): number, first line, and on hover ↑ ↓ ✎ ↩ buttons (22px). The Notes toggle looks pressed (tinted background) while open; its label stays "Notes" so the word-count stats keep their room.
+- **Column resize handle** (`.col-resize`): a 10px strip in the gap right of each column. On hover a 3px × 48px rounded line appears (dark ink at 30% in Soft, mint at 60% in Deep); while dragging it runs the full height and the cursor is `col-resize` everywhere.
 
 ## Typography
 
@@ -96,7 +103,10 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
 | --- | --- | --- |
 | Geist | geist-latin.woff2, geist-latin-ext.woff2 | All UI text and headings (`--font-ui`, `--font-head`) |
 | Geist Mono | geist-mono-latin.woff2 | Timestamps and card meta, word/note stats, shortcut hints (kbd), recording timer, part numbers (`--font-mono`) |
-| Sora | sora-latin.woff2 | Column titles, default (15px / 650 / −0.01em); "Sora Caps" option (12.5px / 700 / +0.08em / uppercase) |
+| Instrument Sans | instrument-sans-latin.woff2 | Column titles, **default since 1.6** (16px / 650 / 0em). Weight axis 400–700 |
+| Plus Jakarta Sans | plus-jakarta-sans-latin.woff2 | Column title option (15.5px / 700 / −0.005em) |
+| Onest | onest-latin.woff2 | Column title option (16px / 650 / −0.005em) |
+| Sora | sora-latin.woff2 | Column title option (15px / 650 / −0.01em; the default in 1.3–1.5); "Sora Caps" option (12.5px / 700 / +0.08em / uppercase) |
 | Space Grotesk | space-grotesk-latin.woff2 | Column title option (16px / 700 / −0.01em) |
 | "Recaller Inter" (Inter with optical sizing) | inter-latin.woff2 | Column title option "Inter Display" (16px / 700 / −0.015em). Renamed so it doesn't clash with an installed Inter |
 | Manrope | manrope-latin.woff2 | Column title option (15.5px / 800 / −0.005em) |
@@ -105,12 +115,13 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
 - **Brand wordmark:** Geist 17px / 700 / −0.035em.
 - **Section labels** ("AUGMENTED", "USED"): Geist 11.5px / 700 / +0.045em / uppercase.
 - **Font loading:** `font-display: block` avoids a flash of the fallback font. Characters outside the Latin set fall back to Geist latin-ext, then Segoe UI.
-- **History:** the soft serif Fraunces was used in versions 1.0–1.2 and was removed in 1.3.
+- **History:** the soft serif Fraunces was used in versions 1.0–1.2 and was removed in 1.3. Sora was the title default in 1.3–1.5. In 1.6 the owner asked for a "sharper cleaner" title font; nine candidates (Plus Jakarta Sans, Onest, Instrument Sans, Inter Tight, Red Hat Display, Schibsted Grotesk, Outfit, Figtree, Hanken Grotesk) were rendered on real headers next to Sora at 1× scale, and Instrument Sans (crisp, slightly condensed, distinct from Geist) became the default, with Plus Jakarta Sans and Onest added to the picker.
+- **Licences:** each font has its OFL licence file next to it in `src/renderer/fonts/` (`INSTRUMENT-SANS-LICENSE.txt`, `PLUS-JAKARTA-SANS-LICENSE.txt`, `ONEST-LICENSE.txt`, …).
 
 ## Sizes and layout
 
 - **Window:** default 1280×820, minimum 480×400. Top bar 48px.
-- **Densities:**
+- **Densities** (the default column width; a resized column uses its own width, 200–900px):
 
   | Setting | Column width | Card padding | Card text | Line clamp | Card gap | Column gap |
   | --- | --- | --- | --- | --- | --- | --- |
@@ -120,8 +131,9 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
 
 - **Column:** radius 16px. Header at least 46px tall; the name wraps to two lines.
 - **New prompt bar:** 36px tall; the plus sits in a 22px `--accent-deep` square. A 36px square mic button sits beside it.
-- **Cards:** radius 12px. On hover, an action pill appears top-right (highlighter, stack "to Augmented", edit) with 26px buttons.
-- **Augmented and Used:** trays radius 12px, inner note or box radius 9px, combined text clamped to 8 lines with a fade until "Show all".
+- **Cards:** radius 12px. On hover, an action pill appears top-right (highlighter, stack "to Combined", edit) with 26px buttons.
+- **Combined and Final:** blocks radius 12px (Combined's header band 11px top corners), inner note or box radius 9px, combined text clamped to 8 lines with a fade until "Show all".
+- **Top bar:** brand, search, then (right) undo/redo, the ↔ reset-widths icon button, the settings gear. No "+ Project" button since 1.6. Disabled top-bar icon buttons are drawn at 30% opacity.
 - **Composer:**
   - radius 12px with an accent ring; the textarea grows up to 300px;
   - an attachment row, and a message row for errors with action links;
@@ -131,9 +143,9 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
 
 ## Icons (`src/renderer/icons.js`, 24px stroke, 1.8 width)
 
-`plus`, `mic`, `stop`, `copy`, `check`, `edit`, `trash`, `more`, `chevron`, `used` (check in circle), `restore` (circular arrow), `grip`, `pencilLine`, `arrowLeft`, `arrowRight`, `arrowDown`, `camera`, `close`, `expand`, `image`, `layers` (the "stack" icon for Augmented), `highlighter`, `undo`.
+`plus`, `mic`, `stop`, `copy`, `check`, `edit`, `trash`, `more`, `chevron`, `used` (check in circle, the Final icon), `restore` (circular arrow), `grip`, `pencilLine`, `arrowLeft`, `arrowRight`, `arrowDown`, `arrowUp`, `width` (two bars with a double arrow: column width), `camera`, `close`, `expand`, `image`, `layers` (the "stack" icon for Combined), `highlighter`, `undo`.
 
-Top-bar icons (search, undo/redo, gear) are inlined in `index.html`.
+Top-bar icons (search, undo/redo, reset widths, gear) are inlined in `index.html`.
 
 ## App icon and monstera art
 
@@ -149,5 +161,5 @@ The leaf is one path, with a mask cutting slits (thick lines) and holes (ellipse
 - **Swipe spring-back:** 0.32s.
 - **Copy:** a ripple of 0.6s and a chip for 1.3s.
 - **Toasts:** spring in.
-- **Used flash:** an expanding emerald ring, 0.7s.
+- **Final flash:** an expanding emerald ring, 0.7s, when text lands in Final or the Final text is copied.
 - **Composer:** busy progress line; recording ring grows with the input level.

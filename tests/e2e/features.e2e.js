@@ -13,6 +13,7 @@ fs.mkdirSync(SCRATCH, { recursive: true });
 const DATA_DIR = path.join(SCRATCH, 'data2');
 const SHOTS = path.join(SCRATCH, 'shots2');
 const APP_MAIN = process.env.APP_MAIN || path.join(__dirname, '..', '..', 'src', 'main.js');
+if (!fs.existsSync(APP_MAIN)) { console.error(`HARNESS FAIL: no app at ${APP_MAIN} (APP_MAIN must be a Windows path)`); process.exit(1); }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 fs.rmSync(DATA_DIR, { recursive: true, force: true });
@@ -223,6 +224,9 @@ async function run() {
   const usedBg = await js(`getComputedStyle(document.querySelector('.column[data-id="p1"] .used')).backgroundColor`);
   const cardBg = await js(`getComputedStyle(document.querySelector('.card')).backgroundColor`);
   check('columns and sections have distinct colours', headBg !== head2Bg && usedBg !== cardBg, `${headBg} | ${head2Bg} | used ${usedBg} | card ${cardBg}`);
+  const titleFamily = await js(`getComputedStyle(document.querySelector('.col-name')).fontFamily`);
+  check('column titles use the new default font, Instrument Sans', /Instrument Sans/.test(titleFamily) && await js(`document.fonts.check('650 16px "Instrument Sans"')`), titleFamily);
+  check('the top bar has no + Project button', !(await js(`!!document.querySelector('#new-project')`)) && await js(`!!document.querySelector('.column') && !!document.querySelector('.add-column')`));
 
   // ---------------------------------------------------------------- copy, swipe, undo
   await clipboard.writeText('');
@@ -261,8 +265,8 @@ async function run() {
   await shot('03-dragging');
   mouse('mouseUp', usedHead.cx, usedHead.cy + 40);
   await sleep(450);
-  check('drag into Augmented joins the note into it', (await augOf('p1')).includes('Benchmark heuristic_ai'));
-  check('move shows an Undo toast', (await texts('.toast')).some((t) => t.includes('Added to Augmented') && t.includes('Undo')));
+  check('drag into Combined joins the note into it', (await augOf('p1')).includes('Benchmark heuristic_ai'));
+  check('move shows an Undo toast', (await texts('.toast')).some((t) => t.includes('Added to Combined') && t.includes('Undo')));
   await shot('04-moved-toast');
   const undoToast = await rect('.toast-action');
   await click(undoToast.cx, undoToast.cy);
@@ -275,9 +279,13 @@ async function run() {
   const hg = headRgb.startsWith('#') ? parseInt(headRgb.slice(3, 5), 16) / 255 : Number((headRgb.match(/srgb\s+[\d.]+\s+([\d.]+)/) || [])[1]);
   check('column headers are solid deep colour', hg > 0 && hg < 0.6, headRgb);
 
-  // ---------------------------------------------------------------- stages: prompts → Augmented (one note) → Used (one text)
-  check('Used section shows once Augmented has notes', await js(`!document.querySelector('.column[data-id="p1"] .final').hidden`));
-  check('Used section hidden while Augmented and Used are empty', await js(`document.querySelector('.column[data-id="p2"] .final').hidden`));
+  // ---------------------------------------------------------------- stages: prompts → Combined (one note) → Final (one text)
+  // (data names: Combined is `used`, Final is `combined`)
+  const labels = await js(`[document.querySelector('.column[data-id="p1"] .used-head').textContent.trim(), document.querySelector('.column[data-id="p1"] .final-toggle').textContent.trim()]`);
+  check('the stages are called Combined and Final', labels[0].startsWith('Combined') && labels[1] === 'Final', JSON.stringify(labels));
+  check('Final section shows once Combined has notes', await js(`!document.querySelector('.column[data-id="p1"] .final').hidden`));
+  check('Final section hidden while Combined and Final are empty', await js(`document.querySelector('.column[data-id="p2"] .final').hidden`));
+  check('cards no longer carry the unused move-back button', !(await js(`!!document.querySelector('.card-wrap .act-back')`)));
   // work in the "Writing" column (px1): add three prompts, bring it into view
   await js(`document.querySelector('#board').scrollLeft = document.querySelector('.column[data-id="px1"]').offsetLeft - 20`);
   await sleep(300);
@@ -294,13 +302,13 @@ async function run() {
   await toAug(); await sleep(300); // Gamma three
   await toAug(); await sleep(300); // Beta two
   const aug1 = await augOf('px1');
-  check('Augmented joins the moved prompts into ONE note, in the order added', (await js(`document.querySelectorAll('.column[data-id="px1"] .aug-note').length`)) === 1 && aug1 === 'Gamma three\n\nBeta two' && !(await colTexts('px1')).includes('Gamma three'), JSON.stringify(aug1));
+  check('Combined joins the moved prompts into ONE note, in the order added', (await js(`document.querySelectorAll('.column[data-id="px1"] .aug-note').length`)) === 1 && aug1 === 'Gamma three\n\nBeta two' && !(await colTexts('px1')).includes('Gamma three'), JSON.stringify(aug1));
   await clipboard.writeText('');
   await clickSel('.column[data-id="px1"] .aug-note .aug-text');
   await sleep(250);
-  check('clicking the Augmented note copies it', (await clipboard.readText()) === aug1);
+  check('clicking the Combined note copies it', (await clipboard.readText()) === aug1);
   const finalOf = (id) => js(`document.querySelector('.column[data-id="${id}"] .final-text').textContent`);
-  // swipe the Augmented note left → appended to Used, Augmented empties
+  // swipe the Combined note left → appended to Final, Combined empties
   const an = await rect('.column[data-id="px1"] .aug-note');
   mouse('mouseMove', an.cx, an.cy, { modifiers: [] }); mouse('mouseDown', an.cx, an.cy);
   await drag(an.cx, an.cy, an.cx - 90, an.cy + 2, 8);
@@ -309,16 +317,16 @@ async function run() {
   mouse('mouseUp', an.cx - 190, an.cy + 3);
   await sleep(700);
   const final1 = await finalOf('px1');
-  check('swiping the Augmented note left moves it down into Used', revealsMove && final1 === aug1 && (await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-empty')`)), JSON.stringify(final1));
-  // next batch via the Move to Used button: it combines with the Used text
+  check('swiping the Combined note left moves it down into Final', revealsMove && final1 === aug1 && (await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-empty')`)), JSON.stringify(final1));
+  // next batch via the Move to Final button: it combines with the Final text
   await toAug(); await sleep(300); // Alpha one
   await toAug(); await sleep(300); // Placeholder note for Writing
   const aug2 = await augOf('px1');
   await clickSel('.column[data-id="px1"] .aug-move');
   await sleep(700);
   const final2 = await finalOf('px1');
-  check('Move to Used adds the whole Augmented note to the end of the Used text', final2 === `${final1}\n\n${aug2}`, JSON.stringify(final2));
-  // a third batch dragged onto Used
+  check('Move to Final adds the whole Combined note to the end of the Final text', final2 === `${final1}\n\n${aug2}`, JSON.stringify(final2));
+  // a third batch dragged onto Final
   await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Delta four'); key('Enter', ['control']); await sleep(200); key('Escape'); await sleep(150);
   await toAug(); await sleep(300);
   const an2 = await rect('.column[data-id="px1"] .aug-note');
@@ -329,19 +337,20 @@ async function run() {
   mouse('mouseUp', fh.cx, fh.cy + 20);
   await sleep(700);
   const finalNow = await finalOf('px1');
-  check('dragging the Augmented note onto Used also moves it down', finalNow === `${final2}\n\nDelta four`, JSON.stringify(finalNow.slice(-40)));
+  check('dragging the Combined note onto Final also moves it down', finalNow === `${final2}\n\nDelta four`, JSON.stringify(finalNow.slice(-40)));
+  check('Final has no counter and no Copy all button', await js(`(() => { const s = document.querySelector('.column[data-id="px1"] .final'); return !s.querySelector('.final-count, .final-copy') && s.querySelector('.final-toggle').textContent.trim() === 'Final'; })()`));
   await clipboard.writeText('');
-  await clickSel('.column[data-id="px1"] .final-copy');
+  await clickSel('.column[data-id="px1"] .final-text');
   await sleep(250);
-  check('Copy all copies the whole Used text and the button says Copied', (await clipboard.readText()) === finalNow && (await js(`document.querySelector('.column[data-id="px1"] .final-copy').textContent.trim()`)) === 'Copied');
-  const overlaps = await js(`(() => {
+  check('clicking the Final text copies all of it (with a Copied chip)', (await clipboard.readText()) === finalNow && await js(`document.querySelector('.column[data-id="px1"] .final-body').classList.contains('is-copied')`));
+  const footOverlaps = await js(`(() => {
     const r = (sel) => document.querySelector('.column[data-id="px1"] ' + sel).getBoundingClientRect();
     const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-    const btn = r('.final-copy');
-    return ['.final-toggle > span:nth-of-type(2)', '.final-count', '.final-text', '.final-stats'].filter((sel) => hit(btn, r(sel)));
+    const stats = r('.final-stats');
+    return ['.final-parts-btn', '.final-edit'].filter((sel) => hit(stats, r(sel)));
   })()`);
-  check('Copy all button overlaps nothing', overlaps.length === 0, overlaps.join(', '));
-  // Augmented parts: a prompt can be pulled back out
+  check('Final footer: stats, Notes and edit do not overlap', footOverlaps.length === 0, footOverlaps.join(', '));
+  // Combined parts: a prompt can be pulled back out
   await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Epsilon five'); key('Enter', ['control']); await sleep(200); key('Escape'); await sleep(150);
   await toAug(); await sleep(300);
   const partText = await augOf('px1');
@@ -349,12 +358,12 @@ async function run() {
   await sleep(200);
   await js(`document.querySelector('.column[data-id="px1"] .ap-back').click()`);
   await sleep(400);
-  check('a prompt can be sent back out of Augmented', (await colTexts('px1')).includes(partText.split('\n')[0]) && (await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-empty')`)));
+  check('a prompt can be sent back out of Combined', (await colTexts('px1')).includes(partText.split('\n')[0]) && (await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-empty')`)));
   const stageColours = await js(`(() => {
     const c = (sel, prop = 'backgroundColor') => getComputedStyle(document.querySelector('.column[data-id="p1"] ' + sel))[prop];
-    return [c('.active-list .card'), c('.used'), c('.final', 'backgroundImage')];
+    return [c('.active-list .card'), c('.used'), c('.final', 'backgroundImage'), c('.aug-note'), c('.final-body'), c('.used-headrow', 'backgroundImage')];
   })()`);
-  check('new, Augmented and Used each look different', new Set(stageColours).size === 3, stageColours.map((x) => x.slice(0, 40)).join(' | '));
+  check('new, Combined and Final each look different (blocks, headers and inner notes)', new Set(stageColours.slice(0, 3)).size === 3 && new Set([stageColours[0], stageColours[3], stageColours[4]]).size === 3 && stageColours[5].includes('gradient'), stageColours.map((x) => x.slice(0, 40)).join(' | '));
   await shot('03b-stages');
   // separator setting
   await clickSel('#open-settings');
@@ -369,6 +378,110 @@ async function run() {
   await js(`document.querySelector('#set-joiner [data-value="blank"]').click()`);
   key('Escape');
   await sleep(250);
+
+  // ---------------------------------------------------------------- reorder and edit the parts of Final and Combined
+  const partsOf = (id, sel) => texts(`.column[data-id="${id}"] ${sel} .fp-text`);
+  const finalRow = (i) => `document.querySelectorAll('.column[data-id="px1"] .final-parts .final-part')[${i}]`;
+  await js(`document.querySelector('.column[data-id="px1"] .final-parts-btn').click()`);
+  await sleep(200);
+  check('the Final Notes list shows each part with move, edit and send-back buttons', (await partsOf('px1', '.final-parts')).length === 5 && await js(`['.fp-up', '.fp-down', '.fp-edit', '.fp-back'].every((s) => ${finalRow(0)}.querySelector(s))`));
+  await js(`${finalRow(0)}.querySelector('.fp-down').click()`);
+  await sleep(300);
+  check('↓ moves a part down, and the Final text follows the new order', (await finalOf('px1')).startsWith('Beta two\n\nGamma three'), JSON.stringify((await finalOf('px1')).slice(0, 30)));
+  await js(`${finalRow(1)}.querySelector('.fp-up').click()`);
+  await sleep(300);
+  check('↑ moves it back up', (await finalOf('px1')) === finalNow);
+  await js(`${finalRow(4)}.querySelector('.fp-edit').click()`);
+  await sleep(300);
+  check('a single Final part opens in an editor with just its text', (await composerValue()) === 'Delta four' && await js(`!!document.querySelector('.column[data-id="px1"] .final-edit-host .composer')`), JSON.stringify(await composerValue()));
+  await type(' edited');
+  key('Enter', ['control']);
+  await sleep(400);
+  const editedFinal = finalNow.replace(/Delta four$/, 'Delta four edited');
+  check('saving it changes only that part; the others stay separate', (await finalOf('px1')) === editedFinal && (await partsOf('px1', '.final-parts')).length === 5, JSON.stringify((await finalOf('px1')).slice(-30)));
+  await clickSel('.column[data-id="px1"] .final-edit');
+  await sleep(300);
+  const wholeFinal = await composerValue();
+  await type(' Done.');
+  key('Enter', ['control']);
+  await sleep(400);
+  check('the Final pencil edits the whole text, saved as one note', wholeFinal === editedFinal && (await finalOf('px1')) === `${editedFinal} Done.` && (await partsOf('px1', '.final-parts')).length === 1);
+  key('Z', ['control']);
+  await sleep(300);
+  key('Z', ['control']);
+  await sleep(350);
+  check('Ctrl+Z undoes both edits', (await finalOf('px1')) === finalNow && (await partsOf('px1', '.final-parts')).length === 5);
+  await toAug(); await sleep(300); // Epsilon five → Combined
+  await js(`document.querySelector('.column[data-id="px1"] .aug-parts .fp-edit').click()`);
+  await sleep(300);
+  const partValue = await composerValue();
+  await type(' plus');
+  key('Enter', ['control']);
+  await sleep(400);
+  check('a part of the Combined note can be edited on its own too', partValue === 'Epsilon five' && (await augOf('px1')) === 'Epsilon five plus', JSON.stringify(await augOf('px1')));
+  await clickSel('.column[data-id="px1"] .aug-edit');
+  await sleep(300);
+  const wholeAug = await composerValue();
+  key('Escape');
+  await sleep(300);
+  check('the Combined pencil still edits the whole note (Esc cancels)', wholeAug === 'Epsilon five plus' && !(await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-editing')`)) && (await augOf('px1')) === 'Epsilon five plus');
+  // a prompt that lands in Combined while its editor is open is kept, after the edited text
+  await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Zeta six'); key('Enter', ['control']); await sleep(200); key('Escape'); await sleep(150);
+  await clickSel('.column[data-id="px1"] .aug-edit');
+  await sleep(300);
+  await toAug(); await sleep(300); // Zeta six → Combined, editor still open
+  await js(`document.querySelector('.column[data-id="px1"] .aug-wrap .composer textarea').focus()`);
+  await type(' again');
+  key('Enter', ['control']);
+  await sleep(400);
+  check('a prompt added while the Combined editor is open is not lost on save', (await augOf('px1')) === 'Epsilon five plus again\n\nZeta six', JSON.stringify(await augOf('px1')));
+  key('Z', ['control']); await sleep(300); // the edit
+  key('Z', ['control']); await sleep(300); // the move
+  await js(`document.querySelector('.column[data-id="px1"] .active-list .card').focus()`);
+  key('Delete'); await sleep(600); // Zeta six out of the way again
+
+  // ---------------------------------------------------------------- Clear Combined / Clear Final (the old "Clear used" emptied the wrong stage)
+  const menuPick = async (colId, label) => {
+    await js(`document.querySelector('.column[data-id="${colId}"] .col-menu').click()`);
+    await sleep(200);
+    const items = await texts('.menu .menu-item');
+    await js(`[...document.querySelectorAll('.menu .menu-item')].find((b) => b.textContent.startsWith(${JSON.stringify(label)})).click()`);
+    await sleep(350);
+    return items;
+  };
+  const menuItems = await menuPick('px1', 'Clear Final');
+  check('the project menu offers Clear Combined and Clear Final, with counts', menuItems.includes('Clear Combined (1)') && menuItems.includes('Clear Final (5)'), menuItems.join(' | '));
+  check('Clear Final empties the Final text and leaves Combined alone', (await finalOf('px1')) === '' && (await augOf('px1')) === 'Epsilon five plus' && (await texts('.toast')).some((t) => t.includes('Cleared Final')));
+  key('Z', ['control']);
+  await sleep(350);
+  check('Ctrl+Z brings the Final text back', (await finalOf('px1')) === finalNow);
+  await menuPick('px1', 'Clear Combined');
+  check('Clear Combined empties the Combined note and leaves Final alone', (await augOf('px1')) === '' && (await finalOf('px1')) === finalNow);
+  key('Z', ['control']);
+  await sleep(350);
+
+  // ---------------------------------------------------------------- search also marks matches in the Combined and Final texts
+  const setSearch = (q) => js(`(() => { const s = document.querySelector('#search'); s.value = ${JSON.stringify(q)}; s.dispatchEvent(new Event('input')); })()`);
+  await setSearch('epsilon gamma');
+  await sleep(250);
+  const marks = await js(`[[...document.querySelectorAll('.column[data-id="px1"] .aug-text mark')].map((m) => m.textContent), [...document.querySelectorAll('.column[data-id="px1"] .final-text mark')].map((m) => m.textContent)]`);
+  check('search highlights matches inside the Combined and Final texts', marks[0].join() === 'Epsilon' && marks[1].join() === 'Gamma', JSON.stringify(marks));
+  await setSearch('');
+  await sleep(200);
+
+  // ---------------------------------------------------------------- more column colours
+  await js(`document.querySelector('.column[data-id="px1"] .col-menu').click()`);
+  await sleep(200);
+  const swatchNames = await js(`[...document.querySelectorAll('.menu .swatch')].map((s) => s.title)`);
+  await js(`[...document.querySelectorAll('.menu .swatch')].find((s) => s.title === 'Navy').click()`);
+  await sleep(250);
+  const navy = await js(`document.querySelector('.column[data-id="px1"]').style.getPropertyValue('--accent')`);
+  key('Escape');
+  await sleep(150);
+  check('18 column colours to pick from, and a new one applies', swatchNames.length === 18 && navy === '#1e3a8a', `${swatchNames.length} colours, px1 → ${navy}`);
+  key('Z', ['control']);
+  await sleep(300);
+
   await js(`document.querySelector('#board').scrollLeft = 0`);
   await sleep(200);
 
@@ -415,7 +528,7 @@ async function run() {
   const moving = (await colTexts('p2'))[0];
   await clickSel('#sel-used');
   await sleep(450);
-  check('selection bar "Move to Augmented" joins the notes into it', (await augOf('p2')).includes(moving) && !(await colTexts('p2')).includes(moving));
+  check('selection bar "Move to Combined" joins the notes into it', (await augOf('p2')).includes(moving) && !(await colTexts('p2')).includes(moving) && (await js(`document.querySelector('#sel-used').textContent`)) === 'Move to Combined');
   key('Z', ['control']);
   await sleep(350);
   check('and Ctrl+Z puts them back', (await colTexts('p2')).includes(moving));
@@ -580,6 +693,40 @@ async function run() {
   await sleep(250);
   const savedTheme = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-settings.json'), 'utf8')).theme;
   check('theme choice is saved', savedTheme === 'deep' && await js(`document.body.classList.contains('theme-deep')`), savedTheme);
+
+  // ---------------------------------------------------------------- resize columns, then reset them from the top bar
+  const prefsNow = () => JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8')).prefs;
+  const widthOf = async (id) => (await rect(`.column[data-id="${id}"]`)).w;
+  await js('document.querySelector("#board").scrollLeft = 0');
+  await sleep(150);
+  check('reset-widths button sits in the top bar, off while no column is resized', await js(`document.querySelector('.topbar #reset-widths').disabled`));
+  const w0 = await widthOf('p1');
+  const resizeBy = async (id, dx) => {
+    const h = await rect(`.column[data-id="${id}"] .col-resize`);
+    mouse('mouseMove', h.cx, h.cy, { modifiers: [] }); mouse('mouseDown', h.cx, h.cy);
+    await drag(h.cx, h.cy, h.cx + dx, h.cy + 3, 10);
+    mouse('mouseUp', h.cx + dx, h.cy + 3);
+    await sleep(700);
+  };
+  await resizeBy('p1', 90);
+  await resizeBy('p2', -40);
+  const w1 = await widthOf('p1');
+  const w2 = await widthOf('p2');
+  const saved1 = prefsNow().colWidths || {};
+  check('dragging a column edge resizes it, and the width is remembered', w1 - w0 > 80 && w0 - w2 > 30 && saved1.p1 === Math.round(w1) && saved1.p2 === Math.round(w2), `p1 ${w0}→${w1}, p2 ${w0}→${w2}, saved ${JSON.stringify(saved1)}`);
+  check('the reset button turns on once a column is resized', !(await js(`document.querySelector('#reset-widths').disabled`)));
+  await shot('10c-resized');
+  await clickSel('#reset-widths');
+  await sleep(700);
+  check('the top-bar button puts every column back to the default width', Math.abs((await widthOf('p1')) - w0) < 1 && Math.abs((await widthOf('p2')) - w0) < 1 && !('colWidths' in prefsNow()) && await js(`document.querySelector('#reset-widths').disabled`));
+  await js(`[...document.querySelectorAll('.toast')].find((t) => t.textContent.includes('Column widths reset')).querySelector('.toast-action').click()`);
+  await sleep(700);
+  check('Undo on its toast brings the widths back', Math.abs((await widthOf('p1')) - w1) < 1 && (prefsNow().colWidths || {}).p1 === Math.round(w1));
+  await js(`document.querySelector('.column[data-id="p1"] .col-resize').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`);
+  await sleep(700);
+  check('double-clicking a column edge resets just that column', Math.abs((await widthOf('p1')) - w0) < 1 && Math.abs((await widthOf('p2')) - w2) < 1 && !((prefsNow().colWidths || {}).p1));
+  await clickSel('#reset-widths');
+  await sleep(500);
 
   // ---------------------------------------------------------------- column drag + undo
   const h1 = await rect('.column[data-id="p1"] .col-name');

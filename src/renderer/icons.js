@@ -25,6 +25,8 @@ window.ICONS = (() => {
     layers: svg('<path d="M12 3.5 3.5 8l8.5 4.5L20.5 8 12 3.5Z"/><path d="m3.5 12 8.5 4.5 8.5-4.5"/><path d="m3.5 16 8.5 4.5 8.5-4.5"/>'),
     highlighter: svg('<path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/>'),
     arrowDown: svg('<path d="M12 5v14M6 13l6 6 6-6"/>'),
+    arrowUp: svg('<path d="M12 19V5M6 11l6-6 6 6"/>'),
+    width: svg('<path d="M4 5v14M20 5v14M8 12h8"/><path d="m11 9-3 3 3 3M13 9l3 3-3 3"/>'),
     undo: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>'),
   };
 })();

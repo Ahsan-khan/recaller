@@ -14,6 +14,7 @@
   const HISTORY_LIMIT = 80;
 
   // Listed in the order new projects pick them, so neighbours look different.
+  // Ids are stored in the user's file: never rename one, only add new ones at the end.
   const PALETTE = [
     { id: 'monstera', name: 'Emerald', color: '#0e9f6e' },
     { id: 'moss', name: 'Sky', color: '#0284c7' },
@@ -23,6 +24,17 @@
     { id: 'clay', name: 'Blossom', color: '#db2777' },
     { id: 'eucalyptus', name: 'Teal', color: '#0d9488' },
     { id: 'sage', name: 'Bark', color: '#78716c' },
+    // added in 1.6
+    { id: 'indigo', name: 'Indigo', color: '#4f46e5' },
+    { id: 'ember', name: 'Ember', color: '#ea580c' },
+    { id: 'lagoon', name: 'Lagoon', color: '#0891b2' },
+    { id: 'ruby', name: 'Ruby', color: '#dc2626' },
+    { id: 'forest', name: 'Forest', color: '#15803d' },
+    { id: 'fuchsia', name: 'Fuchsia', color: '#c026d3' },
+    { id: 'slate', name: 'Slate', color: '#475569' },
+    { id: 'mustard', name: 'Mustard', color: '#a16207' },
+    { id: 'navy', name: 'Navy', color: '#1e3a8a' },
+    { id: 'wine', name: 'Wine', color: '#9f1239' },
   ];
   const DATA_VERSION = 2;
   const DENSITIES = ['compact', 'slim', 'roomy'];
@@ -36,15 +48,22 @@
   ];
   const highlightOf = (note) => HIGHLIGHTS.find((h) => h.id === note.highlight) || null;
 
-  // The three stages of a column, top to bottom:
-  //   notes     — new prompts, one card each
-  //   used      — shown as "Augmented": the prompts moved down, joined into ONE note
-  //   combined  — shown as "Used": the final text; moving the Augmented note down appends it here
-  // (The user swapped the Used/Augmented labels in 1.4. Data names were kept so
-  // existing notes load exactly as before.)
+  // The three stages of a column, top to bottom. On screen they are called:
+  //   notes     — "prompts": new prompts, one card each
+  //   used      — "Combined": the prompts moved down, joined into ONE note
+  //   combined  — "Final": the final text; moving the Combined note down appends it here
+  // The on-screen names changed in 1.4 and again in 1.6 (Augmented → Combined,
+  // Used → Final). The data names were kept so existing notes load exactly as
+  // before, so data `combined` is NOT the stage called "Combined".
   const LISTS = ['notes', 'used', 'combined'];
-  const TITLE_FONTS = ['sora', 'space', 'inter', 'manrope', 'geist', 'caps'];
-  // How notes are joined when combined (Augmented, Used, Ctrl+click): a blank line or a single new line.
+  const STAGE_NAME = { used: 'Combined', combined: 'Final' };
+  const TITLE_FONTS = ['instrument', 'jakarta', 'onest', 'sora', 'space', 'inter', 'manrope', 'geist', 'caps'];
+  const DEFAULT_TITLE_FONT = 'instrument';
+  const titleFont = () => (TITLE_FONTS.includes(data.prefs.titleFont) ? data.prefs.titleFont : DEFAULT_TITLE_FONT);
+  // Column widths: drag a column's edge; the top-bar button puts them all back to the default.
+  const MIN_COL_W = 200;
+  const MAX_COL_W = 900;
+  // How notes are joined when combined (Combined, Final, Ctrl+click): a blank line or a single new line.
   const joiner = () => (data.prefs.joiner === 'line' ? '\n' : '\n\n');
   const IMAGE_ID = /^[a-f0-9]{32}$/;
 
@@ -212,12 +231,13 @@
     const tips = [
       'Click a note to copy it, then paste anywhere with Ctrl+V.',
       'Swipe a note to the left (hold the mouse button and drag) to delete it. Ctrl+Z brings it back.',
-      'Press and hold a note, then drag it into “Used” once you have used it. Drop it on another project to move it.',
-      'Tap the mic in a column header to dictate — text appears as you speak. Add your OpenAI key in Settings first.',
+      'Press and hold a note, then drag it into “Combined”. Drop it on another project to move it.',
+      'Tap the mic next to New prompt to dictate — text appears as you speak. Add your OpenAI key in Settings first.',
       'Tap the camera in the editor to snip part of your screen into a note. Click an image on a card to copy it.',
       'Hold Ctrl and click several notes to copy them all at once, with a blank line between each.',
-      'Move prompts down into “Augmented” and they join into one note. Move that note down into “Used” (swipe it left, drag it, or click Move to Used) and it is added to the final text. Click either one to copy it.',
+      'Move prompts down into “Combined” and they join into one note. Move that note down into “Final” (swipe it left, drag it, or click Move to Final) and it is added to the final text. Click either one to copy it; the pencil edits it.',
       'Hover a note and click the highlighter to colour-mark it, e.g. to check it again later.',
+      'Drag the right edge of a column to make it wider or narrower. The ↔ button in the top bar puts every column back to the default width.',
       'Ctrl+K search · Ctrl+N new prompt · Ctrl+M dictate · Ctrl+Shift+S screenshot · Ctrl+Z undo',
     ];
     return {
@@ -326,6 +346,7 @@
       return;
     }
     if (ui.editing) stopEditing();
+    closeStageEditors();
     history.redo.push({ label: entry.label, snap: snapshot() });
     applySnapshot(entry.snap);
     paintHistory();
@@ -337,6 +358,7 @@
     const entry = history.redo.pop();
     if (!entry) return;
     if (ui.editing) stopEditing();
+    closeStageEditors();
     history.undo.push({ label: entry.label, snap: snapshot() });
     applySnapshot(entry.snap);
     paintHistory();
@@ -404,6 +426,7 @@
   const columns = new Map(); // project id -> column view
   const cards = new Map();   // note id -> card view
   let dragActive = false;
+  let resizing = null;       // column view whose width is being dragged
 
   const addColumnEl = el('button', 'add-column', `${I.plus}<span>New project</span>`);
   addColumnEl.addEventListener('click', () => createProject());
@@ -435,32 +458,33 @@
         <div class="list-empty active-empty"><span class="empty-text"></span></div>
         <section class="used is-empty">
           <div class="used-headrow">
-            <button class="used-head" title="Prompts moved here join into one note"><span class="chev">${I.chevron}</span>${I.layers}<span>Augmented</span><span class="used-count"></span></button>
+            <button class="used-head" title="Prompts moved here join into one note"><span class="chev">${I.chevron}</span>${I.layers}<span>Combined</span><span class="used-count"></span></button>
           </div>
           <div class="aug-wrap">
-            <div class="aug-under">${I.used}<b>Move to Used</b></div>
-            <div class="aug-note" tabindex="0" title="Click to copy · swipe left or drag onto Used to move it down">
+            <div class="aug-under">${I.used}<b>Move to Final</b></div>
+            <div class="aug-note" tabindex="0" title="Click to copy · swipe left or drag onto Final to move it down">
               <div class="aug-text"></div>
-              <div class="aug-foot"><span class="aug-stats"></span><span class="spacer"></span><button class="aug-more" hidden>Show all</button><button class="aug-parts-btn">Notes</button><button class="aug-edit" title="Edit the combined note" aria-label="Edit">${I.edit}</button></div>
+              <div class="aug-foot"><span class="aug-stats"></span><span class="spacer"></span><button class="aug-more" hidden>Show all</button><button class="aug-parts-btn">Notes</button><button class="aug-edit" title="Edit the combined note" aria-label="Edit the combined note">${I.edit}</button></div>
               <div class="aug-parts" hidden></div>
             </div>
           </div>
-          <button class="aug-move" title="Add this note to the end of Used">${I.arrowDown}<span>Move to Used</span></button>
+          <button class="aug-move" title="Add this note to the end of Final">${I.arrowDown}<span>Move to Final</span></button>
           <div class="aug-empty">Move prompts here and they join into one note</div>
         </section>
         <section class="final" hidden>
           <div class="final-head">
-            <button class="final-toggle" title="The final text: every note added from Augmented, joined"><span class="chev">${I.chevron}</span>${I.used}<span>Used</span><span class="final-count"></span></button>
-            <button class="final-copy" title="Copy the whole text">${I.copy}<span>Copy all</span></button>
+            <button class="final-toggle" title="The final text: every note added from Combined, joined"><span class="chev">${I.chevron}</span>${I.used}<span>Final</span></button>
           </div>
           <div class="final-body">
             <div class="final-text" title="Click to copy it all"></div>
-            <div class="final-empty">Move the Augmented note down to add it here</div>
-            <div class="final-foot"><span class="final-stats"></span><span class="spacer"></span><button class="final-more" hidden>Show all</button><button class="final-parts-btn">Notes</button></div>
+            <div class="final-empty">Move the Combined note down to add it here</div>
+            <div class="final-foot"><span class="final-stats"></span><span class="spacer"></span><button class="final-more" hidden>Show all</button><button class="final-parts-btn">Notes</button><button class="final-edit" title="Edit the final text" aria-label="Edit the final text">${I.edit}</button></div>
             <div class="final-parts" hidden></div>
           </div>
+          <div class="final-edit-host"></div>
         </section>
-      </div>`;
+      </div>
+      <div class="col-resize" title="Drag to resize · double-click for the default width"></div>`;
     return {
       id: project.id,
       root,
@@ -487,19 +511,19 @@
       augSig: null,
       augExpanded: Boolean(project.usedExpanded),
       augPartsOpen: false,
-      augEditor: null,
       finalSection: $('.final', root),
       finalHead: $('.final-head', root),
+      finalBody: $('.final-body', root),
       finalText: $('.final-text', root),
-      finalCount: $('.final-count', root),
       finalStats: $('.final-stats', root),
       finalMore: $('.final-more', root),
-      finalCopy: $('.final-copy', root),
       finalParts: $('.final-parts', root),
       finalPartsBtn: $('.final-parts-btn', root),
+      finalEditHost: $('.final-edit-host', root),
       finalSig: null,
       finalExpanded: Boolean(project.augExpanded),
       partsOpen: false,
+      stageEditor: null, // { list, partId, composer }: editing the Combined note or the Final text
       composer: null,
       renaming: false,
     };
@@ -509,7 +533,7 @@
     const root = el('div', 'card-wrap');
     root.dataset.id = note.id;
     root.innerHTML = `
-      <div class="card-under"><span class="under-delete">${I.trash}</span><span class="under-add">${I.used}<b>Add to Used</b></span></div>
+      <div class="card-under"><span class="under-delete">${I.trash}</span></div>
       <span class="sel-badge"></span>
       <article class="card" tabindex="0">
         <div class="card-text"></div>
@@ -517,8 +541,7 @@
         <div class="card-meta"><span class="card-hl-tag"></span><span class="card-time"></span><span class="card-copies"></span><button class="card-more" hidden>Show more</button></div>
         <div class="card-actions">
           <button class="card-act act-hl" title="Highlight (H)" aria-label="Highlight">${I.highlighter}</button>
-          <button class="card-act act-back" title="Move back to prompts" aria-label="Move back to prompts">${I.restore}</button>
-          <button class="card-act act-used"></button>
+          <button class="card-act act-used" title="Move to Combined (U)" aria-label="Move to Combined">${I.layers}</button>
           <button class="card-act act-edit" title="Edit (E)" aria-label="Edit">${I.edit}</button>
         </div>
       </article>`;
@@ -536,8 +559,6 @@
       timeEl: $('.card-time', root),
       copiesEl: $('.card-copies', root),
       moreBtn: $('.card-more', root),
-      usedBtn: $('.act-used', root),
-      backBtn: $('.act-back', root),
       hlTag: $('.card-hl-tag', root),
       selBadge: $('.sel-badge', root),
       sig: '',
@@ -560,11 +581,11 @@
 
   const toMeasure = new Set();
 
-  function updateCard(view, note, isUsed, query) {
-    view.timeEl.textContent = relTime(isUsed && note.usedAt ? note.usedAt : note.updatedAt || note.createdAt);
+  function updateCard(view, note, query) {
+    view.timeEl.textContent = relTime(note.updatedAt || note.createdAt);
     const imageKey = note.images.map((i) => i.id).join(',');
     const hl = highlightOf(note);
-    const sig = `${note.text}\u0001${isUsed}\u0001${query.key}\u0001${view.expanded}\u0001${note.copied}\u0001${imageKey}\u0001${hl?.id ?? ''}`;
+    const sig = `${note.text}\u0001${query.key}\u0001${view.expanded}\u0001${note.copied}\u0001${imageKey}\u0001${hl?.id ?? ''}`;
     if (sig === view.sig) return;
     const imagesChanged = !view.sig || view.imageKey !== imageKey;
     view.sig = sig;
@@ -572,7 +593,6 @@
     view.textEl.innerHTML = highlight(note.text, query);
     if (imagesChanged) renderCardImages(view, note.images);
     view.copiesEl.textContent = note.copied ? `· copied ${note.copied}×` : '';
-    view.root.classList.toggle('is-used', isUsed);
     view.root.classList.toggle('is-expanded', view.expanded);
     view.root.classList.toggle('is-hl', Boolean(hl));
     if (hl) {
@@ -580,10 +600,6 @@
       view.root.style.setProperty('--hl-bg', hl.bg);
     }
     view.hlTag.textContent = hl ? hl.name : '';
-    view.backBtn.hidden = !isUsed;
-    view.usedBtn.innerHTML = isUsed ? I.used : I.layers;
-    view.usedBtn.title = isUsed ? 'Add to Used (U)' : 'Move to Augmented (U)';
-    view.usedBtn.setAttribute('aria-label', view.usedBtn.title);
     toMeasure.add(view);
   }
 
@@ -611,7 +627,35 @@
     toMeasure.clear();
   }
 
-  function syncList(listEl, notes, project, isUsed, query, seen) {
+  // After a column changes width, "Show more" / "Show all" need checking again.
+  function remeasure(cols = [...columns.values()]) {
+    for (const col of cols) {
+      if (!col) continue;
+      augToMeasure.add(col);
+      for (const view of cards.values()) if (view.projectId === col.id) toMeasure.add(view);
+    }
+    requestAnimationFrame(measureCards);
+  }
+
+  const hitsAll = (text, query) => query.terms.length > 0 && query.terms.every((t) => text.toLowerCase().includes(t));
+
+  // The Notes list under the Combined note and the Final text: one row per part,
+  // with buttons to reorder it, edit it on its own, or send it back up a stage.
+  function partsHtml(notes, query, back) {
+    return notes.map((note, i) => `
+      <div class="final-part" data-id="${note.id}">
+        <span class="fp-num">${i + 1}</span>
+        <span class="fp-text">${highlight(note.text.split('\n')[0] || '(image)', query)}</span>
+        <span class="fp-acts">
+          <button class="fp-up" title="Move up" aria-label="Move up"${i === 0 ? ' disabled' : ''}>${I.arrowUp}</button>
+          <button class="fp-down" title="Move down" aria-label="Move down"${i === notes.length - 1 ? ' disabled' : ''}>${I.arrowDown}</button>
+          <button class="fp-edit" title="Edit this note" aria-label="Edit this note">${I.edit}</button>
+          <button class="${back.cls}" title="${back.title}" aria-label="${back.title}">${I.restore}</button>
+        </span>
+      </div>`).join('');
+  }
+
+  function syncList(listEl, notes, project, query, seen) {
     const nodes = [];
     for (const note of notes) {
       let view = cards.get(note.id);
@@ -621,8 +665,7 @@
       }
       seen.add(note.id);
       view.projectId = project.id;
-      view.list = isUsed ? 'used' : 'notes';
-      updateCard(view, note, isUsed, query);
+      updateCard(view, note, query);
       const order = ui.selection.indexOf(note.id);
       view.root.classList.toggle('is-selected', order >= 0);
       if (order >= 0) view.selBadge.textContent = String(order + 1);
@@ -633,6 +676,12 @@
 
   function updateColumn(col, project, query, seen) {
     col.root.style.setProperty('--accent', colorOf(project));
+    if (resizing !== col) {
+      const w = colWidth(project.id);
+      const width = w ? `${w}px` : '';
+      if (col.root.style.width !== width) col.root.style.width = width;
+      col.root.classList.toggle('is-resized', Boolean(w));
+    }
     if (!col.renaming && col.nameEl.textContent !== project.name) {
       col.nameEl.textContent = project.name;
       col.nameEl.title = `${project.name} · double-click to rename, drag to reorder`;
@@ -674,54 +723,48 @@
     col.addBtn.title = hasDraft ? 'Resume draft (Ctrl+N)' : 'New prompt (Ctrl+N)';
     col.newRow.hidden = composing;
 
-    syncList(col.activeList, active, project, false, query, seen);
+    syncList(col.activeList, active, project, query, seen);
 
-    // Augmented: the prompts moved here, joined into one note in the order they were added.
+    // Combined (data `used`): the prompts moved here, joined into one note in the order they were added.
+    // A search also highlights matches here, and opens the text up if it matches.
     const augText = augmentedText(project);
     const nAug = project.used.length;
+    const augEditing = col.stageEditor?.list === 'used';
     col.usedSection.classList.toggle('is-empty', !nAug);
-    col.usedSection.classList.toggle('is-expanded', col.augExpanded);
-    col.usedSection.classList.toggle('is-editing', Boolean(col.augEditor));
-    col.augMoveBtn.hidden = !nAug || Boolean(col.augEditor);
-    const augSig = `${augText}\u0001${project.used.map((n) => n.id).join(',')}\u0001${col.augPartsOpen}`;
+    col.usedSection.classList.toggle('is-expanded', col.augExpanded || hitsAll(augText, query));
+    col.usedSection.classList.toggle('is-editing', augEditing);
+    col.augMoveBtn.hidden = !nAug || augEditing;
+    const augSig = `${augText}\u0001${project.used.map((n) => n.id).join(',')}\u0001${col.augPartsOpen}\u0001${query.key}`;
     if (col.augSig !== augSig) {
       col.augSig = augSig;
-      col.augText.textContent = augText;
+      col.augText.innerHTML = highlight(augText, query);
       const words = augText.trim() ? augText.trim().split(/\s+/).length : 0;
       col.augStats.textContent = `${nAug} prompt${nAug === 1 ? '' : 's'} · ${words.toLocaleString()} words`;
       col.augParts.hidden = !col.augPartsOpen;
-      col.augPartsBtn.textContent = col.augPartsOpen ? 'Hide notes' : 'Notes';
-      col.augParts.innerHTML = project.used.map((note, i) => `
-        <div class="final-part" data-id="${note.id}">
-          <span class="fp-num">${i + 1}</span>
-          <span class="fp-text">${escapeHtml(note.text.split('\n')[0] || '(image)')}</span>
-          <button class="ap-back fp-back" title="Send back to prompts" aria-label="Send back to prompts">${I.restore}</button>
-        </div>`).join('');
+      col.augPartsBtn.setAttribute('aria-pressed', String(col.augPartsOpen));
+      col.augPartsBtn.title = col.augPartsOpen ? 'Hide the separate notes' : 'Show the separate notes: reorder, edit or send one back';
+      col.augParts.innerHTML = partsHtml(project.used, query, { cls: 'ap-back fp-back', title: 'Send back to prompts' });
       augToMeasure.add(col);
     }
 
-    // Used (final): the exact text of every note added to it, in order, one blank line apart.
+    // Final (data `combined`): the exact text of every note added to it, in order.
     const combined = finalText(project);
     col.finalSection.hidden = !(project.used.length || project.combined.length);
     col.finalSection.classList.toggle('is-collapsed', project.augCollapsed);
-    col.finalSection.classList.toggle('is-expanded', col.finalExpanded);
+    col.finalSection.classList.toggle('is-expanded', col.finalExpanded || hitsAll(combined, query));
     col.finalSection.classList.toggle('is-empty', !project.combined.length);
-    const sig = `${combined}\u0001${project.combined.map((n) => n.id).join(',')}\u0001${col.partsOpen}`;
+    col.finalSection.classList.toggle('is-editing', col.stageEditor?.list === 'combined');
+    const sig = `${combined}\u0001${project.combined.map((n) => n.id).join(',')}\u0001${col.partsOpen}\u0001${query.key}`;
     if (col.finalSig !== sig) {
       col.finalSig = sig;
-      col.finalText.textContent = combined;
+      col.finalText.innerHTML = highlight(combined, query);
       const n = project.combined.length;
-      col.finalCount.textContent = n ? `· ${n}` : '';
       const words = combined.trim() ? combined.trim().split(/\s+/).length : 0;
       col.finalStats.textContent = `${n} note${n === 1 ? '' : 's'} · ${words.toLocaleString()} words`;
       col.finalParts.hidden = !col.partsOpen;
-      col.finalPartsBtn.textContent = col.partsOpen ? 'Hide notes' : 'Notes';
-      col.finalParts.innerHTML = project.combined.map((note, i) => `
-        <div class="final-part" data-id="${note.id}">
-          <span class="fp-num">${i + 1}</span>
-          <span class="fp-text">${escapeHtml(note.text.split('\n')[0] || '(image)')}</span>
-          <button class="fp-back" title="Send back to Augmented" aria-label="Send back to Augmented">${I.restore}</button>
-        </div>`).join('');
+      col.finalPartsBtn.setAttribute('aria-pressed', String(col.partsOpen));
+      col.finalPartsBtn.title = col.partsOpen ? 'Hide the separate notes' : 'Show the separate notes: reorder, edit or send one back';
+      col.finalParts.innerHTML = partsHtml(project.combined, query, { cls: 'fp-back', title: 'Send back to Combined' });
       augToMeasure.add(col);
     }
   }
@@ -734,7 +777,7 @@
     document.body.classList.remove(...DENSITIES.map((d) => `density-${d}`));
     document.body.classList.add(`density-${DENSITIES.includes(data.prefs.density) ? data.prefs.density : 'slim'}`);
     document.body.classList.remove(...TITLE_FONTS.map((t) => `title-${t}`));
-    document.body.classList.add(`title-${TITLE_FONTS.includes(data.prefs.titleFont) ? data.prefs.titleFont : 'sora'}`);
+    document.body.classList.add(`title-${titleFont()}`);
     ui.selection = ui.selection.filter((id) => locate(id)?.list === 'notes');
     const query = parseQuery(ui.search);
     const seen = new Set();
@@ -751,6 +794,7 @@
     for (const [id, col] of columns) {
       if (findProject(id)) continue;
       col.composer?.destroy();
+      col.stageEditor?.composer.destroy();
       col.root.remove();
       columns.delete(id);
     }
@@ -766,6 +810,7 @@
     if (toMeasure.size || augToMeasure.size) requestAnimationFrame(measureCards);
     updatePan();
     paintSelection();
+    paintWidthReset();
   }
 
   // ================================================================ note actions
@@ -805,7 +850,7 @@
       return null;
     }
     if (ui.editing) stopEditing();
-    for (const c of columns.values()) closeAugEditor(c);
+    closeStageEditors();
     if (ui.composing && ui.composing !== projectId) closeComposer();
     ui.composing = projectId;
     ui.lastProjectId = projectId;
@@ -832,14 +877,19 @@
 
   function activeComposer() {
     if (ui.editing) return cards.get(ui.editing)?.editor ?? null;
+    for (const c of columns.values()) if (c.stageEditor) return c.stageEditor.composer;
     return columns.get(ui.composing)?.composer ?? null;
   }
+
+  // Any editor open (new prompt, a card, the Combined note or the Final text)?
+  const isEditing = () => Boolean(ui.composing || ui.editing || [...columns.values()].some((c) => c.stageEditor));
 
   function startEdit(id) {
     const view = cards.get(id);
     const loc = locate(id);
     if (!view || !loc) return;
     if (ui.composing) closeComposer();
+    closeStageEditors();
     if (ui.editing && ui.editing !== id) stopEditing();
     ui.editing = id;
     ui.lastProjectId = loc.project.id;
@@ -851,7 +901,6 @@
       allowDelete: true,
       onSave: (text, images) => {
         const current = locate(id);
-        const imageKey = (list) => list.map((i) => i.id).join(',');
         if (current && (current.note.text !== text || imageKey(current.note.images) !== imageKey(images))) {
           checkpoint('Edit note');
           current.note.text = text;
@@ -950,7 +999,8 @@
     card._copiedTimer = setTimeout(() => card.classList.remove('is-copied'), 1300);
   }
 
-  async function copyFinal(projectId) {
+  // Clicking the Final text copies all of it.
+  async function copyFinal(projectId, event) {
     const col = columns.get(projectId);
     const project = findProject(projectId);
     if (!col || !project) return;
@@ -964,17 +1014,10 @@
       return;
     }
     ui.lastProjectId = projectId;
-    const btn = col.finalCopy;
-    btn.innerHTML = `${I.check}<span>Copied</span>`;
-    btn.classList.add('is-copied');
+    flashCopied(col.finalBody, event, 'Copied');
     col.finalSection.classList.remove('is-flash');
     void col.finalSection.offsetWidth;
     col.finalSection.classList.add('is-flash');
-    clearTimeout(btn._timer);
-    btn._timer = setTimeout(() => {
-      btn.innerHTML = `${I.copy}<span>Copy all</span>`;
-      btn.classList.remove('is-copied');
-    }, 1400);
     if (ui.settings?.hideAfterCopy) setTimeout(() => api.minimize(), 260);
   }
 
@@ -1050,10 +1093,10 @@
   function moveSelectionToUsed() {
     const ids = ui.selection.filter((id) => locate(id)?.list === 'notes');
     if (!ids.length) {
-      toast('Those notes are already in Augmented');
+      toast('Those notes are already in Combined');
       return;
     }
-    checkpoint('Move to Augmented');
+    checkpoint('Move to Combined');
     // Appended in click order, so the combined note reads in that order.
     for (const id of ids) {
       const loc = locate(id);
@@ -1067,13 +1110,13 @@
     ui.selection = [];
     persist();
     render();
-    toast(`Moved ${ids.length} to Augmented`, { action: 'Undo', onAction: undo, history: true });
+    toast(`Moved ${ids.length} to Combined`, { action: 'Undo', onAction: undo, history: true });
   }
 
   $('#sel-used').addEventListener('click', moveSelectionToUsed);
   $('#sel-clear').addEventListener('click', clearSelection);
 
-  // Stack icon / "U": new prompt → end of the Augmented note.
+  // Stack icon / "U": new prompt → end of the Combined note.
   function toggleUsed(id) {
     if (locate(id)?.list === 'notes') moveBetween(id, 'used');
   }
@@ -1082,7 +1125,7 @@
     const loc = locate(id);
     if (!loc || loc.list === to) return;
     const toUsed = to === 'used';
-    checkpoint(toUsed ? 'Move to Augmented' : 'Move back');
+    checkpoint(toUsed ? 'Move to Combined' : 'Move back');
     loc.project[loc.list].splice(loc.index, 1);
     if (toUsed) {
       loc.note.usedAt = Date.now();
@@ -1101,34 +1144,10 @@
     render();
     const col = columns.get(loc.project.id);
     if (toUsed && loc.project.usedCollapsed && col) bump(col.usedHead);
-    toast(toUsed ? 'Added to Augmented' : 'Moved back to prompts', { action: 'Undo', onAction: undo, history: true });
+    toast(toUsed ? 'Added to Combined' : 'Moved back to prompts', { action: 'Undo', onAction: undo, history: true });
   }
 
-  // Augmented note → end of the final "Used" text.
-  function addToFinal(id, { animate = false } = {}) {
-    const view = cards.get(id);
-    const commit = () => {
-      const loc = locate(id);
-      if (!loc || loc.list === 'combined') return;
-      checkpoint('Add to Used');
-      loc.project[loc.list].splice(loc.index, 1);
-      loc.note.usedAt = Date.now();
-      loc.project.combined.push(loc.note);
-      persist();
-      render();
-      const col = columns.get(loc.project.id);
-      if (col) {
-        col.finalSection.classList.remove('is-flash');
-        void col.finalSection.offsetWidth;
-        col.finalSection.classList.add('is-flash');
-      }
-      toast('Added to Used', { action: 'Undo', onAction: undo, history: true });
-    };
-    if (!animate || !view || !view.root.isConnected) return commit();
-    animateOut(view).then(commit);
-  }
-
-  // The whole Augmented note → appended to the Used text; Augmented starts empty again.
+  // The whole Combined note → appended to the Final text; Combined starts empty again.
   function moveAugmentedToFinal(projectId, { animate = false } = {}) {
     const project = findProject(projectId);
     const col = columns.get(projectId);
@@ -1136,7 +1155,7 @@
     const commit = () => {
       const p = findProject(projectId);
       if (!p || !p.used.length) return;
-      checkpoint('Move to Used');
+      checkpoint('Move to Final');
       const now = Date.now();
       for (const n of p.used) n.usedAt = now;
       p.combined.push(...p.used);
@@ -1154,7 +1173,7 @@
         void col.finalSection.offsetWidth;
         col.finalSection.classList.add('is-flash');
       }
-      toast('Moved to Used', { action: 'Undo', onAction: undo, history: true });
+      toast('Moved to Final', { action: 'Undo', onAction: undo, history: true });
     };
     if (!animate || !col) return commit();
     col.augNote.style.transition = 'transform .2s cubic-bezier(.4,0,1,1), opacity .2s ease-in';
@@ -1181,54 +1200,120 @@
     if (ui.settings?.hideAfterCopy) setTimeout(() => api.minimize(), 260);
   }
 
-  function closeAugEditor(col) {
-    if (!col?.augEditor) return;
-    col.augEditor.destroy();
-    col.augEditor.root.remove();
-    col.augEditor = null;
+  // ---- editing the Combined note and the Final text
+  // The pencil in the footer edits the whole text, which is saved back as ONE note.
+  // The pencil on a row in the Notes list edits just that part; the others stay separate.
+
+  function closeStageEditor(col) {
+    const editor = col?.stageEditor;
+    if (!editor) return;
+    col.stageEditor = null;
+    editor.composer.destroy();
+    editor.composer.root.remove();
     render();
   }
 
-  // Editing the combined note turns it into one note with the edited text.
-  function editAugmented(projectId) {
+  function closeStageEditors() {
+    for (const c of columns.values()) closeStageEditor(c);
+  }
+
+  const imageKey = (list) => list.map((i) => i.id).join(',');
+  const stageText = (project, list) => (list === 'used' ? augmentedText(project) : finalText(project));
+
+  function editStage(projectId, list, partId = null) {
     const col = columns.get(projectId);
     const project = findProject(projectId);
-    if (!col || !project || !project.used.length || col.augEditor) return;
+    if (!col || !project || !project[list].length) return;
+    const part = partId ? project[list].find((n) => n.id === partId) : null;
+    if (partId && !part) return;
     if (ui.composing) closeComposer();
     if (ui.editing) stopEditing();
-    for (const c of columns.values()) if (c !== col) closeAugEditor(c);
-    col.augEditor = createComposer({
-      text: augmentedText(project),
-      images: project.used.flatMap((n) => n.images),
-      placeholder: 'Edit the combined note…',
+    closeStageEditors();
+    const name = STAGE_NAME[list];
+    const openedIds = new Set(project[list].map((n) => n.id));
+    const composer = createComposer({
+      text: part ? part.text : stageText(project, list),
+      images: part ? part.images : project[list].flatMap((n) => n.images),
+      placeholder: part ? 'Edit this note…' : `Edit the ${name.toLowerCase()} text…`,
       closeLabel: 'Cancel',
+      allowDelete: Boolean(part),
       onSave: (text, images) => {
-        const p = findProject(projectId);
-        if (p) {
-          checkpoint('Edit Augmented');
-          p.used = text || images.length ? [{ ...makeNote(text, images), usedAt: Date.now() }] : [];
-          persist();
-        }
-        closeAugEditor(col);
+        saveStageEdit(projectId, list, partId, text, images, openedIds);
+        closeStageEditor(col);
       },
-      onCancel: () => closeAugEditor(col),
+      onCancel: () => closeStageEditor(col),
+      onDelete: () => {
+        closeStageEditor(col);
+        deletePart(projectId, list, partId);
+      },
     });
-    col.augWrap.appendChild(col.augEditor.root);
+    col.stageEditor = { list, partId, composer };
+    (list === 'used' ? col.augWrap : col.finalEditHost).appendChild(composer.root);
+    ui.lastProjectId = projectId;
     render();
-    col.augEditor.focus();
+    composer.focus();
   }
 
-  // A note in the final text → back to the top of Augmented.
+  function saveStageEdit(projectId, list, partId, text, images, openedIds) {
+    const p = findProject(projectId);
+    if (!p) return;
+    if (partId) {
+      const note = p[list].find((n) => n.id === partId);
+      if (!note || (note.text === text && imageKey(note.images) === imageKey(images))) return;
+      checkpoint('Edit note');
+      note.text = text;
+      note.images = images;
+      note.updatedAt = Date.now();
+    } else {
+      // Notes that arrived while the editor was open (a prompt dropped in, say)
+      // weren't in the text being edited, so they stay, after the edited note.
+      const arrived = p[list].filter((n) => !openedIds.has(n.id));
+      const opened = p[list].filter((n) => openedIds.has(n.id));
+      const openedText = opened.map((n) => n.text).filter((t) => t.trim()).join(joiner());
+      // Saved unchanged: keep the separate parts as they are.
+      if (openedText === text && imageKey(opened.flatMap((n) => n.images)) === imageKey(images)) return;
+      checkpoint(`Edit ${STAGE_NAME[list]}`);
+      p[list] = [{ ...makeNote(text, images), usedAt: Date.now() }, ...arrived];
+    }
+    persist();
+  }
+
+  function deletePart(projectId, list, partId) {
+    const p = findProject(projectId);
+    const index = p ? p[list].findIndex((n) => n.id === partId) : -1;
+    if (index < 0) return;
+    checkpoint('Delete note');
+    p[list].splice(index, 1);
+    persist();
+    render();
+    toast('Note deleted', { action: 'Undo', onAction: undo, duration: 7000, history: true });
+  }
+
+  // ↑ / ↓ on a row in the Notes list: reorder the parts of the Combined note or the Final text.
+  function movePart(id, delta) {
+    const loc = locate(id);
+    if (!loc || loc.list === 'notes') return;
+    const list = loc.project[loc.list];
+    const j = loc.index + delta;
+    if (j < 0 || j >= list.length) return;
+    checkpoint('Reorder');
+    list.splice(loc.index, 1);
+    list.splice(j, 0, loc.note);
+    persist();
+    render();
+  }
+
+  // A note in the Final text → back to the end of the Combined note.
   function sendBackFromFinal(id) {
     const loc = locate(id);
     if (!loc || loc.list !== 'combined') return;
-    checkpoint('Send back to Augmented');
+    checkpoint('Send back to Combined');
     loc.project.combined.splice(loc.index, 1);
     loc.project.used.push(loc.note);
     fresh.add(id);
     persist();
     render();
-    toast('Sent back to Augmented', { action: 'Undo', onAction: undo, history: true });
+    toast('Sent back to Combined', { action: 'Undo', onAction: undo, history: true });
   }
 
   function setHighlight(id, hl) {
@@ -1365,15 +1450,18 @@
     toast(`Deleted “${project.name}”`, { action: 'Undo', onAction: undo, duration: 9000, history: true });
   }
 
-  function clearUsed(id) {
+  // Project menu › Clear Combined / Clear Final (list is the data name: 'used' or 'combined').
+  function clearStage(id, list) {
     const project = findProject(id);
-    if (!project || !project.used.length) return;
-    checkpoint('Clear used');
-    const count = project.used.length;
-    project.used = [];
+    if (!project || !project[list].length) return;
+    const col = columns.get(id);
+    if (col?.stageEditor?.list === list) closeStageEditor(col);
+    const name = STAGE_NAME[list];
+    checkpoint(`Clear ${name}`);
+    project[list] = [];
     persist();
     render();
-    toast(`Cleared ${count} used`, { action: 'Undo', onAction: undo, duration: 7000, history: true });
+    toast(`Cleared ${name}`, { action: 'Undo', onAction: undo, duration: 7000, history: true });
   }
 
   function moveProject(id, delta) {
@@ -1879,6 +1967,10 @@
       ui.lastProjectId = colEl.dataset.id;
       rememberProject();
     }
+    if (colEl && e.target.closest('.col-resize')) {
+      startColumnResize(e, columns.get(colEl.dataset.id));
+      return;
+    }
     if (e.target.closest('button, input, textarea, select, .composer, a')) return;
 
     const augNote = e.target.closest('.aug-note');
@@ -1966,7 +2058,7 @@
     });
   }
 
-  // ---- the Augmented note: click copies, swipe left or drag onto Used moves it down
+  // ---- the Combined note: click copies, swipe left or drag onto Final moves it down
 
   function startAugGesture(e, col) {
     if (!col) return;
@@ -2074,10 +2166,8 @@
     g.mode = 'swipe';
     g.width = g.card.offsetWidth;
     g.samples = [];
-    g.toFinal = locate(g.id)?.list === 'used';
     g.card.classList.remove('is-pressed');
     g.wrap.classList.add('is-swiping');
-    g.wrap.classList.toggle('swipe-add', g.toFinal);
   }
 
   function swipeMove(g, dx, t) {
@@ -2099,8 +2189,7 @@
     const distance = -(g.lastX || 0);
     const commit = !cancelled && (distance >= g.width * SWIPE_RATIO || (velocity < -0.8 && distance > 50));
     if (commit) {
-      if (g.toFinal) addToFinal(g.id, { animate: true });
-      else deleteNote(g.id);
+      deleteNote(g.id);
       return;
     }
     g.card.style.transition = 'transform .32s var(--spring)';
@@ -2109,11 +2198,11 @@
     g.wrap.classList.remove('will-delete');
     setTimeout(() => {
       g.card.style.transition = '';
-      g.wrap.classList.remove('is-swiping', 'swipe-add');
+      g.wrap.classList.remove('is-swiping');
     }, 320);
   }
 
-  // ---- drag to reorder / move to Used / move between projects
+  // ---- drag to reorder / move to Combined or Final / move between projects
 
   function beginDrag(g) {
     g.mode = 'drag';
@@ -2130,7 +2219,6 @@
     const clone = g.card.cloneNode(true);
     clone.classList.remove('is-pressed', 'is-copied');
     clone.querySelectorAll('.ripple, .copied-chip').forEach((n) => n.remove());
-    if (g.wrap.classList.contains('is-used')) g.ghost.classList.add('is-used');
     g.ghost.appendChild(clone);
     document.body.appendChild(g.ghost);
 
@@ -2287,9 +2375,9 @@
         if (t.list !== 'notes' && loc.list !== t.list) loc.note.usedAt = Date.now();
         const moved = !(from.project === dest && from.list === t.list && from.index === index);
         if (moved) {
-          if (t.list === 'combined') moveLabel = 'Add to Used';
+          if (t.list === 'combined') moveLabel = 'Add to Final';
           else if (from.project !== dest) moveLabel = `Move to ${dest.name}`;
-          else if (t.list === 'used' && from.list !== 'used') moveLabel = 'Add to Augmented';
+          else if (t.list === 'used' && from.list !== 'used') moveLabel = 'Add to Combined';
           else if (t.list === 'notes' && from.list === 'used') moveLabel = 'Move back';
           else moveLabel = 'Reorder';
           pushHistory(moveLabel, before);
@@ -2336,7 +2424,7 @@
       g.ghost.remove();
     }
     if (moveLabel && moveLabel !== 'Reorder') {
-      const labels = { 'Add to Augmented': 'Added to Augmented', 'Move back': 'Moved back', 'Add to Used': 'Added to Used' };
+      const labels = { 'Add to Combined': 'Added to Combined', 'Move back': 'Moved back', 'Add to Final': 'Added to Final' };
       toast(labels[moveLabel] || `Moved to ${findProject(t.col.id)?.name}`, { action: 'Undo', onAction: undo, history: true });
     }
   }
@@ -2377,6 +2465,7 @@
     document.body.appendChild(g.ghost);
     g.placeholder = el('div', 'col-placeholder');
     g.placeholder.style.height = `${rect.height}px`;
+    g.placeholder.style.width = `${rect.width}px`;
     board.insertBefore(g.placeholder, g.colEl);
     g.colEl.classList.add('is-drag-source');
     document.body.classList.add('is-dragging');
@@ -2440,6 +2529,96 @@
       g.colEl.style.zIndex = '';
     }, 300);
   }
+
+  // ---- column width: drag a column's right edge. Widths live in data.prefs.colWidths
+  // ({ projectId: px }); a column without an entry uses the Settings › Column width default.
+
+  const defaultColWidth = () => parseFloat(getComputedStyle(document.body).getPropertyValue('--col-w')) || 268;
+
+  function colWidth(id) {
+    const widths = data.prefs.colWidths;
+    const w = widths && typeof widths === 'object' ? Number(widths[id]) : NaN;
+    return Number.isFinite(w) && w > 0 ? Math.round(Math.min(MAX_COL_W, Math.max(MIN_COL_W, w))) : 0;
+  }
+
+  // 0 puts the column back to the default width.
+  function setColWidth(id, w) {
+    const current = data.prefs.colWidths;
+    const widths = current && typeof current === 'object' ? { ...current } : {};
+    if (w) widths[id] = w;
+    else delete widths[id];
+    if (Object.keys(widths).length) data.prefs.colWidths = widths;
+    else delete data.prefs.colWidths;
+    persist();
+  }
+
+  function startColumnResize(e, col) {
+    if (!col) return;
+    e.preventDefault();
+    closeMenu();
+    const x0 = e.clientX;
+    const w0 = col.root.offsetWidth;
+    const def = defaultColWidth();
+    let w = w0;
+    resizing = col;
+    dragActive = true;
+    col.root.classList.add('is-resizing');
+    document.body.classList.add('is-resizing');
+    trackPointer(e, {
+      onMove(ev) {
+        w = Math.round(Math.min(MAX_COL_W, Math.max(MIN_COL_W, w0 + ev.clientX - x0)));
+        if (Math.abs(w - def) <= 6) w = def; // snaps to the default on the way past
+        col.root.style.width = `${w}px`;
+      },
+      onEnd(_ev, cancelled) {
+        resizing = null;
+        dragActive = false;
+        col.root.classList.remove('is-resizing');
+        document.body.classList.remove('is-resizing');
+        if (!cancelled && w !== w0) setColWidth(col.id, w === def ? 0 : w);
+        render();
+        remeasure([col]);
+      },
+    });
+  }
+
+  function resetColumnWidth(id) {
+    if (!colWidth(id)) return;
+    setColWidth(id, 0);
+    render();
+    remeasure([columns.get(id)]);
+  }
+
+  // Top bar button: every column back to the default width (with an Undo on the toast).
+  const widthResetBtn = $('#reset-widths');
+
+  function paintWidthReset() {
+    const n = data.projects.filter((p) => colWidth(p.id)).length;
+    widthResetBtn.disabled = n === 0;
+    widthResetBtn.title = n
+      ? `Reset ${n === 1 ? 'the resized column' : `all ${n} resized columns`} to the default width`
+      : 'Every column is at the default width. Drag a column’s right edge to resize it.';
+  }
+
+  function resetColumnWidths() {
+    const before = data.prefs.colWidths;
+    if (!data.projects.some((p) => colWidth(p.id))) return;
+    delete data.prefs.colWidths;
+    persist();
+    render();
+    remeasure();
+    toast('Column widths reset to default', {
+      action: 'Undo',
+      onAction: () => {
+        data.prefs.colWidths = before;
+        persist();
+        render();
+        remeasure();
+      },
+    });
+  }
+
+  widthResetBtn.addEventListener('click', resetColumnWidths);
 
   // ================================================================ board scrolling
 
@@ -2579,7 +2758,6 @@
     }
     if (e.target.closest('.act-edit') && wrap) return startEdit(wrap.dataset.id);
     if (e.target.closest('.act-used') && wrap) return toggleUsed(wrap.dataset.id);
-    if (e.target.closest('.act-back') && wrap) return moveBetween(wrap.dataset.id, 'notes');
     if (e.target.closest('.act-hl') && wrap) return openHighlightMenu(wrap.dataset.id, e.target.closest('.act-hl'));
     if (e.target.closest('.card-more') && wrap) {
       const view = cards.get(wrap.dataset.id);
@@ -2627,7 +2805,8 @@
       return;
     }
     if (e.target.closest('.aug-move')) return moveAugmentedToFinal(col.id, { animate: true });
-    if (e.target.closest('.aug-edit')) return editAugmented(col.id);
+    if (e.target.closest('.aug-edit')) return editStage(col.id, 'used');
+    if (e.target.closest('.final-edit')) return editStage(col.id, 'combined');
     if (e.target.closest('.aug-parts-btn')) {
       col.augPartsOpen = !col.augPartsOpen;
       render();
@@ -2643,17 +2822,27 @@
       render();
       return;
     }
-    const apBack = e.target.closest('.ap-back');
-    if (apBack) return moveBetween(apBack.closest('.final-part').dataset.id, 'notes');
-    const back = e.target.closest('.fp-back');
-    if (back) return sendBackFromFinal(back.closest('.final-part').dataset.id);
-    // Clicking the final text copies it all, unless the user is selecting part of it.
-    if (e.target.closest('.final-copy') || (e.target.closest('.final-text') && !String(window.getSelection()))) {
-      copyFinal(col.id);
+    // rows in the Notes list of the Combined note (.aug-parts) and the Final text (.final-parts)
+    const part = e.target.closest('.final-part');
+    if (part) {
+      const id = part.dataset.id;
+      if (e.target.closest('.fp-up')) return movePart(id, -1);
+      if (e.target.closest('.fp-down')) return movePart(id, 1);
+      if (e.target.closest('.fp-edit')) return editStage(col.id, part.closest('.aug-parts') ? 'used' : 'combined', id);
+      if (e.target.closest('.ap-back')) return moveBetween(id, 'notes');
+      if (e.target.closest('.fp-back')) return sendBackFromFinal(id);
+      return;
     }
+    // Clicking the final text copies it all, unless the user is selecting part of it.
+    if (e.target.closest('.final-text') && !String(window.getSelection())) copyFinal(col.id, e);
   });
 
   board.addEventListener('dblclick', (e) => {
+    const handle = e.target.closest('.col-resize');
+    if (handle) {
+      resetColumnWidth(handle.closest('.column').dataset.id);
+      return;
+    }
     const name = e.target.closest('.col-name');
     if (!name) return;
     const col = columns.get(name.closest('.column').dataset.id);
@@ -2770,8 +2959,10 @@
       menu.appendChild(el('div', 'menu-sep'));
       menuItem(menu, I.arrowLeft, 'Move left', () => moveProject(col.id, -1), { disabled: index === 0 });
       menuItem(menu, I.arrowRight, 'Move right', () => moveProject(col.id, 1), { disabled: index === data.projects.length - 1 });
+      menuItem(menu, I.width, 'Reset width', () => resetColumnWidth(col.id), { disabled: !colWidth(col.id) });
       menu.appendChild(el('div', 'menu-sep'));
-      menuItem(menu, I.used, `Clear used (${project.used.length})`, () => clearUsed(col.id), { disabled: !project.used.length });
+      menuItem(menu, I.layers, `Clear Combined (${project.used.length})`, () => clearStage(col.id, 'used'), { disabled: !project.used.length });
+      menuItem(menu, I.used, `Clear Final (${project.combined.length})`, () => clearStage(col.id, 'combined'), { disabled: !project.combined.length });
       menuItem(menu, I.trash, 'Delete project', () => deleteProject(col.id), { danger: true });
     });
   }
@@ -2933,7 +3124,7 @@
 
   function paintDensity() {
     for (const b of f.density.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.value === data.prefs.density));
-    const title = TITLE_FONTS.includes(data.prefs.titleFont) ? data.prefs.titleFont : 'sora';
+    const title = titleFont();
     for (const b of f.titleFont.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.value === title));
     const join = data.prefs.joiner === 'line' ? 'line' : 'blank';
     for (const b of f.joiner.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.value === join));
@@ -3000,6 +3191,7 @@
     persist();
     paintDensity();
     render();
+    remeasure();
   });
   f.joiner.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-value]');
@@ -3039,7 +3231,6 @@
     if (!res?.ok) toast(res?.error || 'Restore failed.');
   });
   $('#open-settings').addEventListener('click', () => openSettings());
-  $('#new-project').addEventListener('click', () => createProject());
   dialog.addEventListener('close', () => {
     if (f.key.value.trim()) saveSetting({ apiKey: f.key.value.trim() });
   });
@@ -3135,7 +3326,7 @@
   });
 
   api.onSummoned(() => {
-    if (dialog.open || ui.composing || ui.editing || Voice.isActive()) return;
+    if (dialog.open || isEditing() || Voice.isActive()) return;
     focusSearch();
   });
 

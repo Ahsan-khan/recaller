@@ -34,7 +34,9 @@ app.on('browser-window-created', (_e, w) => {
   const showInactive = w.showInactive.bind(w);
   w.show = () => { w.setBounds(OFF()); showInactive(); w.setBounds(OFF()); };
 });
-require(process.env.APP_MAIN || path.join(__dirname, '..', '..', 'src', 'main.js'));
+const APP_MAIN = process.env.APP_MAIN || path.join(__dirname, '..', '..', 'src', 'main.js');
+if (!fs.existsSync(APP_MAIN)) { console.error(`HARNESS FAIL: no app at ${APP_MAIN} (APP_MAIN must be a Windows path)`); process.exit(1); }
+require(APP_MAIN);
 
 const results = [];
 const check = (name, ok, detail = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`); };
