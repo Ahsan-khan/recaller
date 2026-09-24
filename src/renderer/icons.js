@@ -27,6 +27,7 @@ window.ICONS = (() => {
     arrowDown: svg('<path d="M12 5v14M6 13l6 6 6-6"/>'),
     arrowUp: svg('<path d="M12 19V5M6 11l6-6 6 6"/>'),
     width: svg('<path d="M4 5v14M20 5v14M8 12h8"/><path d="m11 9-3 3 3 3M13 9l3 3-3 3"/>'),
+    sort: svg('<path d="M4 7h9M4 12h7M4 17h5"/><path d="M17 5v14M14 16l3 3 3-3"/>'),
     undo: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>'),
   };
 })();

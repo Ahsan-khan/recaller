@@ -18,7 +18,8 @@ Recaller keeps prompts and notes that the owner reuses when working with AI tool
 
 - **Theme:** deep green is the default look: a dark forest canvas with solid, deep-coloured column headers. The owner explicitly said they liked it when they thought it had changed. The light "Soft" theme remains optional in Settings.
 - **Density:** slim and compact, with about 268px columns and actions placed in headers or bars rather than extra rows. They complained that 340px columns wasted space. Since 1.6 they can resize individual columns, and a slim top-bar ↔ button puts them all back to this default.
-- **Distinctness:** neighbouring columns get clearly different hues (emerald, sky, sun, orchid, lime, blossom, teal, bark, then ten more since 1.6). The stages look different too: new prompts are white cards, Combined is an indigo block with a solid header band and a lavender note, and Final is a deep-green block with a mint text box. They asked for more stage contrast twice (rounds 7 and 9), so don't make the stages more alike.
+- **Distinctness:** neighbouring columns get clearly different hues (emerald, sky, sun, orchid, lime, blossom, teal, bark, then ten more since 1.6). The stages look different too: new prompts are white cards, Combined is a muted slate block with a slate-navy band, and Final is a deep-green block. They asked for more stage contrast twice (rounds 7 and 9), so don't make the stages more alike.
+- **Muted, "adult" colour, not bright:** in round 10 they rejected the bright violet Combined as "weird", "girly" and "too much brightness", and asked for "modern and adult". They like the dark green background. Keep stage and UI accents low in saturation; the only saturated colour is the column headers they picked.
 - **Typography:** sharp and modern. The UI uses Geist, and numbers and labels use Geist Mono.
   - Column titles use Instrument Sans by default (since 1.6; Sora before), with a live picker offering Instrument Sans, Plus Jakarta Sans, Onest, Sora, Space Grotesk, Inter Display, Manrope, Geist and Sora Caps. They have asked for a sharper, cleaner title font three times, so title-font taste isn't settled yet.
   - They rejected tight negative letter-spacing, small grey labels, and a text-shadow on white titles; all looked "not clear".
@@ -26,6 +27,8 @@ Recaller keeps prompts and notes that the owner reuses when working with AI tool
 - **Layout:** nothing may overlap. They reported a "Copy all" button overlapping text, and a long column name hidden behind header buttons.
 - **The New prompt button** must be clearly visible and easy to reach, and not sit next to the column name. It is now a full-width bar under the header.
 - **Less chrome:** in round 9 they removed the Final counter, the Copy all button and the top-bar "+ Project" button. Clicking already copies, and the board's "+ New project" tile creates projects.
+- **Order:** new prompts go at the **bottom** of a column (round 10), so a column reads top to bottom and flows into Combined.
+- **Size:** stage texts must start at a fixed, modest size and expand on demand (round 10); nothing should grow without limit by default.
 - **Data safety is paramount.** Every update must keep everything identical: notes, drafts, images, colours, layout, scroll positions, window position and settings.
 
 ## Every request, in order, and what was built
@@ -119,6 +122,9 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 11. **Round 9 → v1.6.0.**
     - The request: fix the known issues; remove the counter next to Used and its Copy all button; try a new sharper, cleaner column-title font; be able to edit the Augmented and Used notes, "all" of them; rename Used → **Final** and Augmented → **Combined**; slightly more visual difference between the three stages; remove the + Project button from the top bar; resizable columns plus a slim top-bar button that resets every width to today's default; more column colours.
     - What was built: all of it. See `08` (1.6.0) for details and `10` (message 12) for how each item was read.
+12. **Round 10 → v1.7.0.**
+    - The request: the Combined colour is "weird", "girly" and too bright, so make it modern and adult (they like the background); new prompts at the bottom; a friendlier, more modern, easier UI overall; Final limited in size, expandable, initially fixed; and "what would it take for everyday users?"
+    - What was built: slate Combined, quiet empty stages, bottom insertion plus a sort action, fixed-size Combined/Final with a Show more bar (and a fix for the bug that let them grow), a help panel, sectioned Settings. The everyday-user roadmap is in `09`. See `08` (1.7.0) and `10` (message 13).
 
 ## Things the owner has not decided or confirmed
 
@@ -126,5 +132,7 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 - **Archiving Final:** whether a cleared Final text should be archived. Since 1.6, ⋯ → Clear Final empties it (undoable until restart).
 - **Combined counter:** round 9 removed only the counter next to Final (then "Used"). Whether they want the Combined count gone too is unknown.
 - **Title font:** Instrument Sans is the new default; whether it finally satisfies "sharp, clean, modern" is unconfirmed.
+- **"All the colors are girly":** whether that included the project palette (pink Blossom, Orchid, Fuchsia), not just Combined.
+- **Going public:** whether they want to pursue the everyday-user roadmap in `09`, and in what order.
 - **Importing prompt files:** whether to import `Dev Prompts.txt` and `Longterm Prompts.txt`.
 - **Signing and auto-update:** whether they want code signing or auto-update. Both are currently absent.

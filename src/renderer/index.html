@@ -67,6 +67,9 @@
       <button class="icon-btn" id="reset-widths" disabled aria-label="Reset column widths">
         <svg class="icon" viewBox="0 0 24 24"><path d="M4 5v14M20 5v14M8 12h8" /><path d="m11 9-3 3 3 3M13 9l3 3-3 3" /></svg>
       </button>
+      <button class="icon-btn" id="open-help" title="How Recaller works (F1)" aria-label="Help">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.8" /><path d="M12 17.2v.1" /></svg>
+      </button>
       <button class="icon-btn" id="open-settings" title="Settings (Ctrl+,)" aria-label="Settings">
         <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" /></svg>
       </button>
@@ -104,6 +107,53 @@
     </div>
   </dialog>
 
+  <dialog class="modal" id="help">
+    <form method="dialog" class="modal-card help-card">
+      <header class="modal-head">
+        <h2>How Recaller works</h2>
+        <button class="icon-btn" value="close" title="Close (Esc)" aria-label="Close">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+      </header>
+
+      <p class="help-lead">Each project is a column. Inside it, prompts move down through three stages.</p>
+      <ol class="help-stages">
+        <li><span class="hs-dot hs-prompts"></span><div><b>Prompts</b><span>Write, dictate or paste a prompt. Click any card to copy it.</span></div></li>
+        <li><span class="hs-dot hs-combined"></span><div><b>Combined</b><span>Drag prompts down (or hover and click the stack icon) and they join into one note.</span></div></li>
+        <li><span class="hs-dot hs-final"></span><div><b>Final</b><span>Move the Combined note down (button, swipe left or drag) and it's added to the end of the final text.</span></div></li>
+      </ol>
+
+      <h3 class="modal-section">Handy moves</h3>
+      <ul class="help-list">
+        <li><b>Copy several at once:</b> hold <kbd>Ctrl</kbd> and click cards. They're copied in click order.</li>
+        <li><b>Delete:</b> hold a card and swipe it left. <kbd>Ctrl Z</kbd> undoes anything.</li>
+        <li><b>Edit Combined or Final:</b> the pencil edits the whole text; <b>Notes</b> lets you reorder, edit or send back one part.</li>
+        <li><b>Highlight a prompt</b> to check it again later: hover, then click the marker.</li>
+        <li><b>Resize a column:</b> drag its right edge. The <b>↔</b> button in the top bar resets every width.</li>
+        <li><b>Screenshots:</b> the camera in the editor, or paste an image.</li>
+      </ul>
+
+      <h3 class="modal-section">Shortcuts</h3>
+      <div class="help-keys">
+        <kbd>Ctrl K</kbd><span>Search (Enter copies the top match)</span>
+        <kbd>Ctrl N</kbd><span>New prompt</span>
+        <kbd>Ctrl M</kbd><span>Dictate</span>
+        <kbd>Ctrl Enter</kbd><span>Save</span>
+        <kbd>Ctrl Shift S</kbd><span>Screenshot into a prompt</span>
+        <kbd>Ctrl Z / Y</kbd><span>Undo / redo</span>
+        <kbd>Ctrl Shift N</kbd><span>New project</span>
+        <kbd>Ctrl ,</kbd><span>Settings</span>
+        <kbd id="help-hotkey">Ctrl Alt R</kbd><span id="help-hotkey-label">Show or hide Recaller from any app</span>
+        <kbd>F1</kbd><span>This help</span>
+      </div>
+
+      <footer class="modal-foot">
+        <span class="spacer"></span>
+        <button class="btn btn-primary" value="close">Got it</button>
+      </footer>
+    </form>
+  </dialog>
+
   <dialog class="modal" id="settings">
     <form method="dialog" class="modal-card" id="settings-form">
       <header class="modal-head">
@@ -113,6 +163,7 @@
         </button>
       </header>
 
+      <h3 class="modal-section">Appearance</h3>
       <section class="field-grid">
         <div class="field">
           <label>Colour</label>
@@ -154,6 +205,7 @@
         </div>
       </section>
 
+      <h3 class="modal-section">Voice</h3>
       <section class="field">
         <label for="set-key">OpenAI API key <span class="muted">(voice to text)</span></label>
         <div class="key-row">
@@ -184,6 +236,7 @@
         <input id="set-hint" type="text" placeholder="Words it should spell right, e.g. PyTorch, Electron, iresine" spellcheck="false" />
       </section>
 
+      <h3 class="modal-section">Shortcuts &amp; behaviour</h3>
       <section class="field-grid">
         <div class="field">
           <label for="set-hotkey">Show/hide Recaller <span class="muted">(anywhere)</span></label>
@@ -205,6 +258,7 @@
         </label>
       </section>
 
+      <h3 class="modal-section">Your data</h3>
       <section class="field">
         <label for="set-backup">Backups</label>
         <div class="key-row">

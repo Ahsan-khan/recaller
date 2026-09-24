@@ -227,6 +227,22 @@ async function run() {
   const titleFamily = await js(`getComputedStyle(document.querySelector('.col-name')).fontFamily`);
   check('column titles use the new default font, Instrument Sans', /Instrument Sans/.test(titleFamily) && await js(`document.fonts.check('650 16px "Instrument Sans"')`), titleFamily);
   check('the top bar has no + Project button', !(await js(`!!document.querySelector('#new-project')`)) && await js(`!!document.querySelector('.column') && !!document.querySelector('.add-column')`));
+  const emptyAug = await js(`(() => { const s = getComputedStyle(document.querySelector('.column[data-id="p2"] .used')); return [s.backgroundColor, s.borderTopStyle]; })()`);
+  check('an empty Combined section is a quiet dashed outline, not a solid block', emptyAug[0] === 'rgba(0, 0, 0, 0)' && emptyAug[1] === 'dashed', emptyAug.join(' '));
+  const band = await js(`getComputedStyle(document.querySelector('.column[data-id="p1"] .used-headrow')).backgroundImage`);
+  const bandRgb = (band.match(/rgba?\(([^)]*)\)/) || [])[1]?.split(',').map(Number) || [];
+  check('Combined uses a muted slate band, not bright violet', bandRgb.length >= 3 && Math.max(...bandRgb.slice(0, 3)) - Math.min(...bandRgb.slice(0, 3)) < 50 && Math.max(...bandRgb.slice(0, 3)) < 120, band.slice(0, 60));
+  await clickSel('#open-help');
+  await sleep(300);
+  const helpText = await js(`document.querySelector('#help').open && document.querySelector('#help h2').textContent`);
+  key('Escape');
+  await sleep(250);
+  key('F1');
+  await sleep(300);
+  const helpByKey = await js(`document.querySelector('#help').open`);
+  key('Escape');
+  await sleep(250);
+  check('the ? button and F1 open "How Recaller works"; Esc closes it', helpText === 'How Recaller works' && helpByKey && !(await js(`document.querySelector('#help').open`)));
 
   // ---------------------------------------------------------------- copy, swipe, undo
   await clipboard.writeText('');
@@ -298,7 +314,9 @@ async function run() {
     key('Escape');
     await sleep(150);
   }
-  const toAug = (i = 0) => js(`document.querySelectorAll('.column[data-id="px1"] .active-list .act-used')[${i}].click()`);
+  check('new prompts are added at the bottom of the list', JSON.stringify(await colTexts('px1')) === JSON.stringify(['Placeholder note for Writing', 'Alpha one', 'Beta two', 'Gamma three']), JSON.stringify(await colTexts('px1')));
+  // moves the newest (bottom) prompt into Combined
+  const toAug = () => js(`[...document.querySelectorAll('.column[data-id="px1"] .active-list .act-used')].pop().click()`);
   await toAug(); await sleep(300); // Gamma three
   await toAug(); await sleep(300); // Beta two
   const aug1 = await augOf('px1');
@@ -339,6 +357,17 @@ async function run() {
   const finalNow = await finalOf('px1');
   check('dragging the Combined note onto Final also moves it down', finalNow === `${final2}\n\nDelta four`, JSON.stringify(finalNow.slice(-40)));
   check('Final has no counter and no Copy all button', await js(`(() => { const s = document.querySelector('.column[data-id="px1"] .final'); return !s.querySelector('.final-count, .final-copy') && s.querySelector('.final-toggle').textContent.trim() === 'Final'; })()`));
+  // Final starts at a fixed size; "Show more" opens it up for now only (not saved)
+  const finalBox = () => js(`(() => { const t = document.querySelector('.column[data-id="px1"] .final-text'); return { h: t.clientHeight, full: t.scrollHeight, line: parseFloat(getComputedStyle(t).lineHeight) }; })()`);
+  const fb0 = await finalBox();
+  check('Final starts at a fixed height (6 lines) when its text is longer', fb0.h <= Math.ceil(fb0.line * 6) + 1 && fb0.full > fb0.h + 10, JSON.stringify(fb0));
+  await js(`document.querySelector('.column[data-id="px1"] .final-more').click()`);
+  await sleep(300);
+  const fb1 = await finalBox();
+  const savedPx1 = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8')).projects.find((p) => p.id === 'px1');
+  check('Show more opens the Final text up, without saving that state', fb1.h > fb0.h + 20 && !('augExpanded' in savedPx1), `${fb0.h}px → ${fb1.h}px`);
+  await js(`document.querySelector('.column[data-id="px1"] .final-more').click()`);
+  await sleep(250);
   await clipboard.writeText('');
   await clickSel('.column[data-id="px1"] .final-text');
   await sleep(250);
@@ -565,8 +594,8 @@ async function run() {
   await type(' Keep it simple.');
   key('Enter', ['control']);
   await sleep(400);
-  const top = (await colTexts('p1'))[0];
-  check('Ctrl+Enter saves dictated note', /^Phrase one\. typed Phrase two\..* Keep it simple\.$/.test(top || ''), JSON.stringify(top));
+  const newest = (await colTexts('p1')).pop();
+  check('Ctrl+Enter saves dictated note', /^Phrase one\. typed Phrase two\..* Keep it simple\.$/.test(newest || ''), JSON.stringify(newest));
   key('Escape');
   await sleep(250);
 
@@ -577,7 +606,7 @@ async function run() {
   await clickSel('.composer .comp-save');
   let savedMid = false;
   for (let t = 0; t < 40 && !savedMid; t++) { await sleep(100); savedMid = (await colTexts('p2')).length === n0 + 1; }
-  check('Save during recording finishes transcription then saves', savedMid && /^Phrase/.test((await colTexts('p2'))[0] || ''), (await colTexts('p2'))[0]);
+  check('Save during recording finishes transcription then saves', savedMid && /^Phrase/.test((await colTexts('p2')).pop() || ''), (await colTexts('p2')).pop());
   key('Escape');
   await sleep(200);
 
@@ -625,7 +654,7 @@ async function run() {
   const items = await clipboard.read();
   check('clicking the thumbnail copies the image', items.some((it) => it.types.includes('image/png')), JSON.stringify(items.map((i) => i.types)));
   await clipboard.writeText('');
-  const withImg = await rect('.column[data-id="p3"] .active-list .card-text');
+  const withImg = await rect('.column[data-id="p3"] .active-list .card-wrap:last-child .card-text');
   await click(withImg.cx, withImg.cy);
   await sleep(250);
   check('clicking the text still copies the text', (await clipboard.readText()) === 'Why is this chart wrong?');
@@ -741,6 +770,19 @@ async function run() {
   const order2 = await js(`[...document.querySelectorAll('.column')].map(c => c.dataset.id).slice(0, 2).join(',')`);
   check('column reorder, then undo restores order', order1 === 'p2,p1' && order2 === 'p1,p2', `${order1} → ${order2}`);
 
+  // ---------------------------------------------------------------- ⋯ › Sort prompts oldest first (for columns saved newest-first)
+  const createdOrder = () => JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8')).projects.find((p) => p.id === 'p2').notes.map((n) => n.createdAt);
+  const ascending = (a) => a.every((v, i) => i === 0 || a[i - 1] <= v);
+  const beforeSort = createdOrder();
+  await js(`document.querySelector('.column[data-id="p2"] .col-menu').click()`);
+  await sleep(200);
+  await js(`[...document.querySelectorAll('.menu .menu-item')].find((b) => b.textContent.startsWith('Sort prompts oldest first')).click()`);
+  await sleep(700);
+  const afterSort = createdOrder();
+  key('Z', ['control']);
+  await sleep(700);
+  check('Sort prompts oldest first reorders by date, and Ctrl+Z undoes it', !ascending(beforeSort) && ascending(afterSort) && JSON.stringify(createdOrder()) === JSON.stringify(beforeSort), `${beforeSort.length} prompts`);
+
   await shot('11-final-board');
 
   // ---------------------------------------------------------------- real screen snip (last: it captures the actual screen; not viewed)
@@ -772,7 +814,7 @@ async function run() {
   await sleep(600);
   const saved = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8'));
   const p3 = saved.projects.find((p) => p.id === 'p3');
-  check('data persisted (v2, images on notes, density pref)', saved.version === 2 && p3.notes[0].images.length === 1 && saved.prefs.density === 'slim');
+  check('data persisted (v2, images on notes, density pref)', saved.version === 2 && p3.notes[p3.notes.length - 1].images.length === 1 && saved.prefs.density === 'slim');
   check('no renderer console errors', errors.length === 0, errors.join(' | '));
 
   // The snip contains the real screen — don't keep it around.

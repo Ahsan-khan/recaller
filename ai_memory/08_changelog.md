@@ -83,7 +83,22 @@ Dates are 2026-09-23 and 2026-09-24. Versions 1.0.0 to 1.5.0 were built in one l
 - **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
 - **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
 
-## 1.6.0 (current)
+## 1.7.0 (current)
+
+- **Combined looks grown-up:** the bright violet band, lavender note and violet buttons became a muted slate-navy band (#47526b → #384259), a pale cool-grey block (#e6e9ef) and a near-white note. The owner called the violet "weird" and "girly"; the dark green canvas stays.
+- **Quiet empty stages:** an empty Combined (and an empty Final) is now a dashed outline with its label, not a solid block. It fills in while you drag.
+- **New prompts go to the bottom** of the prompt list (and a prompt sent back from Combined lands at the bottom too), so a column reads oldest → newest and flows down into Combined. Saving scrolls the new card into view. Existing columns keep their order; **⋯ → Sort prompts oldest first** lines them up (undoable).
+- **Fixed-size Combined and Final:** both start at 6 lines with a fade. A slim full-width **Show more / Show less** bar under the text opens them to at most min(56vh, 480px), scrolling inside. The opened state is no longer saved, so they always start small (the old `usedExpanded` / `augExpanded` flags stay in the file but aren't read). The Notes lists are capped at 220px and scroll.
+- **Friendlier:**
+  - A **?** button in the top bar (also `F1`, or `?` when not typing) opens "How Recaller works": the three stages, handy moves and shortcuts (it shows the user's own show/hide key).
+  - Settings is split into sections: Appearance, Voice, Shortcuts & behaviour, Your data.
+  - The empty prompt list says "No prompts yet. Click New prompt to add one."
+  - The Combined/Final footers have room for their word counts again.
+- **Fixed a growing-text bug (present since 1.2):** once a Combined or Final text had fitted, its `fits` class lifted the height limit for good. So as notes were added it grew without limit, until the page was reloaded and re-measured. `fits` now only drops the fade.
+- **Fixes:** the mouse wheel over an opened-up Combined/Final text (or a long Notes list) scrolls that text instead of the board; grabbing one of their scrollbars no longer starts a drag or a copy.
+- **Tests:** features 103 checks (new: bottom insertion, fixed-size Final, quiet empty Combined, muted band, help panel, sorting).
+
+## 1.6.0
 
 - **Stages renamed on screen:** Augmented → **Combined**, Used → **Final**. The data names did not change (`used` = Combined, `combined` = Final). Every label, tooltip, toast, menu item and undo label follows.
 - **Final:** the counter next to its title and the **Copy all** button were removed. Clicking the Final text still copies all of it, with a "Copied" chip.

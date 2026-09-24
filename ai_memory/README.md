@@ -2,7 +2,7 @@
 
 This folder is the complete handoff for **Recaller**. It lets any person, AI agent or LLM continue development without the original conversation. Everything here is plain text, and every user flow is described in words.
 
-Status as of **2026-09-24**: version **1.6.0** is the source version and its installer is built (`dist\Recaller Setup 1.6.0.exe`). The owner installs new versions themselves; 1.5.0 was installed when the 1.6.0 session started. Every automated test suite passes.
+Status as of **2026-09-24**: version **1.7.0** is the source version and its installer is built (`dist\Recaller Setup 1.7.0.exe`). The owner installs new versions themselves; 1.6.0 was installed when the 1.7.0 work started. Every automated test suite passes.
 
 ## What Recaller is
 
@@ -15,7 +15,7 @@ Recaller is a Windows desktop app (Electron 44, vanilla JavaScript, no bundler) 
   1. **New prompts**: individual cards.
   2. **Combined** (called Augmented before 1.6): the prompts moved down, joined automatically into one note.
   3. **Final** (called Used before 1.6): the final text. Moving the Combined note down adds its text to the end of Final.
-- **Visual style:** a deep forest-green "monstera" nature theme with a slim, dense layout. Columns can be resized by dragging their edge; a top-bar button resets them.
+- **Visual style:** a deep forest-green "monstera" nature theme with a slim, dense layout and muted stage colours. Columns can be resized by dragging their edge; a top-bar button resets them. A top-bar **?** opens a one-page guide.
 
 ## Reading order
 
@@ -28,8 +28,8 @@ Recaller is a Windows desktop app (Electron 44, vanilla JavaScript, no bundler) 
 | `05_design_system.md` | Colours, themes, fonts, sizes, stage colours, palettes and design rules learned from user feedback |
 | `06_build_test_release.md` | How to run, build, test and release. What the end-to-end suites check and how they work |
 | `07_gotchas_and_lessons.md` | Every pitfall hit so far: symptom, cause and fix |
-| `08_changelog.md` | Versions 1.0.0 to 1.6.0 and what changed in each |
-| `09_backlog_and_open_questions.md` | Known issues, untested areas, ideas the user may want, technical debt and suggested next steps |
+| `08_changelog.md` | Versions 1.0.0 to 1.7.0 and what changed in each |
+| `09_backlog_and_open_questions.md` | The roadmap for making Recaller usable by everyone, known issues, untested areas, ideas the user may want, technical debt and suggested next steps |
 | `10_user_messages_verbatim.md` | Every message the owner sent, word for word, with notes on how each was interpreted |
 | `11_decision_log.md` | Why each major choice was made (Electron, vanilla JS, voice design, undo, storage, fonts, …) and when to revisit it |
 | `12_dev_recipes.md` | Step-by-step recipes for common changes: settings, card actions, stage actions, data fields, undo, IPC, shortcuts, colours, fonts, voice, tests |
@@ -55,6 +55,8 @@ AI agents should read `13` first, then continue with the order above.
    - slim columns (resizable, with a reset back to the default);
    - clearly different colours for neighbouring columns and for each stage;
    - bold, readable headings (Instrument Sans by default since 1.6);
+   - muted, "adult" stage colours, not bright or "girly" (1.7);
+   - new prompts at the bottom; stage texts start at a fixed size;
    - no overlapping UI;
    - no text shadows on titles.
 7. **Commits:** don't commit or push unless the owner asks. The project is its own git repo, already pushed to GitHub (see `06`).

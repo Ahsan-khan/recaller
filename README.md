@@ -6,7 +6,7 @@ A desktop board for prompts and notes you want to reuse. Each project is a colum
 2. **Combined**: the prompts you move down, automatically joined into one note.
 3. **Final**: the final text. Each time you move the Combined note down, its text is added to the end of Final.
 
-Click any note, the Combined note or the Final text to copy it. You can also dictate new prompts with your voice.
+Click any note, the Combined note or the Final text to copy it. You can also dictate new prompts with your voice. New to it? Click **?** in the top bar (or press `F1`) for a one-page guide.
 
 ## Install
 
@@ -15,7 +15,7 @@ npm install
 npm run dist
 ```
 
-This builds `dist/Recaller Setup 1.6.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
+This builds `dist/Recaller Setup 1.7.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
 
@@ -39,13 +39,15 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Add a prompt to Combined | Drag it down onto **Combined**, or hover and click the stack icon. It joins the end of the Combined note |
 | Move the Combined note into Final | Click **Move to Final**, swipe the note left, or drag it onto **Final**. Its text is added to the end of Final, and Combined starts empty for the next batch |
 | Edit Combined or Final | The pencil in the footer edits the whole text (it's then saved as one note). **Notes** lists the separate notes inside: hover one to move it up ↑ or down ↓, edit just that one ✎, or send it back ↩ |
+| Read a long Combined or Final text | Both start at a fixed height (6 lines). **Show more** under the text opens it up, and a very long text scrolls inside. They always start small again next time |
 | Copy a combined text | Click the Combined note or the Final text |
 | Empty a stage | Project menu **⋯ → Clear Combined** or **Clear Final** (undoable) |
 | Blank line or new line | **Settings → Join notes with** sets how notes are joined in Combined, Final and Ctrl+click copies |
 | Highlight a note | Hover, click the highlighter and pick a colour: *Check again*, *Important*, *Idea* or *Ready*. Or focus a note and press `H` |
 | Move to another project | Drag it onto another column |
 | Reorder projects | Drag a column by its title |
-| New prompt | Click the **New prompt** bar under the column name, or the mic beside it to dictate |
+| New prompt | Click the **New prompt** bar under the column name, or the mic beside it to dictate. New prompts are added at the bottom of the list, just above Combined |
+| Put older prompts in date order | **⋯ → Sort prompts oldest first** (prompts saved before 1.7 were newest-first). Undoable |
 | Dictate | Click the mic beside **New prompt**. Text appears phrase by phrase as you speak, and you can keep typing and editing while it listens. Click the red **Stop** pill when done |
 | Add a screenshot | Click the camera in the editor, then drag over the area you want. Click once to capture the whole screen, or press `Esc` to cancel. You can also paste an image or drop an image file |
 | View an image | Hover the thumbnail and click the expand icon |
@@ -71,6 +73,7 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo |
 | `Ctrl+Shift+N` | New project (or the **+ New project** tile at the end of the board) |
 | `Ctrl+Alt+R` | Show or hide Recaller from any app (change it in Settings) |
+| `F1` or `?` | How Recaller works: stages, handy moves and shortcuts |
 | `Enter` / `E` / `U` / `H` / `Del` | On a focused card: copy, edit, add to Combined, highlight, delete |
 
 In Settings you can also set a **Screenshot to note** shortcut that works from any app. It's off by default.

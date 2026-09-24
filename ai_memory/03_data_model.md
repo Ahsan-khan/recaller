@@ -51,12 +51,13 @@ The installed program lives separately in `%LOCALAPPDATA%\Programs\recaller\`.
   "color": "monstera",        // palette id, see below. Unknown ids are KEPT and drawn with the first palette colour
   "usedCollapsed": false,     // Combined section collapsed (data name "used"; see the naming trap below)
   "augCollapsed": false,      // Final section collapsed
-  "usedExpanded": true,       // optional: Combined note shows all lines (absent = clamped to 8 lines)
-  "augExpanded": true,        // optional: Final text shows all lines
+  "usedExpanded": true,       // optional, NOT READ since 1.7 (was: Combined note shows all lines). Kept as-is in the file
+  "augExpanded": true,        // optional, NOT READ since 1.7 (was: Final text shows all lines). Kept as-is in the file
   "draft": "",                // unsaved text in the New prompt editor
   "draftImages": [Image],     // unsaved images in the New prompt editor
   "createdAt": 1758690000000,
-  "notes":    [Note, ...],    // stage 1: NEW PROMPTS (cards). New ones are added at the top (index 0)
+  "notes":    [Note, ...],    // stage 1: NEW PROMPTS (cards). Since 1.7 new ones are appended at the end (bottom);
+                              //   before 1.7 they went to index 0, so older columns may be newest-first
   "used":     [Note, ...],    // stage 2: shown as "COMBINED" — displayed as ONE combined note; appended in order added
   "combined": [Note, ...],    // stage 3: shown as "FINAL" — the final text; Combined notes are appended at the end
   ...unknown keys preserved
@@ -187,4 +188,5 @@ Unknown keys are preserved. The whole object (defaults included) is rewritten on
 - **1.3.0 added** backups, `lastVersion`, `prefs.scroll`, `prefs.lastProjectId`, `note.expanded`, `project.augExpanded` and `prefs.titleFont`.
 - **1.4.0 added** `project.combined`, `note.highlight` and the stage swap (labels only; data unchanged).
 - **1.5.0 added** `prefs.joiner` and `project.usedExpanded`. Augmented changed from a list of cards to one combined note (display only; the data is still a list of notes in `used`).
+- **1.7.0** added no fields. New prompts are appended to `notes` instead of prepended. `usedExpanded` / `augExpanded` are no longer read (Combined and Final always start at their fixed size); they're left in the file untouched.
 - **1.6.0 added** `prefs.colWidths` (only when the user resizes a column), ten palette ids and three title-font ids. The default title font (when `prefs.titleFont` is absent) became `instrument`. Stage labels changed (Augmented → Combined, Used → Final); data unchanged. `DATA_VERSION` is still 2.

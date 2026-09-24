@@ -3,9 +3,9 @@
 ## Session start (about 5 minutes)
 
 1. Read `README.md`, then `03_data_model.md`, then `04_features_and_flows.md` in this folder. Skim `09` for open issues and `10` for how the owner phrases things.
-2. **Installed version:** in the scratchpad, `npx @electron/asar extract-file "%LOCALAPPDATA%\Programs\recaller\resources\app.asar" package.json`, then read `version` and delete the extracted file. When the 1.6.0 session ended, the source was 1.6.0 and its installer was built; the owner installs it themselves.
-3. **Git state:** `git -C C:\Users\User\Documents\recaller status -sb`. The project is its own repo (branch `main`, remote `origin` on GitHub). Work since the last commit may be uncommitted on purpose; don't commit or push unless asked.
-4. **Tests:** `npm install` if needed, then `npm test`. Expect 12 + 21 + 96 passing; a single drag or pan failure is usually the owner's mouse (see `06`).
+2. **Installed version:** in the scratchpad, `npx @electron/asar extract-file "%LOCALAPPDATA%\Programs\recaller\resources\app.asar" package.json`, then read `version` and delete the extracted file. When the 1.7.0 work ended, the source was 1.7.0 and its installer was built; the owner installs it themselves (1.6.0 was installed when 1.7 started).
+3. **Git state:** `git -C C:\Users\User\Documents\recaller status -sb`. The project is its own repo with remote `origin` on GitHub. 1.6.0 is committed on branch `v1` (commit `296fd32`, pushed); `main` has the 1.5.0 commit. Work since the last commit may be uncommitted on purpose; don't commit or push unless asked.
+4. **Tests:** `npm install` if needed, then `npm test`. Expect 12 + 21 + 103 passing; a single drag or pan failure is usually the owner's mouse (see `06`).
 
 ## The per-request workflow that worked
 

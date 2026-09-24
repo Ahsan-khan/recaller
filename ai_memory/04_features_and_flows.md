@@ -15,6 +15,7 @@ Terms used below:
    - the search box, showing a "Ctrl K" hint;
    - the undo ↶ and redo ↷ buttons, disabled when there is nothing to undo or redo, with the action named in the tooltip;
    - the **↔ reset column widths** button (`#reset-widths`), disabled while no column is resized;
+   - the **?** help button (`#open-help`, 1.7): opens "How Recaller works";
    - the settings gear.
 
    The green **+ Project** button was removed in 1.6; new projects come from the "+ New project" tile or Ctrl+Shift+N.
@@ -23,9 +24,9 @@ Terms used below:
    - **Header**, a solid colour in Deep theme. It holds a small leaf icon, the project name (wraps to two lines, then "…"), a count of prompts, and a ⋯ menu button.
    - **New prompt bar**: a full-width white button "(+) New prompt" plus a separate mic button. It shows a "Draft" badge when unsaved text exists. It is hidden while the composer is open, and the composer takes its place.
    - **Scroll area**:
-     - **Prompt cards**, newest first. "No prompts yet" is shown when there are none.
-     - **Combined block** (indigo, with a solid indigo header band reading "COMBINED · n" and a collapse arrow). Inside is one lavender **Combined note** with the combined text (clamped to 8 lines, with "Show all"). Its footer shows "n prompts · w words", a **Notes** toggle and a pencil (edit). Under the note is a full-width indigo **↓ Move to Final** bar. When the block is empty it says "Move prompts here and they join into one note".
-     - **Final block** (deep green, shown only when Combined or Final has content). Its header reads "FINAL" with a collapse arrow; there is no counter and no Copy all button (both removed in 1.6). Inside is a mint box with the combined final text, the footer "n notes · w words", a **Notes** toggle, a pencil (edit), and "Show all" when the text is long. When it is empty it says "Move the Combined note down to add it here".
+     - **Prompt cards**, oldest at the top: since 1.7 new prompts are added at the bottom. "No prompts yet. Click New prompt to add one." is shown when there are none.
+     - **Combined block** (1.7: muted slate, with a slate-navy header band reading "COMBINED · n" and a collapse arrow). Inside is one near-white **Combined note** with the combined text, 6 lines tall with a fade when longer, and a slim **Show more** bar under it. Its footer shows "n prompts · w words", a **Notes** toggle and a pencil (edit). Under the note is a full-width slate **↓ Move to Final** bar. When empty, the block is a quiet dashed outline with its label and "Move prompts here and they join into one note".
+     - **Final block** (deep green, shown only when Combined or Final has content). Its header reads "FINAL" with a collapse arrow; there is no counter and no Copy all button (both removed in 1.6). Inside is a pale mint box with the final text, 6 lines tall with a fade and a **Show more** bar when longer, then the footer "n notes · w words", a **Notes** toggle and a pencil (edit). When empty, it's a quiet dashed outline saying "Move the Combined note down to add it here".
 4. **Floating elements:**
    - toasts (bottom centre);
    - the Ctrl+click selection bar (bottom centre; toasts move up above it);
@@ -59,7 +60,8 @@ Terms used below:
 - **Recolour:** ⋯ menu → one of eight swatches. Undoable.
 - **Reorder:** drag a column by its header. A tilted ghost and a dashed placeholder show the position, and the board auto-scrolls near the edges. ⋯ → Move left / Move right also works. Undoable.
 - **Delete:** ⋯ → Delete project. It happens immediately, with an Undo toast (9s). Undoable.
-- **⋯ menu, full list:** New from screenshot, Rename, 18 colour swatches (two rows of nine), Move left, Move right, Reset width (enabled when the column is resized), Clear Combined (n), Clear Final (n), Delete project.
+- **⋯ menu, full list:** New from screenshot, Rename, 18 colour swatches (two rows of nine), Move left, Move right, Reset width (enabled when the column is resized), Sort prompts oldest first (enabled when there are 2+ prompts not already in date order), Clear Combined (n), Clear Final (n), Delete project.
+- **Sort prompts oldest first (1.7):** reorders the column's prompts by `createdAt`, ascending. It's for columns saved before 1.7, when new prompts went to the top. Toast "Prompts sorted oldest first · Undo"; undoable ("Sort prompts").
 - **Clear Combined / Clear Final:** empties that stage (data `used` / `combined`) with an Undo toast ("Cleared Combined" / "Cleared Final", 7s). Undoable. An open editor on that stage is closed first.
 - **Current project:** the last column the user pressed the mouse in. It is remembered across restarts and is the target of Ctrl+N, Ctrl+M and Ctrl+Shift+S.
 
@@ -68,7 +70,7 @@ Terms used below:
 1. Click the **New prompt** bar (or press Ctrl+N for the current column). The composer opens in place of the bar with any saved draft restored, and the cursor goes to the end.
 2. Type, dictate (see §12), paste or drop images, or take a screenshot (see §13).
 3. **Save** with Ctrl+Enter or the Save button.
-   - The note is added at the top of the prompts (undoable, labelled "New note"), and the draft is cleared.
+   - The note is added at the **bottom** of the prompts (since 1.7; it used to be the top), the column scrolls it into view, and the draft is cleared. Undoable, labelled "New note".
    - The composer stays open and empty, ready for the next prompt.
    - Saving with no text and no images shakes the composer instead.
 4. **Close** with × or Esc. The text is kept as a draft, and the bar shows a "Draft" badge. If recording is on, the first Esc only stops recording.
@@ -138,7 +140,7 @@ Terms used below:
 - **Click:** copies the combined text.
 - **Notes:** a toggle (looks pressed while open) that lists each part: number, first line, and on hover four buttons (see "The Notes list" below).
 - **Pencil (edit):** opens a composer in place of the note, holding the combined text and all the prompts' images. Saving a changed text replaces Combined with ONE note containing it (undo label "Edit Combined"). Saving it unchanged does nothing, so the parts stay separate. Cancel (× or Esc) leaves it untouched.
-- **Show all / Show less:** expands the note (remembered per project).
+- **Show more / Show less** (the slim bar under the text, 1.7): the note starts 6 lines tall. Show more opens it to at most min(56vh, 480px), and a longer text scrolls inside. Not remembered: it always starts small (older versions saved this as `usedExpanded`, which is no longer read).
 
 ### Combined → Final
 
@@ -153,16 +155,17 @@ All three **append every Combined prompt to the end of Final**, in order, and em
 
 - It shows the exact texts of every note moved there, in order, joined by the separator.
 - **Click the text** to copy it all.
+- **Fixed size (1.7):** like Combined, it starts 6 lines tall with a fade. **Show more** opens it to a capped, scrolling view for the session. The owner asked for this because a 24-note Final (with "Show all" saved on) filled the whole column. `augExpanded` is no longer read.
 - **Pencil (edit):** like Combined's: the whole Final text in a composer (placed under the Final header, the text box hidden meanwhile). A changed text is saved as ONE note ("Edit Final"); unchanged does nothing.
 - **Notes** lists the parts, with the same row buttons; ↩ sends one back to the end of Combined ("Sent back to Combined · Undo").
 - **Clearing:** ⋯ → Clear Final (undoable).
 
 ### The Notes list (Combined and Final)
 
-Each row shows the part's number and first line. Hovering (or focusing inside) a row shows:
+Each row shows the part's number and first line. The list is capped at 220px and scrolls. Hovering (or focusing inside) a row shows:
 - **↑ / ↓**: move the part up or down (disabled at the ends). The combined text follows the new order. Undoable ("Reorder").
 - **✎**: edit just this part. The composer opens in the stage's editor spot with only that part's text and images; saving changes only that note (undo label "Edit note"), so the others stay separate. The composer's trash button deletes the part ("Note deleted · Undo").
-- **↩**: in Combined, send the prompt back to the top of the prompts ("Moved back to prompts"); in Final, send it back to the end of Combined ("Sent back to Combined").
+- **↩**: in Combined, send the prompt back to the bottom of the prompts ("Moved back to prompts"); in Final, send it back to the end of Combined ("Sent back to Combined").
 
 Only one editor is open at a time anywhere: opening a stage editor closes the new-prompt composer and any card editor, and vice versa. Undo and redo close an open stage editor.
 
@@ -274,7 +277,7 @@ Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New lin
 ## 16. Moving around the board horizontally
 
 - ‹ › edge buttons: a click scrolls one column width smoothly; holding (more than 320ms) glides continuously.
-- The mouse wheel over anything that can't scroll vertically (headers, gaps, short columns) scrolls the board sideways. Over a scrollable column, the wheel scrolls that column. Shift+wheel always scrolls sideways (Chromium's default).
+- The mouse wheel over anything that can't scroll vertically (headers, gaps, short columns) scrolls the board sideways. Over something that scrolls itself (a column, an opened-up Combined/Final text, a long Notes list, a textarea), the wheel scrolls that. Shift+wheel always scrolls sideways (Chromium's default).
 - Dragging empty canvas pans the board. A press on empty canvas without moving clears any Ctrl+click selection.
 - Holding the middle mouse button and dragging anywhere pans.
 - The bottom scrollbar is thick and easy to grab.
@@ -282,7 +285,7 @@ Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New lin
 
 ## 17. Settings dialog (gear icon or Ctrl+,)
 
-Fields, in order:
+Since 1.7 the fields are grouped under section headings: **Appearance** (1–4), **Voice** (5–7), **Shortcuts & behaviour** (8–9), **Your data** (10). Fields, in order:
 1. **Colour:** Deep or Soft. Applies instantly, including the Windows title bar. Stored in settings.
 2. **Column width:** Compact (236px), Slim (268px, the default) or Roomy (330px). Stored in `data.prefs.density`. This is the default width; columns the user resized keep their own width (§22).
 3. **Join notes with:** Blank line or New line (`prefs.joiner`).
@@ -325,6 +328,7 @@ The footer holds **Open data folder** and **Done**.
 | Anywhere (not typing) | Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z | Undo / redo |
 | Anywhere | Ctrl+, | Settings |
 | Anywhere | Esc | Close menu; clear Ctrl+click selection |
+| Anywhere | F1, or ? when not typing | Help: "How Recaller works" |
 | Composer | Ctrl+Enter | Save (during dictation: finish, then save) |
 | Composer | Esc | Stop recording first; otherwise close (keeps draft) or cancel edit |
 | Composer | Ctrl+M / Ctrl+Shift+S | Mic / screenshot |
@@ -353,6 +357,7 @@ The footer holds **Open data folder** and **Done**.
 - "Deleted “Name” · Undo"
 - "Cleared Combined · Undo" / "Cleared Final · Undo"
 - "Column widths reset to default · Undo"
+- "Prompts sorted oldest first · Undo"
 - "Undone: X · Redo" / "Redone: X · Undo"
 - "Nothing to undo"
 - "Backup saved"
@@ -371,4 +376,14 @@ At most three toasts show at once. Hovering a toast pauses its timer.
 4. **Reset one column:** double-click its edge, or ⋯ → Reset width.
 5. **Reset all:** the ↔ button in the top bar (tooltip "Reset all n resized columns to the default width"; disabled with an explanatory tooltip when nothing is resized). A toast "Column widths reset to default · Undo" offers to put the widths back.
 6. **Default width** comes from Settings → Column width (Compact/Slim/Roomy); resized columns ignore it.
-7. After any width change, the "Show more" / "Show all" buttons are measured again for that column.
+7. After any width change, the "Show more" buttons are measured again for that column.
+
+## 23. Help panel (1.7)
+
+The **?** in the top bar, `F1`, or `?` (when not typing) opens a dialog, "How Recaller works":
+- one line of intro;
+- the three stages as cards (Prompts, Combined, Final), each with a colour dot and one sentence;
+- "Handy moves": Ctrl+click, swipe to delete + Ctrl+Z, editing Combined/Final, highlight, resize, screenshots;
+- "Shortcuts": a two-column list. The show/hide row shows the user's own global key, or "Off" with a pointer to Settings.
+
+Esc, ×, or **Got it** closes it. While it's open, the app's own shortcuts are ignored.

@@ -464,7 +464,8 @@
             <div class="aug-under">${I.used}<b>Move to Final</b></div>
             <div class="aug-note" tabindex="0" title="Click to copy · swipe left or drag onto Final to move it down">
               <div class="aug-text"></div>
-              <div class="aug-foot"><span class="aug-stats"></span><span class="spacer"></span><button class="aug-more" hidden>Show all</button><button class="aug-parts-btn">Notes</button><button class="aug-edit" title="Edit the combined note" aria-label="Edit the combined note">${I.edit}</button></div>
+              <button class="aug-more stage-more" hidden></button>
+              <div class="aug-foot"><span class="aug-stats"></span><span class="spacer"></span><button class="aug-parts-btn">Notes</button><button class="aug-edit" title="Edit the combined note" aria-label="Edit the combined note">${I.edit}</button></div>
               <div class="aug-parts" hidden></div>
             </div>
           </div>
@@ -477,8 +478,9 @@
           </div>
           <div class="final-body">
             <div class="final-text" title="Click to copy it all"></div>
+            <button class="final-more stage-more" hidden></button>
             <div class="final-empty">Move the Combined note down to add it here</div>
-            <div class="final-foot"><span class="final-stats"></span><span class="spacer"></span><button class="final-more" hidden>Show all</button><button class="final-parts-btn">Notes</button><button class="final-edit" title="Edit the final text" aria-label="Edit the final text">${I.edit}</button></div>
+            <div class="final-foot"><span class="final-stats"></span><span class="spacer"></span><button class="final-parts-btn">Notes</button><button class="final-edit" title="Edit the final text" aria-label="Edit the final text">${I.edit}</button></div>
             <div class="final-parts" hidden></div>
           </div>
           <div class="final-edit-host"></div>
@@ -509,7 +511,10 @@
       augPartsBtn: $('.aug-parts-btn', root),
       augMoveBtn: $('.aug-move', root),
       augSig: null,
-      augExpanded: Boolean(project.usedExpanded),
+      // Combined and Final always start at their fixed size; "Show more" opens them up
+      // for the session only. (Older versions saved that as usedExpanded / augExpanded;
+      // those flags are left in the file untouched but no longer read.)
+      augExpanded: false,
       augPartsOpen: false,
       finalSection: $('.final', root),
       finalHead: $('.final-head', root),
@@ -521,7 +526,7 @@
       finalPartsBtn: $('.final-parts-btn', root),
       finalEditHost: $('.final-edit-host', root),
       finalSig: null,
-      finalExpanded: Boolean(project.augExpanded),
+      finalExpanded: false,
       partsOpen: false,
       stageEditor: null, // { list, partId, composer }: editing the Combined note or the Final text
       composer: null,
@@ -609,12 +614,10 @@
     for (const col of augToMeasure) {
       if (!col.root.isConnected) continue;
       const augOver = col.augText.scrollHeight > col.augText.clientHeight + 2;
-      col.augMore.hidden = !(col.augExpanded || augOver);
-      col.augMore.textContent = col.augExpanded ? 'Show less' : 'Show all';
+      paintMore(col.augMore, col.augExpanded, augOver);
       col.augText.classList.toggle('fits', !augOver && !col.augExpanded);
       const overflowing = col.finalText.scrollHeight > col.finalText.clientHeight + 2;
-      col.finalMore.hidden = !(col.finalExpanded || overflowing);
-      col.finalMore.textContent = col.finalExpanded ? 'Show less' : 'Show all';
+      paintMore(col.finalMore, col.finalExpanded, overflowing);
       col.finalText.classList.toggle('fits', !overflowing && !col.finalExpanded);
     }
     augToMeasure.clear();
@@ -627,7 +630,14 @@
     toMeasure.clear();
   }
 
-  // After a column changes width, "Show more" / "Show all" need checking again.
+  // The slim "Show more / Show less" bar under the Combined note and the Final text.
+  function paintMore(btn, expanded, overflowing) {
+    btn.hidden = !(expanded || overflowing);
+    btn.classList.toggle('is-open', expanded);
+    btn.innerHTML = `${I.chevron}<span>${expanded ? 'Show less' : 'Show more'}</span>`;
+  }
+
+  // After a column changes width, the "Show more" buttons need checking again.
   function remeasure(cols = [...columns.values()]) {
     for (const col of cols) {
       if (!col) continue;
@@ -691,7 +701,7 @@
     const searching = query.terms.length > 0;
     col.countEl.textContent = searching ? `${active.length}/${project.notes.length}` : String(project.notes.length);
     col.usedCount.textContent = project.used.length ? `· ${project.used.length}` : '';
-    col.emptyText.textContent = searching ? 'No matches' : 'No prompts yet';
+    col.emptyText.textContent = searching ? 'No matches' : 'No prompts yet. Click New prompt to add one.';
     col.usedSection.classList.toggle('is-collapsed', project.usedCollapsed);
 
     // The composer survives re-renders; it's only created/destroyed here.
@@ -835,13 +845,27 @@
     if (!project) return;
     checkpoint('New note');
     const note = makeNote(text, images);
-    project.notes.unshift(note);
+    // New prompts go to the bottom, so a column reads oldest → newest and flows on down into Combined.
+    project.notes.push(note);
     project.draft = '';
     project.draftImages = [];
     fresh.add(note.id);
     persist();
     render();
-    columns.get(projectId)?.scroll.scrollTo({ top: 0, behavior: 'smooth' });
+    cards.get(note.id)?.root.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  }
+
+  // Project menu › Sort oldest first: lines up prompts saved before new ones went to the bottom.
+  const isOldestFirst = (notes) => notes.every((n, i) => i === 0 || notes[i - 1].createdAt <= n.createdAt);
+
+  function sortOldestFirst(projectId) {
+    const project = findProject(projectId);
+    if (!project || project.notes.length < 2 || isOldestFirst(project.notes)) return;
+    checkpoint('Sort prompts');
+    project.notes = project.notes.slice().sort((a, b) => a.createdAt - b.createdAt);
+    persist();
+    render();
+    toast('Prompts sorted oldest first', { action: 'Undo', onAction: undo, history: true });
   }
 
   function openComposer(projectId, { voice = false, screenshot = false } = {}) {
@@ -1131,7 +1155,7 @@
       loc.note.usedAt = Date.now();
       loc.project.used.push(loc.note);
     } else {
-      loc.project.notes.unshift(loc.note);
+      loc.project.notes.push(loc.note); // back to the bottom, just above Combined
     }
     fresh.add(id);
     const view = cards.get(id);
@@ -1952,6 +1976,11 @@
 
   // ================================================================ gestures
 
+  // Things inside a column that scroll on their own (the opened-up Combined and Final
+  // texts and their Notes lists scroll inside a capped height).
+  const SCROLLERS = '.col-scroll, textarea, .aug-text, .final-text, .aug-parts, .final-parts';
+  const onScrollbar = (e) => e.target instanceof HTMLElement && e.target.matches(SCROLLERS) && e.offsetX >= e.target.clientWidth;
+
   board.addEventListener('pointerdown', (e) => {
     // Middle button anywhere, or left button on empty canvas: pan the board.
     if (e.button === 1 || (e.button === 0 && e.target === board)) {
@@ -1960,6 +1989,7 @@
       return;
     }
     if (e.button !== 0) return;
+    if (onScrollbar(e)) return; // dragging a scrollbar, not the note
     const ctrlOnCard = (e.ctrlKey || e.metaKey) && e.target.closest('.card-wrap') && !e.target.closest('button');
     if (!ctrlOnCard) ui.anchor = null;
     const colEl = e.target.closest('.column');
@@ -2689,8 +2719,10 @@
     if (e.ctrlKey || dragActive) return;
     if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
     if (board.scrollWidth <= board.clientWidth) return;
-    const scroller = e.target.closest('.col-scroll, textarea');
-    if (scroller && scroller.scrollHeight > scroller.clientHeight + 1) return;
+    // Leave the wheel to anything under the pointer that can scroll vertically itself.
+    for (let n = e.target; n && n !== board; n = n.parentElement) {
+      if (n.matches(SCROLLERS) && n.scrollHeight > n.clientHeight + 1 && getComputedStyle(n).overflowY !== 'hidden') return;
+    }
     e.preventDefault();
     const unit = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? board.clientWidth : 1;
     board.scrollLeft += e.deltaY * unit;
@@ -2791,10 +2823,6 @@
     }
     if (e.target.closest('.final-more')) {
       col.finalExpanded = !col.finalExpanded;
-      const p = findProject(col.id);
-      if (col.finalExpanded) p.augExpanded = true;
-      else delete p.augExpanded;
-      persist();
       augToMeasure.add(col);
       render();
       return;
@@ -2814,10 +2842,6 @@
     }
     if (e.target.closest('.aug-more')) {
       col.augExpanded = !col.augExpanded;
-      const p = findProject(col.id);
-      if (col.augExpanded) p.usedExpanded = true;
-      else delete p.usedExpanded;
-      persist();
       augToMeasure.add(col);
       render();
       return;
@@ -2833,8 +2857,9 @@
       if (e.target.closest('.fp-back')) return sendBackFromFinal(id);
       return;
     }
-    // Clicking the final text copies it all, unless the user is selecting part of it.
-    if (e.target.closest('.final-text') && !String(window.getSelection())) copyFinal(col.id, e);
+    // Clicking the final text copies it all, unless the user is selecting part of it
+    // (or dragging the scrollbar of the opened-up text).
+    if (e.target.closest('.final-text') && !String(window.getSelection()) && !onScrollbar(e)) copyFinal(col.id, e);
   });
 
   board.addEventListener('dblclick', (e) => {
@@ -2960,6 +2985,7 @@
       menuItem(menu, I.arrowLeft, 'Move left', () => moveProject(col.id, -1), { disabled: index === 0 });
       menuItem(menu, I.arrowRight, 'Move right', () => moveProject(col.id, 1), { disabled: index === data.projects.length - 1 });
       menuItem(menu, I.width, 'Reset width', () => resetColumnWidth(col.id), { disabled: !colWidth(col.id) });
+      menuItem(menu, I.sort, 'Sort prompts oldest first', () => sortOldestFirst(col.id), { disabled: project.notes.length < 2 || isOldestFirst(project.notes) });
       menu.appendChild(el('div', 'menu-sep'));
       menuItem(menu, I.layers, `Clear Combined (${project.used.length})`, () => clearStage(col.id, 'used'), { disabled: !project.used.length });
       menuItem(menu, I.used, `Clear Final (${project.combined.length})`, () => clearStage(col.id, 'combined'), { disabled: !project.combined.length });
@@ -3231,6 +3257,19 @@
     if (!res?.ok) toast(res?.error || 'Restore failed.');
   });
   $('#open-settings').addEventListener('click', () => openSettings());
+
+  // ---- help (top-bar ?, F1): how the stages work, handy moves and shortcuts
+  const helpDialog = $('#help');
+
+  function openHelp() {
+    closeMenu();
+    if (dialog.open) dialog.close();
+    const hotkey = ui.settings?.hotkey;
+    $('#help-hotkey').textContent = hotkey ? prettyAccel(hotkey).replace(/ \+ /g, ' ') : 'Off';
+    $('#help-hotkey-label').textContent = hotkey ? 'Show or hide Recaller from any app' : 'Show/hide from any app (set a key in Settings)';
+    if (!helpDialog.open) helpDialog.showModal();
+  }
+  $('#open-help').addEventListener('click', openHelp);
   dialog.addEventListener('close', () => {
     if (f.key.value.trim()) saveSetting({ apiKey: f.key.value.trim() });
   });
@@ -3282,7 +3321,7 @@
   document.addEventListener('keydown', (e) => {
     const mod = e.ctrlKey || e.metaKey;
     const k = e.key.toLowerCase();
-    if (dialog.open || lightbox.open) return;
+    if (dialog.open || lightbox.open || helpDialog.open) return;
     if (e.key === 'Escape' && openMenuEl) {
       closeMenu();
       return;
@@ -3322,11 +3361,14 @@
     } else if (mod && k === ',') {
       e.preventDefault();
       openSettings();
+    } else if (e.key === 'F1' || (e.key === '?' && !mod && !isTyping(e.target))) {
+      e.preventDefault();
+      openHelp();
     }
   });
 
   api.onSummoned(() => {
-    if (dialog.open || isEditing() || Voice.isActive()) return;
+    if (dialog.open || helpDialog.open || isEditing() || Voice.isActive()) return;
     focusSearch();
   });
 

@@ -48,7 +48,7 @@ The owner's VS Code / Claude Code terminal sets `ELECTRON_RUN_AS_NODE=1`, which 
 
 1. Give them `dist\Recaller Setup X.Y.Z.exe`. They double-click it; it installs over the previous version (closing the running app if needed) and relaunches.
 2. Their data in `%APPDATA%\Recaller` is untouched, and the new version makes an `upgrade` backup on first start.
-3. **Currently installed:** 1.5.0 at the start of the 1.6.0 session (2026-09-24). The 1.6.0 installer was built and handed over; check the installed version at session start (see `13`).
+3. **Currently installed:** 1.6.0 when the 1.7.0 work started (2026-09-24). The 1.7.0 installer was built and handed over; check the installed version at session start (see `13`).
 
 ## End-to-end test suites (`tests/e2e/`)
 
@@ -70,7 +70,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **Check syntax first:** run `node --check` on a suite before launching it. A syntax error makes Electron show an "App threw an error" dialog on the owner's screen until it times out.
 - **Real captures are deleted:** the features suite's real screen-snip test captures the owner's actual screen once. The suite deletes the images afterwards. Never view or keep those files.
 
-### `features.e2e.js` (96 checks, about 4 minutes)
+### `features.e2e.js` (103 checks, about 4 minutes)
 
 **Setup:**
 - **Seed data:** seven projects in the old v1 format, which also exercises loading old data.
@@ -125,6 +125,13 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **Clearing:** the menu lists "Clear Combined (1)" and "Clear Final (5)"; each empties only its own stage; Ctrl+Z restores.
 - **Search in combined texts:** terms are marked inside the Combined and Final texts.
 - **Colours:** the menu has 18 swatches; picking Navy applies it (then undone).
+- **1.7 checks:**
+  - new prompts land at the bottom;
+  - the Final text is held to 6 lines, and Show more opens it without writing `augExpanded`;
+  - an empty Combined is a transparent, dashed outline;
+  - the Combined band is a muted slate (low-saturation check);
+  - the ? button and F1 open the help, and Esc closes it;
+  - ⋯ → Sort prompts oldest first sorts by `createdAt`, and Ctrl+Z restores the order.
 - **Highlight:** the menu offers four colours and shows the "Check again" tag; Ctrl+Z removes it; H toggles it.
 - **Ctrl+click:** two notes in click order with a blank line between; badges 1 and 2 and the bar; Ctrl+click again removes; Esc clears; "Move to Combined" joins them in, and Ctrl+Z undoes it.
 - **Live dictation:**
@@ -235,7 +242,7 @@ Every suite checks that `APP_MAIN` exists and otherwise prints `HARNESS FAIL: no
 ## Git status (important)
 
 - **Repository:** since 2026-09-24 Recaller is its own repo at `C:\Users\User\Documents\recaller` (moved out of `Documents\iresine\recaller`). Branch `main`, remote `origin` = https://github.com/Ahsan-khan/recaller. The first commit `3876950` ("Initial commit: Recaller desktop prompt board (v1.5.0)") is on GitHub.
-- **1.6.0 work:** left uncommitted in the working tree; the owner didn't ask for a commit.
+- **Branches:** 1.6.0 is committed on branch `v1` (`296fd32`, pushed to `origin/v1`); `main` still has the 1.5.0 commit. 1.7.0 work was left uncommitted.
 - **When committing is requested:** make a branch (unless told to use `main`), then commit with the attribution the environment requires. Push only when asked.
 - **Ignored:** `.gitignore` ignores `node_modules/`, `dist/` and `tests/e2e/.out/`.
 - **GitHub CLI:** `gh` isn't on PATH; use `C:\Program Files\GitHub CLI\gh.exe`.

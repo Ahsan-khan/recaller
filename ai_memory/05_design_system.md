@@ -37,10 +37,11 @@ The renderer swaps these classes in `render()` and `applyTheme()`.
 | `--highlight` | #b6f2cd | search match marks |
 | `--rec` | #e5484d | recording pill |
 | `--danger` | #dc4f3a | delete swipe, errors |
-| `--aug-bg` / `--aug-edge` / `--aug-ink` | #e0e4fc / #aeb8ef / #3730a3 | Combined block background, border, text (data `used`) |
-| `--aug-card` / `--aug-card-edge` | #f6f6ff / #cbd1f6 | the lavender Combined note |
-| `--aug-bar` / `--aug-band` | #4f46e5 / gradient #5b56ee → #4840d8 | Combined accent bar, Move to Final bar, and the solid header band |
-| `--final-card` / `--final-card-edge` | #eefcf4 / #b9ebcf | the mint Final text box (data `combined`) |
+| `--aug-bg` / `--aug-edge` / `--aug-ink` | #e6e9ef / #c9cfda / #334058 | Combined block background, border, text (data `used`) |
+| `--aug-card` / `--aug-card-edge` | #f9fafc / #d6dbe4 | the near-white Combined note |
+| `--aug-bar` / `--aug-bar-hover` / `--aug-band` | #3f4a62 / #2f384c / gradient #47526b → #384259 | Combined accent bar, Move to Final bar, and the slate-navy header band |
+| `--final-card` / `--final-card-edge` | #f3f8f5 / #cfe3d6 | the pale mint Final text box (data `combined`) |
+| `--stage-lines` | 6 | how many lines the Combined note and Final text show before "Show more" |
 
 **Per-column accent tokens** are set inline on each `.column` as `--accent: <project colour>`. The derived shades are redeclared on `:root, .column, .drag-ghost`, because custom properties resolve where they are declared:
 
@@ -64,13 +65,13 @@ The canvas is a light green-grey gradient and the top bar is white. The column h
 
 ### Stage colours (the same in both themes)
 
-The owner asked twice for more difference between the stages. Since 1.6 each stage has its own frame *and* its own "paper": white cards, an indigo block with a lavender note, a deep-green block with a mint box.
+The owner asked twice for more difference between the stages. Since 1.6 each stage has its own frame *and* its own "paper". In 1.7 they then rejected the bright violet as "weird", "girly" and too bright, and asked for "modern and adult". So Combined is now muted slate. Keep stage colours low in saturation; the saturated colour belongs to the column headers.
 
 | Stage | Look |
 | --- | --- |
 | New prompts | White cards with a 3px project-accent bar on the left (`--accent-deep` in Deep theme) |
-| Combined (data `used`) | Indigo block (#e0e4fc, border #aeb8ef, soft indigo shadow) with a solid indigo header band (`--aug-band`) and white uppercase label "COMBINED · n". One lavender note (#f6f6ff, border #cbd1f6) with a 3px #4f46e5 bar. A full-width #4f46e5 "↓ Move to Final" bar (hover #4338ca). Collapsed, only the band shows |
-| Final (data `combined`) | A deep-green block with gradient #11523c → #0b3a2a (border #0a2f22), header label "FINAL" in #d1fae5 (no counter, no Copy all since 1.6), and a mint inner text box (#eefcf4, border #b9ebcf) that gets an emerald ring on hover and a "Copied" chip when clicked |
+| Combined (data `used`) | Pale cool-grey block (#e6e9ef, border #c9cfda, soft slate shadow) with a slate-navy header band (`--aug-band`) and white uppercase label "COMBINED · n". One near-white note (#f9fafc, border #d6dbe4) with a 3px #3f4a62 bar. A full-width #3f4a62 "↓ Move to Final" bar (hover #2f384c). Collapsed, only the band shows. **Empty:** transparent with a 1.5px dashed slate outline and a slate label; it fills in while dragging |
+| Final (data `combined`) | A deep-green block with gradient #11523c → #0b3a2a (border #0a2f22), header label "FINAL" in #d1fae5 (no counter, no Copy all since 1.6), and a pale mint text box (#f3f8f5, border #cfe3d6) that gets an emerald ring on hover and a "Copied" chip when clicked. **Empty:** a dashed green outline with a green label |
 
 ### Project palette
 
@@ -90,7 +91,7 @@ A highlighted card gets a tinted background, a 55% border, a 4px bar in the colo
 ### Other states
 
 - **Selected (Ctrl+click):** a 2px accent ring, a light accent background, and a round `--accent-deep` badge with the order number (top-left, white outline).
-- **Drop targets:** a dashed outline (Combined in indigo, Final in #34d399). Dashed placeholders in the accent colour.
+- **Drop targets:** a dashed outline (Combined in slate #3f4a62, Final in #34d399). Dashed placeholders in the accent colour.
 - **Swipe backdrops:** red gradient for delete; green gradient (#0e9f6e) for "Move to Final" on the Combined note.
 - **Notes-list rows** (Combined and Final): number, first line, and on hover ↑ ↓ ✎ ↩ buttons (22px). The Notes toggle looks pressed (tinted background) while open; its label stays "Notes" so the word-count stats keep their room.
 - **Column resize handle** (`.col-resize`): a 10px strip in the gap right of each column. On hover a 3px × 48px rounded line appears (dark ink at 30% in Soft, mint at 60% in Deep); while dragging it runs the full height and the cursor is `col-resize` everywhere.
@@ -132,8 +133,9 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
 - **Column:** radius 16px. Header at least 46px tall; the name wraps to two lines.
 - **New prompt bar:** 36px tall; the plus sits in a 22px `--accent-deep` square. A 36px square mic button sits beside it.
 - **Cards:** radius 12px. On hover, an action pill appears top-right (highlighter, stack "to Combined", edit) with 26px buttons.
-- **Combined and Final:** blocks radius 12px (Combined's header band 11px top corners), inner note or box radius 9px, combined text clamped to 8 lines with a fade until "Show all".
-- **Top bar:** brand, search, then (right) undo/redo, the ↔ reset-widths icon button, the settings gear. No "+ Project" button since 1.6. Disabled top-bar icon buttons are drawn at 30% opacity.
+- **Combined and Final:** blocks radius 12px (Combined's header band 11px top corners), inner note or box radius 9px. The text shows `--stage-lines` (6) lines with a fade. Under it, a slim full-width **Show more / Show less** bar (`.stage-more`, 24px, chevron that flips) opens it to min(56vh, 480px), scrolling inside. The Notes lists are capped at 220px. The footer gap is 4px so "n prompts · w words" fits next to Notes and the pencil at slim width.
+- **Dialogs:** Settings and Help share `.modal-card`. `.modal-section` headings are 12px / 700 / uppercase / `--ink-2` with a hairline above. The Help stage cards are white with a coloured square per stage. `kbd` inside Help is forced light, because Deep theme otherwise styles `kbd` for the dark top bar.
+- **Top bar:** brand, search, then (right) undo/redo, the ↔ reset-widths icon button, the ? help button (1.7), the settings gear. No "+ Project" button since 1.6. Disabled top-bar icon buttons are drawn at 30% opacity.
 - **Composer:**
   - radius 12px with an accent ring; the textarea grows up to 300px;
   - an attachment row, and a message row for errors with action links;
@@ -143,9 +145,9 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
 
 ## Icons (`src/renderer/icons.js`, 24px stroke, 1.8 width)
 
-`plus`, `mic`, `stop`, `copy`, `check`, `edit`, `trash`, `more`, `chevron`, `used` (check in circle, the Final icon), `restore` (circular arrow), `grip`, `pencilLine`, `arrowLeft`, `arrowRight`, `arrowDown`, `arrowUp`, `width` (two bars with a double arrow: column width), `camera`, `close`, `expand`, `image`, `layers` (the "stack" icon for Combined), `highlighter`, `undo`.
+`plus`, `mic`, `stop`, `copy`, `check`, `edit`, `trash`, `more`, `chevron`, `used` (check in circle, the Final icon), `restore` (circular arrow), `grip`, `pencilLine`, `arrowLeft`, `arrowRight`, `arrowDown`, `arrowUp`, `width` (two bars with a double arrow: column width), `sort` (lines with a down arrow), `camera`, `close`, `expand`, `image`, `layers` (the "stack" icon for Combined), `highlighter`, `undo`.
 
-Top-bar icons (search, undo/redo, reset widths, gear) are inlined in `index.html`.
+Top-bar icons (search, undo/redo, reset widths, help, gear) are inlined in `index.html`.
 
 ## App icon and monstera art
 

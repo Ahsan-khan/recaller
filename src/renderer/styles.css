@@ -90,17 +90,20 @@
   --card-edge: #dfe9e3;
   --used-bg: #e9efeb;
   --used-edge: #cbd8d0;
-  /* stage colours: new prompts are white cards; Combined (data "used") is an indigo
-     block with a lavender note; Final (data "combined") is a deep-green block with a mint text box */
-  --aug-bg: #e0e4fc;
-  --aug-edge: #aeb8ef;
-  --aug-ink: #3730a3;
-  --aug-card: #f6f6ff;
-  --aug-card-edge: #cbd1f6;
-  --aug-bar: #4f46e5;
-  --aug-band: linear-gradient(180deg, #5b56ee 0%, #4840d8 100%);
-  --final-card: #eefcf4;
-  --final-card-edge: #b9ebcf;
+  /* stage colours: new prompts are white cards; Combined (data "used") is a muted
+     slate block with a slate-navy header band; Final (data "combined") is a deep-green
+     block. Kept low in saturation on purpose: the owner found bright violet "too much". */
+  --aug-bg: #e6e9ef;
+  --aug-edge: #c9cfda;
+  --aug-ink: #334058;
+  --aug-card: #f9fafc;
+  --aug-card-edge: #d6dbe4;
+  --aug-bar: #3f4a62;
+  --aug-bar-hover: #2f384c;
+  --aug-band: linear-gradient(180deg, #47526b 0%, #384259 100%);
+  --final-card: #f3f8f5;
+  --final-card-edge: #cfe3d6;
+  --stage-lines: 6; /* Combined note and Final text start at this many lines; "Show more" opens them up */
 
   --ink: #0c2a1d;
   --ink-2: #3c5a4b;
@@ -349,8 +352,10 @@ body.is-ready .board { opacity: 1; }
   background-clip: content-box;
 }
 .board::-webkit-scrollbar-thumb:hover { background-color: rgba(12, 42, 29, 0.38); border-width: 3px; }
-.col-scroll::-webkit-scrollbar, .composer textarea::-webkit-scrollbar { width: 8px; }
-.col-scroll::-webkit-scrollbar-thumb, .composer textarea::-webkit-scrollbar-thumb {
+.col-scroll::-webkit-scrollbar, .composer textarea::-webkit-scrollbar,
+.aug-text::-webkit-scrollbar, .final-text::-webkit-scrollbar, .aug-parts::-webkit-scrollbar, .final-parts::-webkit-scrollbar { width: 8px; }
+.col-scroll::-webkit-scrollbar-thumb, .composer textarea::-webkit-scrollbar-thumb,
+.aug-text::-webkit-scrollbar-thumb, .final-text::-webkit-scrollbar-thumb, .aug-parts::-webkit-scrollbar-thumb, .final-parts::-webkit-scrollbar-thumb {
   background: rgba(12, 42, 29, 0.16);
   border-radius: 999px;
   border: 2px solid transparent;
@@ -616,8 +621,15 @@ body.is-dragging .col-resize { display: none; }
   border-radius: 12px;
   background: var(--aug-bg);
   border: 1px solid var(--aug-edge);
-  box-shadow: 0 8px 18px -12px rgba(55, 48, 163, 0.6);
+  box-shadow: 0 8px 18px -12px rgba(30, 41, 59, 0.45);
 }
+/* Empty stages stay quiet: a dashed outline instead of a solid block, so a column
+   with nothing combined yet isn't dominated by it. They light up while dragging. */
+.used.is-empty { background: transparent; border: 1.5px dashed rgba(63, 74, 98, 0.32); box-shadow: none; }
+.used.is-empty .used-headrow { background: none; }
+.used.is-empty .used-head { color: var(--aug-ink); opacity: 0.85; }
+.used.is-empty .used-head:hover { background: rgba(63, 74, 98, 0.08); }
+body.is-dragging .used.is-empty { background: var(--aug-bg); border-color: var(--aug-bar); }
 .used-headrow {
   display: flex;
   align-items: center;
@@ -672,7 +684,7 @@ body.is-dragging .col-resize { display: none; }
   transition: background 0.15s, transform 0.1s;
 }
 .aug-move .icon { width: 13px; height: 13px; stroke-width: 2.4; }
-.aug-move:hover { background: #4338ca; }
+.aug-move:hover { background: var(--aug-bar-hover); }
 .aug-move:active { transform: scale(0.96); }
 .used.is-drop-target { outline: 2px dashed var(--aug-bar); outline-offset: 2px; }
 
@@ -717,7 +729,7 @@ body.is-dragging .col-resize { display: none; }
   border-radius: 0 3px 3px 0;
   background: var(--aug-bar);
 }
-.aug-note:hover { box-shadow: var(--shadow-md); border-color: #a5b0ee; }
+.aug-note:hover { box-shadow: var(--shadow-md); border-color: #b3bccb; }
 .aug-note.is-drag-source { opacity: 0.35; }
 .aug-note .copied-chip { top: 7px; bottom: auto; }
 .aug-text {
@@ -725,12 +737,16 @@ body.is-dragging .col-resize { display: none; }
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  max-height: calc(1.45em * 8);
+  max-height: calc(1.45em * var(--stage-lines));
   overflow: hidden;
   -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent);
 }
-.used.is-expanded .aug-text, .aug-text.fits { max-height: none; -webkit-mask-image: none; }
-.aug-foot { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; color: var(--ink-3); }
+/* `fits` only drops the fade. The height limit stays on, so a text that grows later is
+   still held to its lines even before (or without) the next measurement. */
+.aug-text.fits { -webkit-mask-image: none; }
+/* opened up: taller, but still capped, and it scrolls inside */
+.used.is-expanded .aug-text { max-height: min(56vh, 480px); overflow-y: auto; -webkit-mask-image: none; }
+.aug-foot { display: flex; align-items: center; gap: 4px; margin-top: 5px; font-size: 11px; color: var(--ink-3); }
 .aug-foot .spacer { flex: 1; }
 .aug-stats { font-family: var(--font-mono); letter-spacing: -0.01em; }
 .aug-more, .aug-parts-btn { flex: none; font-size: 11px; font-weight: 600; color: var(--aug-ink); padding: 1px 6px; border-radius: 5px; }
@@ -739,7 +755,7 @@ body.is-dragging .col-resize { display: none; }
 .aug-edit .icon, .final-edit .icon { width: 14px; height: 14px; }
 .aug-edit:hover { background: var(--aug-bg); color: var(--aug-ink); }
 .final-edit:hover { background: rgba(4, 120, 87, 0.1); color: #047857; }
-.aug-parts { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+.aug-parts { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); max-height: 220px; overflow-y: auto; }
 .aug-empty { display: none; padding: 8px 8px 7px; text-align: center; font-size: 11.5px; color: var(--aug-ink); opacity: 0.8; }
 .used.is-empty .aug-wrap { display: none; }
 .used.is-empty .aug-empty { display: block; }
@@ -791,6 +807,10 @@ body.is-dragging .aug-empty { opacity: 1; }
 .final:not(.is-empty) .final-body:hover { box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.55); }
 .final-body .copied-chip { top: 7px; bottom: auto; }
 .final.is-collapsed .final-body, .final.is-editing .final-body { display: none; }
+.final.is-empty, body.theme-deep .final.is-empty { background: transparent; border: 1.5px dashed rgba(11, 58, 42, 0.32); box-shadow: none; }
+.final.is-empty .final-toggle { color: #0b5a3f; opacity: 0.85; }
+.final.is-empty .final-body { background: transparent; border: 0; padding-top: 0; }
+body.is-dragging .final.is-empty { background: rgba(16, 168, 116, 0.08); border-color: #10a874; }
 .final-edit-host { margin: 0 5px 5px; }
 .final-edit-host:empty, .final.is-collapsed .final-edit-host { display: none; }
 .final-text {
@@ -799,19 +819,21 @@ body.is-dragging .aug-empty { opacity: 1; }
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  max-height: calc(1.45em * 8);
+  max-height: calc(1.45em * var(--stage-lines));
   overflow: hidden;
   -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent);
 }
-.final.is-expanded .final-text, .final-text.fits { max-height: none; -webkit-mask-image: none; }
+.final-text.fits { -webkit-mask-image: none; }
+/* opened up: taller, but still capped, and it scrolls inside, so a long Final never swamps the column */
+.final.is-expanded .final-text { max-height: min(56vh, 480px); overflow-y: auto; -webkit-mask-image: none; }
 .final.is-empty .final-text, .final.is-empty .final-foot { display: none; }
 .final-empty { display: none; padding: 4px 2px; font-size: 12px; line-height: 1.4; color: var(--ink-3); text-align: center; }
 .final.is-empty .final-empty { display: block; }
-.final-foot { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; color: var(--ink-3); }
+.final-foot { display: flex; align-items: center; gap: 4px; margin-top: 5px; font-size: 11px; color: var(--ink-3); }
 .final-foot .spacer { flex: 1; }
 .final-more, .final-parts-btn { flex: none; font-size: 11px; font-weight: 600; color: #047857; padding: 1px 6px; border-radius: 5px; }
 .final-more:hover, .final-parts-btn:hover, .final-parts-btn[aria-pressed="true"] { background: rgba(4, 120, 87, 0.12); }
-.final-parts { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+.final-parts { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); max-height: 220px; overflow-y: auto; }
 /* one row per part in the Notes lists of Combined and Final; its buttons show on hover */
 .final-part { display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 2px 3px 0; border-radius: 6px; font-size: 12px; }
 .final-part:hover { background: rgba(12, 42, 29, 0.05); }
@@ -826,6 +848,28 @@ body.is-dragging .aug-empty { opacity: 1; }
 .aug-parts .fp-acts button:hover:not(:disabled) { background: var(--aug-bg); color: var(--aug-ink); }
 .final-parts .fp-acts button:hover:not(:disabled) { background: rgba(4, 120, 87, 0.12); color: #047857; }
 .aug-text mark, .final-text mark { background: var(--highlight); color: inherit; border-radius: 3px; padding: 0 1px; }
+/* "Show more / Show less": a slim full-width bar right under the Combined note and the Final text */
+.stage-more {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+  margin-top: 3px;
+  padding: 0;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 650;
+  transition: background 0.15s;
+}
+.stage-more .icon { width: 13px; height: 13px; stroke-width: 2.2; transition: transform 0.2s var(--ease); }
+.stage-more.is-open .icon { transform: rotate(180deg); }
+.aug-more.stage-more { color: var(--aug-ink); background: rgba(63, 74, 98, 0.07); }
+.aug-more.stage-more:hover { background: rgba(63, 74, 98, 0.14); }
+.final-more.stage-more { color: #047857; background: rgba(4, 120, 87, 0.07); }
+.final-more.stage-more:hover { background: rgba(4, 120, 87, 0.14); }
+.final.is-empty .final-more { display: none; }
 .final.is-drop-target { outline: 2px dashed #34d399; outline-offset: 2px; }
 .final.is-flash { animation: final-flash 0.7s ease-out; }
 @keyframes final-flash { 0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.75); } 100% { box-shadow: 0 0 0 12px rgba(52, 211, 153, 0); } }
@@ -1455,6 +1499,36 @@ body.is-dragging .card-actions { opacity: 0 !important; }
   gap: 15px;
 }
 .modal-head { display: flex; align-items: center; justify-content: space-between; }
+/* section headings in Settings and Help */
+.modal-section {
+  margin: 4px 0 -5px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.modal-head + .modal-section { margin-top: -4px; padding-top: 0; border-top: 0; }
+
+/* help */
+.help-card { width: min(540px, calc(100vw - 32px)); gap: 13px; }
+.help-lead { margin: -4px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.help-stages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.help-stages li { display: flex; gap: 11px; align-items: flex-start; padding: 9px 11px; border-radius: 11px; background: #fff; border: 1px solid var(--card-edge); }
+.help-stages li div { display: flex; flex-direction: column; gap: 2px; font-size: 13px; line-height: 1.4; }
+.help-stages li b { font-size: 13.5px; }
+.help-stages li span { color: var(--ink-2); }
+.hs-dot { flex: none; width: 12px; height: 12px; margin-top: 3px; border-radius: 4px; }
+.hs-prompts { background: #fff; box-shadow: inset 0 0 0 1.5px var(--primary); }
+.hs-combined { background: var(--aug-bar); }
+.hs-final { background: #11523c; }
+.help-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; font-size: 13px; line-height: 1.45; color: var(--ink); }
+.help-list b { font-weight: 650; }
+.help-keys { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; align-items: center; font-size: 13px; }
+.help-keys kbd { justify-self: start; font-size: 11.5px; }
+.help-card kbd, body.theme-deep .help-card kbd { background: #fff; border-color: var(--line-strong); color: var(--ink-2); }
 .modal-head h2 { margin: 0; font-family: var(--font-head); font-weight: 650; font-size: 18px; letter-spacing: -0.025em; }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }

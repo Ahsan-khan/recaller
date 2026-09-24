@@ -169,3 +169,23 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 - "project plus button in the very top bar": the green + Project button; the "+ New project" tile and Ctrl+Shift+N remain.
 - Resize: drag a column's edge; the top-bar ↔ button resets every column to the current default width ("in a slim way": a small icon button).
 - "more color options": 10 more colours, 18 in all.]
+
+## Message 13: second 1.x request (sent as pasted, dictated text only)
+
+> The combined color. The combined column section color is too weird. Make it more modern and adult, not this much brightness. Come on. All the colors are girly, but the background color is nice.
+>
+> Every time I add a new prompt, it should add it to the bottom of the list and not at the top.
+>
+> Make the UI, the user interface better, more friendlier. More modern. And easier to use. Just overall good.
+>
+> The final. Section in the column has to be. Limited in the size. It should be, like, expandable, and I can see more of it. But right now it's just too long. It's too big if everything is combined, right? Like. It should be. Initially fixed in size.
+>
+> What needs to happen so that an every day user can use it? Like, this is personally built for me, but what do we need to do so that everybody can use it?
+
+[Built as v1.7.0. How each item was read:
+
+- "combined ... too weird ... not this much brightness ... girly, but the background color is nice": the violet/lavender Combined block. It became muted slate-navy and pale grey; the dark green canvas was kept. "All the colors" was read as the Combined colours, not the project palette (unconfirmed).
+- "add it to the bottom": new prompts append; prompts sent back from Combined too. Old columns keep their order; a menu action sorts them.
+- "UI friendlier, more modern, easier": the help panel, sectioned Settings, quiet empty stages, the Show more bar, clearer empty text.
+- "final ... limited in size ... expandable ... initially fixed": the owner's real data had a Final of 24 notes (~100 lines) saved as "Show all", so it opened at full length every time. Final (and Combined) now start at 6 lines; Show more opens a capped, scrolling view; the state isn't saved.
+- "what needs to happen so an everyday user can use it": answered in chat, and kept as a roadmap in `09`.]
