@@ -197,3 +197,9 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 > Change column section name. Final to served. Combined to cooked. And then. Add a new prompt section name. Like the other ones, that's called cooking.
 
 [Built as v1.8.0. "The mic button should take half the space of the new prompt button" was read as: split the bar in two equal halves, New prompt | Dictate. The other possible reading, a mic half as wide as New prompt, was not taken. "Add a new prompt section name like the other ones" became a Cooking header with the same label, count and fold arrow as Cooked and Served. The count moved there from the column title.]
+
+## Message 15
+
+> When I have too many columns, it seems cluttered. Is there any way to Make it visually seem less cluttered and nice and open feeling without taking up more space.
+
+[Built as v1.9.0. The clutter came from furniture repeated in every column: tinted column bodies, a boxed Cooking strip, two outlined buttons with solid colour squares, and empty dashed Cooked/Served frames with helper sentences. All of it was made quiet or hidden at rest; column headers were left as they were (the owner likes them).]

@@ -30,6 +30,7 @@ Recaller keeps prompts and notes that the owner reuses when working with AI tool
 - **Less chrome:** in round 9 they removed the Final counter, the Copy all button and the top-bar "+ Project" button. Clicking already copies, and the board's "+ New project" tile creates projects.
 - **Order:** new prompts go at the **bottom** of a column (round 10), so a column reads top to bottom and flows into Combined.
 - **Size:** stage texts must start at a fixed, modest size and expand on demand (round 10); nothing should grow without limit by default.
+- **Calm with many columns (round 12):** they find a wide board of columns "cluttered" and want it "open" without using more space. Keep per-column furniture (labels, buttons, empty stages) light and uniform; let the header colour and the content carry the weight.
 - **Data safety is paramount.** Every update must keep everything identical: notes, drafts, images, colours, layout, scroll positions, window position and settings.
 
 ## Every request, in order, and what was built
@@ -129,6 +130,9 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 13. **Round 11 → v1.8.0.**
     - The request: the mic should take half of the New prompt bar (they dictate about half their prompts); rename Final → Served and Combined → Cooked; add a section name for new prompts, "Cooking", like the other ones.
     - What was built: New prompt | Dictate in equal halves; the kitchen names everywhere; a Cooking header (label, count, fold arrow) above the prompts, with the count moved out of the column title. See `08` (1.8.0) and `10` (message 14).
+14. **Round 12 → v1.9.0.**
+    - The request: many columns look cluttered; make it feel less cluttered and open without taking more space.
+    - What was built: one neutral surface for every column, a plain Cooking label, soft New prompt | Dictate pills, empty stages that show only their name, borderless cards, fainter dots. The column headers were deliberately left as they are. See `08` (1.9.0).
 
 ## Things the owner has not decided or confirmed
 

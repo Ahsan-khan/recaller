@@ -83,7 +83,18 @@ Dates are 2026-09-23 and 2026-09-24. Versions 1.0.0 to 1.5.0 were built in one l
 - **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
 - **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
 
-## 1.8.0 (current)
+## 1.9.0 (current)
+
+A calmer board with many columns, using no extra space (empty columns got shorter):
+
+- **One calm surface for every column:** #eef2f0 in Deep (#f6f8f7 in Soft) instead of each column tinted by its colour. Colour stays in the header and the thin card bars.
+- **Cooking is a plain label:** no box or border; it tints only on hover.
+- **New prompt | Dictate are soft white pills:** no outline and no solid colour square. The icon is drawn in the column colour, and the outline and shadow appear on hover.
+- **Empty Cooked and Served show only their faint name** (60% opacity): no dashed frame and no helper sentence at rest. While dragging they turn into a clear drop zone with the sentence.
+- **Cards have no outline in Deep,** just a soft shadow. The canvas dot grid is half as strong.
+- **Tests:** features 108 checks (new: one shared column background; empty Cooked shows no helper sentence at rest).
+
+## 1.8.0
 
 - **Kitchen stage names:** the three stages are now **Cooking** (new prompts) → **Cooked** (was Combined) → **Served** (was Final), in every label, tooltip, toast, menu item, undo label, the help panel, Settings and the welcome tips. The data names are unchanged (`notes`, `used`, `combined`).
 - **Cooking header:** the prompts get a stage header like the other two: "⌄ 🔥 COOKING · n", light in the column's colour. Clicking it folds the prompt cards away (saved as `project.notesCollapsed`, only while folded). A search, a new prompt, a prompt sent back or a prompt dropped in unfold it. The prompt count moved here from the pill in the column title, which gives long names more room.

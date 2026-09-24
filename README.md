@@ -15,7 +15,7 @@ npm install
 npm run dist
 ```
 
-This builds `dist/Recaller Setup 1.8.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
+This builds `dist/Recaller Setup 1.9.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
 

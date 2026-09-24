@@ -131,8 +131,14 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
   | roomy | 330px | 11/13/10/16px | 13.5px | 6 lines | 8px | 16px |
 
 - **Column:** radius 16px. Header at least 46px tall; the name wraps to two lines.
-- **Cooking header (1.8):** 28px row, radius 9px, background `color-mix(accent 11%, white)` with a 1px accent-24% border, text `--accent-ink`, same 11.5px / 700 / uppercase / +0.045em type as the Cooked and Served labels, with a chevron and a flame icon. It's light because the column header above is already the saturated accent.
-- **New prompt bar (1.8):** two equal flex halves, 36px tall, gap 6px, padding 0 6px, 13px / 650 labels. Each icon sits in a 22px `--accent-deep` square (plus, mic). `.col-new` is a size container: under 244px the left label switches to "New". A draft shows "Draft" plus an 8px amber dot on the + square.
+- **Cooking header (1.8; plain since 1.9):** a 28px row with no background or border, text `--accent-ink`, the same 11.5px / 700 / uppercase / +0.045em type as the Cooked and Served labels, with a chevron and a flame icon. It tints to accent 9% on hover.
+- **New prompt bar (1.8; soft since 1.9):** two equal flex halves, 36px tall, gap 6px, padding 0 6px, 13px / 650 labels. White pills with no border at rest (1.5px transparent) and a hairline shadow; on hover a 55%-accent border and `--shadow-md`. The icons (plus, mic) are 16–17px glyphs in `--accent-deep`, with no filled square. `.col-new` is a size container: under 244px the left label switches to "New". A draft shows "Draft" plus an 8px amber dot by the +.
+- **Calm-board rules (1.9, for many columns):**
+  - every column body is the same neutral (#eef2f0 in Deep, #f6f8f7 in Soft); only headers and card bars carry colour;
+  - empty Cooked/Served show just their name at 60% opacity (the drop-zone frame and helper sentence appear only while dragging);
+  - cards in Deep have no border, just a soft two-layer shadow;
+  - canvas dots are at 3.5% white.
+  Keep repeated per-column furniture light; weight belongs to content.
 - **Cards:** radius 12px. On hover, an action pill appears top-right (highlighter, stack "to Cooked", edit) with 26px buttons.
 - **Cooked and Served:** blocks radius 12px (Cooked's header band 11px top corners), inner note or box radius 9px. The text shows `--stage-lines` (6) lines with a fade. Under it, a slim full-width **Show more / Show less** bar (`.stage-more`, 24px, chevron that flips) opens it to min(56vh, 480px), scrolling inside. The Notes lists are capped at 220px. The footer gap is 4px so "n prompts · w words" fits next to Notes and the pencil at slim width.
 - **Dialogs:** Settings and Help share `.modal-card`. `.modal-section` headings are 12px / 700 / uppercase / `--ink-2` with a hairline above. The Help stage cards are white with a coloured square per stage. `kbd` inside Help is forced light, because Deep theme otherwise styles `kbd` for the dark top bar.

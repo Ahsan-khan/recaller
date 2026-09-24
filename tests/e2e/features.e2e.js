@@ -260,7 +260,10 @@ async function run() {
   check('column titles use the new default font, Instrument Sans', /Instrument Sans/.test(titleFamily) && await js(`document.fonts.check('650 16px "Instrument Sans"')`), titleFamily);
   check('the top bar has no + Project button', !(await js(`!!document.querySelector('#new-project')`)) && await js(`!!document.querySelector('.column') && !!document.querySelector('.add-column')`));
   const emptyAug = await js(`(() => { const s = getComputedStyle(document.querySelector('.column[data-id="p2"] .used')); return [s.backgroundColor, s.borderTopStyle]; })()`);
-  check('an empty Cooked section is a quiet dashed outline, not a solid block', emptyAug[0] === 'rgba(0, 0, 0, 0)' && emptyAug[1] === 'dashed', emptyAug.join(' '));
+  const emptyHelp = await js(`getComputedStyle(document.querySelector('.column[data-id="p2"] .aug-empty')).display`);
+  check('an empty Cooked section is just its quiet name: no block, no helper sentence at rest', emptyAug[0] === 'rgba(0, 0, 0, 0)' && emptyHelp === 'none', `${emptyAug.join(' ')} | helper ${emptyHelp}`);
+  const bodies = await js(`['p1', 'p2', 'p3'].map((id) => getComputedStyle(document.querySelector('.column[data-id="' + id + '"]')).backgroundColor)`);
+  check('every column shares one calm background (colour stays in the headers)', new Set(bodies).size === 1, bodies.join(' | '));
   const band = await js(`getComputedStyle(document.querySelector('.column[data-id="p1"] .used-headrow')).backgroundImage`);
   const bandRgb = (band.match(/rgba?\(([^)]*)\)/) || [])[1]?.split(',').map(Number) || [];
   check('Cooked uses a muted slate band, not bright violet', bandRgb.length >= 3 && Math.max(...bandRgb.slice(0, 3)) - Math.min(...bandRgb.slice(0, 3)) < 50 && Math.max(...bandRgb.slice(0, 3)) < 120, band.slice(0, 60));

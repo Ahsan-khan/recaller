@@ -392,7 +392,9 @@ body.is-ready .board { opacity: 1; }
   display: flex;
   flex-direction: column;
   border-radius: 16px;
-  background: var(--accent-wash);
+  /* one calm surface for every column (1.9): the colour lives in the header and card bars,
+     so many columns side by side don't turn into a patchwork of tints */
+  background: #f6f8f7;
   border: 1px solid var(--col-edge);
   box-shadow: 0 1px 2px rgba(12, 42, 29, 0.06), 0 10px 24px -14px rgba(12, 42, 29, 0.28);
 }
@@ -503,8 +505,8 @@ body.is-dragging .col-resize { display: none; }
   box-shadow: 0 0 0 2px var(--accent-tint);
 }
 
-/* Cooking: the first stage's header, laid out like Cooked and Served but light and
-   in the column's own colour. The prompt count lives here, not in the column title. */
+/* Cooking: the first stage's header. A plain section label (no box) in the column's own
+   colour, so a board with many columns stays calm. The prompt count lives here. */
 .cook-headrow { flex: none; padding: 8px 8px 0; }
 .cook-head {
   width: 100%;
@@ -514,8 +516,8 @@ body.is-dragging .col-resize { display: none; }
   height: 28px;
   padding: 0 8px 0 5px;
   border-radius: 9px;
-  background: color-mix(in srgb, var(--accent) 11%, #ffffff);
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  background: none;
+  border: 0;
   color: var(--accent-ink);
   font-family: var(--font-ui);
   font-size: 11.5px;
@@ -524,7 +526,7 @@ body.is-dragging .col-resize { display: none; }
   text-transform: uppercase;
   transition: background 0.15s;
 }
-.cook-head:hover { background: color-mix(in srgb, var(--accent) 17%, #ffffff); }
+.cook-head:hover { background: color-mix(in srgb, var(--accent) 9%, transparent); }
 .cook-head .icon { width: 14px; height: 14px; }
 .cook-head .chev { display: inline-flex; transition: transform 0.2s var(--ease); }
 .column.cooking-collapsed .cook-head .chev { transform: rotate(-90deg); }
@@ -543,29 +545,29 @@ body.is-dragging .col-resize { display: none; }
   gap: 6px;
   padding: 0 6px;
   border-radius: 10px;
+  /* soft white pills: no outline or coloured square at rest, so many columns don't
+     repeat heavy boxes; they firm up on hover */
   background: #fff;
-  border: 1.5px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  box-shadow: var(--shadow-sm);
+  border: 1.5px solid transparent;
+  box-shadow: 0 1px 2px rgba(12, 42, 29, 0.05);
   color: var(--accent-ink);
   font-size: 13px;
   font-weight: 650;
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
 }
-.new-prompt:hover { background: var(--accent-tint); border-color: var(--accent); box-shadow: var(--shadow-md); }
+.new-prompt:hover { background: #fff; border-color: color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: var(--shadow-md); }
 .new-prompt:active { transform: scale(0.98); }
 .np-icon {
   position: relative;
-  width: 22px;
+  width: 18px;
   height: 22px;
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 7px;
-  background: var(--accent-deep);
-  color: #fff;
+  color: var(--accent-deep);
 }
-.np-icon .icon { width: 15px; height: 15px; stroke-width: 2.4; }
-.new-voice .np-icon .icon { width: 14px; height: 14px; stroke-width: 2.1; }
+.np-icon .icon { width: 17px; height: 17px; stroke-width: 2.3; }
+.new-voice .np-icon .icon { width: 16px; height: 16px; stroke-width: 2.1; }
 .np-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lbl-short, .lbl-draft { display: none; }
 /* an unsaved draft: the button says "Draft" and its + gets a dot */
@@ -574,8 +576,8 @@ body.is-dragging .col-resize { display: none; }
 .new-prompt.has-draft .np-icon::after {
   content: "";
   position: absolute;
-  top: -3px;
-  right: -3px;
+  top: -1px;
+  right: -4px;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -638,11 +640,14 @@ body.is-dragging .col-resize { display: none; }
 }
 /* Empty stages stay quiet: a dashed outline instead of a solid block, so a column
    with nothing combined yet isn't dominated by it. They light up while dragging. */
-.used.is-empty { background: transparent; border: 1.5px dashed rgba(63, 74, 98, 0.32); box-shadow: none; }
-.used.is-empty .used-headrow { background: none; }
-.used.is-empty .used-head { color: var(--aug-ink); opacity: 0.85; }
-.used.is-empty .used-head:hover { background: rgba(63, 74, 98, 0.08); }
-body.is-dragging .used.is-empty { background: var(--aug-bg); border-color: var(--aug-bar); }
+/* At rest an empty Cooked is just its faint name (no box, no helper sentence), so a board
+   of many columns isn't a grid of empty frames. While dragging it becomes a clear drop zone. */
+.used.is-empty { background: transparent; border: 1.5px dashed transparent; box-shadow: none; padding-bottom: 0; }
+.used.is-empty .used-headrow { background: none; margin-bottom: 0; }
+.used.is-empty .used-head { color: var(--aug-ink); opacity: 0.6; }
+.used.is-empty .used-head:hover { background: rgba(63, 74, 98, 0.08); opacity: 0.9; }
+body.is-dragging .used.is-empty { background: var(--aug-bg); border-color: var(--aug-bar); padding-bottom: 5px; }
+body.is-dragging .used.is-empty .used-head { opacity: 1; }
 .used-headrow {
   display: flex;
   align-items: center;
@@ -771,7 +776,7 @@ body.is-dragging .used.is-empty { background: var(--aug-bg); border-color: var(-
 .aug-parts { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); max-height: 220px; overflow-y: auto; }
 .aug-empty { display: none; padding: 8px 8px 7px; text-align: center; font-size: 11.5px; color: var(--aug-ink); opacity: 0.8; }
 .used.is-empty .aug-wrap { display: none; }
-.used.is-empty .aug-empty { display: block; }
+body.is-dragging .used.is-empty .aug-empty { display: block; }
 .used.is-collapsed .aug-wrap, .used.is-collapsed .aug-empty, .used.is-collapsed .aug-move { display: none; }
 .aug-stats, .final-stats { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .used.is-editing .aug-note, .used.is-editing .aug-under { display: none; }
@@ -820,10 +825,13 @@ body.is-dragging .aug-empty { opacity: 1; }
 .final:not(.is-empty) .final-body:hover { box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.55); }
 .final-body .copied-chip { top: 7px; bottom: auto; }
 .final.is-collapsed .final-body, .final.is-editing .final-body { display: none; }
-.final.is-empty, body.theme-deep .final.is-empty { background: transparent; border: 1.5px dashed rgba(11, 58, 42, 0.32); box-shadow: none; }
-.final.is-empty .final-toggle { color: #0b5a3f; opacity: 0.85; }
-.final.is-empty .final-body { background: transparent; border: 0; padding-top: 0; }
+/* Same for an empty Served: its faint name at rest, a drop zone while dragging */
+.final.is-empty, body.theme-deep .final.is-empty { background: transparent; border: 1.5px dashed transparent; box-shadow: none; }
+.final.is-empty .final-toggle { color: #0b5a3f; opacity: 0.6; }
+.final.is-empty .final-body { display: none; }
 body.is-dragging .final.is-empty { background: rgba(16, 168, 116, 0.08); border-color: #10a874; }
+body.is-dragging .final.is-empty .final-toggle { opacity: 1; }
+body.is-dragging .final.is-empty .final-body { display: block; background: transparent; border: 0; padding-top: 0; }
 .final-edit-host { margin: 0 5px 5px; }
 .final-edit-host:empty, .final.is-collapsed .final-edit-host { display: none; }
 .final-text {
@@ -1586,7 +1594,7 @@ body.is-dragging .card-actions { opacity: 0 !important; }
 body.theme-deep {
   --canvas: #0e3a2b;
   --canvas-2: #06231a;
-  --canvas-dot: rgba(255, 255, 255, 0.07);
+  --canvas-dot: rgba(255, 255, 255, 0.035);
   --topbar: #082a1f;
   --col-edge: rgba(0, 0, 0, 0.25);
   --used-bg: #e1e9e4;
@@ -1615,7 +1623,7 @@ body.theme-deep .topbar .icon-btn:hover:not(:disabled) { background: rgba(255, 2
 body.theme-deep .history { border-right-color: rgba(255, 255, 255, 0.14); }
 
 body.theme-deep .column {
-  background: color-mix(in srgb, var(--accent) 7%, #f3f7f4);
+  background: #eef2f0;
   border-color: rgba(0, 0, 0, 0.2);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18), 0 16px 32px -14px rgba(0, 0, 0, 0.55);
 }
@@ -1629,7 +1637,7 @@ body.theme-deep .col-leaf { color: rgba(255, 255, 255, 0.92); --rib: var(--accen
 body.theme-deep .head-btn { color: rgba(255, 255, 255, 0.92); }
 body.theme-deep .head-btn:hover, body.theme-deep .head-btn.is-open { background: rgba(255, 255, 255, 0.18); }
 body.theme-deep .head-btn.has-draft::after { background: #fff; box-shadow: 0 0 0 2px var(--accent-deep); }
-body.theme-deep .card { border-color: rgba(12, 42, 29, 0.08); }
+body.theme-deep .card { border-color: transparent; box-shadow: 0 1px 2px rgba(12, 42, 29, 0.07), 0 1px 1px rgba(12, 42, 29, 0.04); }
 body.theme-deep .card::before { background: var(--accent-deep); }
 body.theme-deep .card-wrap.is-hl .card::before { background: var(--hl); }
 body.theme-deep .col-resize::after { background: rgba(236, 253, 245, 0.6); }
