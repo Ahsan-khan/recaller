@@ -3,16 +3,16 @@
 ## Session start (about 5 minutes)
 
 1. Read `README.md`, then `03_data_model.md`, then `04_features_and_flows.md` in this folder. Skim `09` for open issues and `10` for how the owner phrases things.
-2. **Installed version:** in the scratchpad, `npx @electron/asar extract-file "%LOCALAPPDATA%\Programs\recaller\resources\app.asar" package.json`, then read `version` and delete the extracted file. When the 1.7.0 work ended, the source was 1.7.0 and its installer was built; the owner installs it themselves (1.6.0 was installed when 1.7 started).
+2. **Installed version:** in the scratchpad, `npx @electron/asar extract-file "%LOCALAPPDATA%\Programs\recaller\resources\app.asar" package.json`, then read `version` and delete the extracted file. When the 1.8.0 work ended, the source was 1.8.0 and its installer was built; the owner installs it themselves.
 3. **Git state:** `git -C C:\Users\User\Documents\recaller status -sb`. The project is its own repo with remote `origin` on GitHub. 1.6.0 is committed on branch `v1` (commit `296fd32`, pushed); `main` has the 1.5.0 commit. Work since the last commit may be uncommitted on purpose; don't commit or push unless asked.
-4. **Tests:** `npm install` if needed, then `npm test`. Expect 12 + 21 + 103 passing; a single drag or pan failure is usually the owner's mouse (see `06`).
+4. **Tests:** `npm install` if needed, then `npm test`. Expect 12 + 21 + 107 passing; a single drag or pan failure is usually the owner's mouse (see `06`).
 
 ## The per-request workflow that worked
 
 1. **Understand.** Messages are often dictated and fragmented (see `10`). Separate them into numbered items. For ambiguous structural requests, choose the most coherent interpretation and state it plainly at the top of your reply, inviting correction. Ask a question first only if a wrong guess would be expensive.
 2. **Check constraints:**
    - update safety (`03`);
-   - the stage naming trap (`used` = Combined, `combined` = Final; before 1.6 they were Augmented and Used);
+   - the stage naming trap (`notes` = Cooking, `used` = Cooked, `combined` = Served since 1.8; Combined/Final in 1.6–1.7, Augmented/Used before);
    - design taste (`05`);
    - known issues (`09`).
 3. **Implement** in small, exact edits.
@@ -65,9 +65,9 @@
 - **Board:** the horizontally scrolling area holding the columns.
 - **Column / project:** one project, holding the three stages.
 - **Card / prompt / note:** one item in the top stage.
-- **Stage:** one of the three sections of a column: new prompts, **Combined** (data `used`, one combined note; "Augmented" before 1.6), **Final** (data `combined`, the final text; "Used" before 1.6).
-- **Part:** one of the notes inside Combined or Final, listed under **Notes**; it can be reordered, edited alone or sent back.
-- **Stage editor:** the composer opened by a Combined/Final pencil (whole text) or a part's ✎ (that part only).
+- **Stage:** one of the three sections of a column: **Cooking** (data `notes`, the prompt cards), **Cooked** (data `used`, one combined note; "Combined" in 1.6–1.7, "Augmented" before), **Served** (data `combined`, the final text; "Final" in 1.6–1.7, "Used" before).
+- **Part:** one of the notes inside Cooked or Served, listed under **Notes**; it can be reordered, edited alone or sent back.
+- **Stage editor:** the composer opened by a Cooked/Served pencil (whole text) or a part's ✎ (that part only).
 - **Column width / resize handle:** the draggable right edge of a column; widths live in `prefs.colWidths`, and the top-bar ↔ button resets them.
 - **Combined note / combined text:** notes joined with the separator (`joiner()`: blank line or new line).
 - **Composer:** the inline text editor used for new prompts and edits; it holds voice, screenshot, paste and drop.

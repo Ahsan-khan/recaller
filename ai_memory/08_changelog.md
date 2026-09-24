@@ -83,7 +83,14 @@ Dates are 2026-09-23 and 2026-09-24. Versions 1.0.0 to 1.5.0 were built in one l
 - **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
 - **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
 
-## 1.7.0 (current)
+## 1.8.0 (current)
+
+- **Kitchen stage names:** the three stages are now **Cooking** (new prompts) → **Cooked** (was Combined) → **Served** (was Final), in every label, tooltip, toast, menu item, undo label, the help panel, Settings and the welcome tips. The data names are unchanged (`notes`, `used`, `combined`).
+- **Cooking header:** the prompts get a stage header like the other two: "⌄ 🔥 COOKING · n", light in the column's colour. Clicking it folds the prompt cards away (saved as `project.notesCollapsed`, only while folded). A search, a new prompt, a prompt sent back or a prompt dropped in unfold it. The prompt count moved here from the pill in the column title, which gives long names more room.
+- **New prompt | Dictate:** the bar is split into two equal halves, **(+) New prompt** and **(🎙) Dictate**, instead of a wide button plus a small mic square, because the owner starts about half their prompts by voice. A draft shows as **Draft** with an amber dot. Narrow columns read **New**.
+- **Tests:** features 107 checks (new: equal halves and full labels, the Cooking header and moved count, folding Cooking, a new prompt unfolding it; the stage-name checks now expect Cooked/Served).
+
+## 1.7.0
 
 - **Combined looks grown-up:** the bright violet band, lavender note and violet buttons became a muted slate-navy band (#47526b → #384259), a pale cool-grey block (#e6e9ef) and a near-white note. The owner called the violet "weird" and "girly"; the dark green canvas stays.
 - **Quiet empty stages:** an empty Combined (and an empty Final) is now a dashed outline with its label, not a solid block. It fills in while you drag.

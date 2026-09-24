@@ -49,8 +49,9 @@ The installed program lives separately in `%LOCALAPPDATA%\Programs\recaller\`.
   "id": "uuid",
   "name": "Wildfire RL",
   "color": "monstera",        // palette id, see below. Unknown ids are KEPT and drawn with the first palette colour
-  "usedCollapsed": false,     // Combined section collapsed (data name "used"; see the naming trap below)
-  "augCollapsed": false,      // Final section collapsed
+  "notesCollapsed": true,     // optional (1.8): Cooking folded away. Only present while folded
+  "usedCollapsed": false,     // Cooked section collapsed (data name "used"; see the naming trap below)
+  "augCollapsed": false,      // Served section collapsed
   "usedExpanded": true,       // optional, NOT READ since 1.7 (was: Combined note shows all lines). Kept as-is in the file
   "augExpanded": true,        // optional, NOT READ since 1.7 (was: Final text shows all lines). Kept as-is in the file
   "draft": "",                // unsaved text in the New prompt editor
@@ -58,8 +59,8 @@ The installed program lives separately in `%LOCALAPPDATA%\Programs\recaller\`.
   "createdAt": 1758690000000,
   "notes":    [Note, ...],    // stage 1: NEW PROMPTS (cards). Since 1.7 new ones are appended at the end (bottom);
                               //   before 1.7 they went to index 0, so older columns may be newest-first
-  "used":     [Note, ...],    // stage 2: shown as "COMBINED" — displayed as ONE combined note; appended in order added
-  "combined": [Note, ...],    // stage 3: shown as "FINAL" — the final text; Combined notes are appended at the end
+  "used":     [Note, ...],    // stage 2: shown as "COOKED" — displayed as ONE combined note; appended in order added
+  "combined": [Note, ...],    // stage 3: shown as "SERVED" — the final text; Cooked notes are appended at the end
   ...unknown keys preserved
 }
 ```
@@ -120,16 +121,16 @@ The last ten were added in 1.6. An older version shows them as Emerald (first pa
 
 The on-screen names changed twice; the data field names never did, so existing files load unchanged:
 
-| Data field | 1.0–1.3 UI | 1.4–1.5 UI | 1.6+ UI | DOM / CSS classes |
-| --- | --- | --- | --- | --- |
-| `notes` | prompts | prompts | prompts | `.active-list`, `.card*` |
-| `used` | Used (cards) | **Augmented** | **Combined** | `.used`, `.used-head`, `.used-count`, and `.aug-*` for the note (`.aug-note`, `.aug-text`, `.aug-move`, `.aug-parts`) |
-| `combined` | (none) | **Used** | **Final** | `.final*` (`.final-text`, `.final-body`, `.final-parts`, `.final-edit`) |
+| Data field | 1.0–1.3 UI | 1.4–1.5 UI | 1.6–1.7 UI | 1.8+ UI | DOM / CSS classes |
+| --- | --- | --- | --- | --- | --- |
+| `notes` | prompts | prompts | prompts | **Cooking** | `.cook-head`, `.active-list`, `.card*` |
+| `used` | Used (cards) | Augmented | Combined | **Cooked** | `.used`, `.used-head`, `.used-count`, and `.aug-*` for the note (`.aug-note`, `.aug-text`, `.aug-move`, `.aug-parts`) |
+| `combined` | (none) | Used | Final | **Served** | `.final*` (`.final-text`, `.final-body`, `.final-parts`, `.final-edit`) |
 
-- **Data `combined` is NOT the "Combined" stage.** It is Final. Read every `combined` in code as "Final" and every `used` as "Combined".
-- **Flags:** `usedCollapsed` and `usedExpanded` belong to Combined; `augCollapsed` and `augExpanded` belong to Final. They followed screen *position*, not name.
-- In `app.js`, `STAGE_NAME = { used: 'Combined', combined: 'Final' }` gives the screen name for a data list.
-- The pre-1.6 bug where "Clear used (N)" emptied the wrong stage is fixed: the menu has **Clear Combined** (`used`) and **Clear Final** (`combined`).
+- **Read the code this way:** `notes` = Cooking, `used` = Cooked, `combined` = Served. The internal JS/CSS names still follow older screen names (`aug*`, `final*`, `augmentedText()`, `finalText()`, `copyFinal()`). They're internal and harmless; the data field names must never change.
+- **Flags:** `notesCollapsed` (1.8, only present while folded) belongs to Cooking. `usedCollapsed` and `usedExpanded` belong to Cooked; `augCollapsed` and `augExpanded` belong to Served. They followed screen *position*, not name.
+- In `app.js`, `STAGE_NAME = { notes: 'Cooking', used: 'Cooked', combined: 'Served' }` gives the screen name for a data list.
+- The menu's **Clear Cooked** empties `used`, and **Clear Served** empties `combined` (fixed in 1.6; before that "Clear used" emptied the wrong stage).
 
 ## `recaller-settings.json` schema (owned by main)
 
@@ -188,5 +189,6 @@ Unknown keys are preserved. The whole object (defaults included) is rewritten on
 - **1.3.0 added** backups, `lastVersion`, `prefs.scroll`, `prefs.lastProjectId`, `note.expanded`, `project.augExpanded` and `prefs.titleFont`.
 - **1.4.0 added** `project.combined`, `note.highlight` and the stage swap (labels only; data unchanged).
 - **1.5.0 added** `prefs.joiner` and `project.usedExpanded`. Augmented changed from a list of cards to one combined note (display only; the data is still a list of notes in `used`).
+- **1.8.0** added `project.notesCollapsed` (only while Cooking is folded). The stage labels changed again: prompts → Cooking, Combined → Cooked, Final → Served; data unchanged.
 - **1.7.0** added no fields. New prompts are appended to `notes` instead of prepended. `usedExpanded` / `augExpanded` are no longer read (Combined and Final always start at their fixed size); they're left in the file untouched.
 - **1.6.0 added** `prefs.colWidths` (only when the user resizes a column), ten palette ids and three title-font ids. The default title font (when `prefs.titleFont` is absent) became `instrument`. Stage labels changed (Augmented → Combined, Used → Final); data unchanged. `DATA_VERSION` is still 2.

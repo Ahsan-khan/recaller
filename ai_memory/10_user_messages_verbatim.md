@@ -189,3 +189,11 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 - "UI friendlier, more modern, easier": the help panel, sectioned Settings, quiet empty stages, the Show more bar, clearer empty text.
 - "final ... limited in size ... expandable ... initially fixed": the owner's real data had a Final of 24 notes (~100 lines) saved as "Show all", so it opened at full length every time. Final (and Combined) now start at 6 lines; Show more opens a capped, scrolling view; the state isn't saved.
 - "what needs to happen so an everyday user can use it": answered in chat, and kept as a roadmap in `09`.]
+
+## Message 14
+
+> Half the time I'm going to be triggering with a mic. A new prompt with the mic. So, the mic button should take half the space. of the new prompt button.
+>
+> Change column section name. Final to served. Combined to cooked. And then. Add a new prompt section name. Like the other ones, that's called cooking.
+
+[Built as v1.8.0. "The mic button should take half the space of the new prompt button" was read as: split the bar in two equal halves, New prompt | Dictate. The other possible reading, a mic half as wide as New prompt, was not taken. "Add a new prompt section name like the other ones" became a Cooking header with the same label, count and fold arrow as Cooked and Served. The count moved there from the column title.]

@@ -2,7 +2,7 @@
 
 ## The product in one paragraph
 
-Recaller keeps prompts and notes that the owner reuses when working with AI tools such as Claude, ChatGPT and Claude Code. Speed of reuse matters most: one click copies a prompt, Ctrl+click copies several at once, and a global shortcut shows or hides the app from anywhere. Prompts are organised per project, with each project as a column on a single board. Inside each column a prompt moves through three stages: new → **Combined** (joined into one note; called Augmented before 1.6) → **Final** (the final text that everything is added to; called Used before 1.6). The owner can dictate prompts by voice (OpenAI speech-to-text), attach screenshots, highlight prompts to revisit, and undo anything.
+Recaller keeps prompts and notes that the owner reuses when working with AI tools such as Claude, ChatGPT and Claude Code. Speed of reuse matters most: one click copies a prompt, Ctrl+click copies several at once, and a global shortcut shows or hides the app from anywhere. Prompts are organised per project, with each project as a column on a single board. Inside each column a prompt moves through three stages, named like a kitchen since 1.8: **Cooking** (new prompts) → **Cooked** (joined into one note; Combined in 1.6–1.7, Augmented before) → **Served** (the final text that everything is added to; Final in 1.6–1.7, Used before). The owner can dictate prompts by voice (OpenAI speech-to-text), attach screenshots, highlight prompts to revisit, and undo anything.
 
 ## The owner
 
@@ -25,7 +25,8 @@ Recaller keeps prompts and notes that the owner reuses when working with AI tool
   - They rejected tight negative letter-spacing, small grey labels, and a text-shadow on white titles; all looked "not clear".
   - Headings stay at 15px or larger and bold.
 - **Layout:** nothing may overlap. They reported a "Copy all" button overlapping text, and a long column name hidden behind header buttons.
-- **The New prompt button** must be clearly visible and easy to reach, and not sit next to the column name. It is now a full-width bar under the header.
+- **The New prompt button** must be clearly visible and easy to reach, and not sit next to the column name. Since 1.8 the bar under the Cooking header is split in equal halves, **New prompt | Dictate**, because the owner starts about half their prompts by voice.
+- **Stage names are the owner's own:** Cooking → Cooked → Served (round 11). They have renamed the stages three times, so treat names as theirs to choose and keep the data names fixed.
 - **Less chrome:** in round 9 they removed the Final counter, the Copy all button and the top-bar "+ Project" button. Clicking already copies, and the board's "+ New project" tile creates projects.
 - **Order:** new prompts go at the **bottom** of a column (round 10), so a column reads top to bottom and flows into Combined.
 - **Size:** stage texts must start at a fixed, modest size and expand on demand (round 10); nothing should grow without limit by default.
@@ -125,6 +126,9 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 12. **Round 10 → v1.7.0.**
     - The request: the Combined colour is "weird", "girly" and too bright, so make it modern and adult (they like the background); new prompts at the bottom; a friendlier, more modern, easier UI overall; Final limited in size, expandable, initially fixed; and "what would it take for everyday users?"
     - What was built: slate Combined, quiet empty stages, bottom insertion plus a sort action, fixed-size Combined/Final with a Show more bar (and a fix for the bug that let them grow), a help panel, sectioned Settings. The everyday-user roadmap is in `09`. See `08` (1.7.0) and `10` (message 13).
+13. **Round 11 → v1.8.0.**
+    - The request: the mic should take half of the New prompt bar (they dictate about half their prompts); rename Final → Served and Combined → Cooked; add a section name for new prompts, "Cooking", like the other ones.
+    - What was built: New prompt | Dictate in equal halves; the kitchen names everywhere; a Cooking header (label, count, fold arrow) above the prompts, with the count moved out of the column title. See `08` (1.8.0) and `10` (message 14).
 
 ## Things the owner has not decided or confirmed
 

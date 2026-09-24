@@ -70,7 +70,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **Check syntax first:** run `node --check` on a suite before launching it. A syntax error makes Electron show an "App threw an error" dialog on the owner's screen until it times out.
 - **Real captures are deleted:** the features suite's real screen-snip test captures the owner's actual screen once. The suite deletes the images afterwards. Never view or keep those files.
 
-### `features.e2e.js` (103 checks, about 4 minutes)
+### `features.e2e.js` (107 checks, about 4 minutes)
 
 **Setup:**
 - **Seed data:** seven projects in the old v1 format, which also exercises loading old data.
@@ -99,41 +99,42 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
   - undo via Ctrl+Z, the toolbar button and the toast;
   - redo with Ctrl+Y.
 - **Drag:**
-  - drag into Combined (joins into the note);
+  - drag into Cooked (joins into the note);
   - the move toast and its Undo;
-  - dropping on a collapsed Combined header;
+  - dropping on a collapsed Cooked header;
   - vertical reorder.
 - **Stages** (built in a spare column):
-  - the labels read Combined and Final; the old card move-back button is gone;
+  - the labels read Cooked and Served; the old card move-back button is gone;
   - three typed prompts;
-  - two moved to Combined join as "Gamma three\n\nBeta two";
+  - two moved to Cooked join as "Gamma three\n\nBeta two";
   - clicking copies the combined note;
-  - a left swipe moves it into Final;
-  - a second batch via the **Move to Final** button is appended with the separator;
-  - a third batch dragged onto Final;
-  - Final has no counter and no Copy all; clicking the Final text copies it with a "Copied" chip;
-  - the Final footer (stats, Notes, pencil) doesn't overlap;
-  - a prompt is sent back out of Combined;
+  - a left swipe moves it into Served;
+  - a second batch via the **Move to Served** button is appended with the separator;
+  - a third batch dragged onto Served;
+  - Served has no counter and no Copy all; clicking the Served text copies it with a "Copied" chip;
+  - the Served footer (stats, Notes, pencil) doesn't overlap;
+  - a prompt is sent back out of Cooked;
   - the three stages differ in block colour, header and inner note colour;
   - the "New line" separator setting works.
 - **Parts and editing** (same column):
-  - the Final Notes list shows ↑ ↓ ✎ ↩ per part; ↓ then ↑ reorders and restores;
-  - ✎ edits one Final part alone (the others stay separate);
-  - the Final pencil edits the whole text into one note; two Ctrl+Z undo both edits;
-  - a Combined part can be edited alone; the Combined pencil opens the whole note and Esc cancels;
-  - a prompt that lands in Combined while its editor is open survives the save.
-- **Clearing:** the menu lists "Clear Combined (1)" and "Clear Final (5)"; each empties only its own stage; Ctrl+Z restores.
-- **Search in combined texts:** terms are marked inside the Combined and Final texts.
+  - the Served Notes list shows ↑ ↓ ✎ ↩ per part; ↓ then ↑ reorders and restores;
+  - ✎ edits one Served part alone (the others stay separate);
+  - the Served pencil edits the whole text into one note; two Ctrl+Z undo both edits;
+  - a Cooked part can be edited alone; the Cooked pencil opens the whole note and Esc cancels;
+  - a prompt that lands in Cooked while its editor is open survives the save.
+- **Clearing:** the menu lists "Clear Cooked (1)" and "Clear Served (5)"; each empties only its own stage; Ctrl+Z restores.
+- **Search in combined texts:** terms are marked inside the Cooked and Served texts.
 - **Colours:** the menu has 18 swatches; picking Navy applies it (then undone).
 - **1.7 checks:**
   - new prompts land at the bottom;
-  - the Final text is held to 6 lines, and Show more opens it without writing `augExpanded`;
-  - an empty Combined is a transparent, dashed outline;
-  - the Combined band is a muted slate (low-saturation check);
+  - the Served text is held to 6 lines, and Show more opens it without writing `augExpanded`;
+  - an empty Cooked is a transparent, dashed outline;
+  - the Cooked band is a muted slate (low-saturation check);
   - the ? button and F1 open the help, and Esc closes it;
   - ⋯ → Sort prompts oldest first sorts by `createdAt`, and Ctrl+Z restores the order.
+- **1.8 checks:** New prompt and Dictate are equal halves with full labels; prompts sit under "Cooking · n" and the column title has no count; clicking Cooking folds and unfolds it (saved as `notesCollapsed`, removed when unfolded); a new prompt unfolds a folded Cooking.
 - **Highlight:** the menu offers four colours and shows the "Check again" tag; Ctrl+Z removes it; H toggles it.
-- **Ctrl+click:** two notes in click order with a blank line between; badges 1 and 2 and the bar; Ctrl+click again removes; Esc clears; "Move to Combined" joins them in, and Ctrl+Z undoes it.
+- **Ctrl+click:** two notes in click order with a blank line between; badges 1 and 2 and the bar; Ctrl+click again removes; Esc clears; "Move to Cooked" joins them in, and Ctrl+Z undoes it.
 - **Live dictation:**
   - the mic starts from the column;
   - text appears while still recording;
@@ -207,7 +208,7 @@ It tests Ctrl+click as a real person would:
 
 ### `capture-board.js`
 
-It renders a fixed sample (stages with their Notes lists open, highlights, a long two-line column name, an empty Final, one resized column) and writes `tests/e2e/.out/<OUT>.png` (the whole window including the top bar), `<OUT>-zoom.png` (2× the left area), `<OUT>-menu.png` (the ⋯ menu with its swatches) and `<OUT>-settings.png`. Use it to check visual changes; set `OUT` to name the files.
+It renders a fixed sample (stages with their Notes lists open, highlights, a long two-line column name, an empty Served, one resized column) and writes `tests/e2e/.out/<OUT>.png` (the whole window including the top bar), `<OUT>-zoom.png` (2× the left area), `<OUT>-menu.png` (the ⋯ menu with its swatches) and `<OUT>-settings.png`. Use it to check visual changes; set `OUT` to name the files.
 
 ### Running the suites against the packaged build (do this before every release)
 

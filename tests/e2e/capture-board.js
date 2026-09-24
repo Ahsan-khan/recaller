@@ -1,5 +1,5 @@
 'use strict';
-// Renders a fixed sample board for visual review: the stages (prompts, Combined, Final),
+// Renders a fixed sample board for visual review: the stages (prompts, Cooked, Served),
 // highlights, a long two-line name, a resized column, the top bar, Settings and the colour menu.
 const path = require('node:path');
 const fs = require('node:fs');
@@ -46,7 +46,7 @@ app.whenReady().then(async () => {
   await sleep(2200);
   const wc = BrowserWindow.getAllWindows()[0].webContents;
   const js = (code) => wc.executeJavaScript(code);
-  // open the Notes list under the Combined note and the Final text of the first column
+  // open the Notes list under the Cooked note and the Served text of the first column
   await js("document.querySelector('.column[data-id=\"a\"] .aug-parts-btn').click(); document.querySelector('.column[data-id=\"a\"] .final-parts-btn').click()");
   await sleep(300);
   const img = await wc.capturePage({ x: 0, y: 0, width: 1360, height: 780 });

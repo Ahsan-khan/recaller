@@ -90,8 +90,8 @@
   --card-edge: #dfe9e3;
   --used-bg: #e9efeb;
   --used-edge: #cbd8d0;
-  /* stage colours: new prompts are white cards; Combined (data "used") is a muted
-     slate block with a slate-navy header band; Final (data "combined") is a deep-green
+  /* stage colours: new prompts are white cards; Cooked (data "used") is a muted
+     slate block with a slate-navy header band; Served (data "combined") is a deep-green
      block. Kept low in saturation on purpose: the owner found bright violet "too much". */
   --aug-bg: #e6e9ef;
   --aug-edge: #c9cfda;
@@ -103,7 +103,7 @@
   --aug-band: linear-gradient(180deg, #47526b 0%, #384259 100%);
   --final-card: #f3f8f5;
   --final-card-edge: #cfe3d6;
-  --stage-lines: 6; /* Combined note and Final text start at this many lines; "Show more" opens them up */
+  --stage-lines: 6; /* Cooked note and Served text start at this many lines; "Show more" opens them up */
 
   --ink: #0c2a1d;
   --ink-2: #3c5a4b;
@@ -477,20 +477,6 @@ body.is-dragging .col-resize { display: none; }
   color: var(--ink);
   cursor: text;
 }
-.col-count {
-  flex: none;
-  min-width: 20px;
-  height: 18px;
-  padding: 0 6px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  background: rgba(255, 255, 255, 0.75);
-  color: var(--accent-ink);
-}
 .col-menu { flex: none; }
 .head-btn {
   position: relative;
@@ -517,27 +503,58 @@ body.is-dragging .col-resize { display: none; }
   box-shadow: 0 0 0 2px var(--accent-tint);
 }
 
-.col-new { flex: none; display: flex; gap: 6px; padding: 8px 8px 2px; }
+/* Cooking: the first stage's header, laid out like Cooked and Served but light and
+   in the column's own colour. The prompt count lives here, not in the column title. */
+.cook-headrow { flex: none; padding: 8px 8px 0; }
+.cook-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px 0 5px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent) 11%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  color: var(--accent-ink);
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  transition: background 0.15s;
+}
+.cook-head:hover { background: color-mix(in srgb, var(--accent) 17%, #ffffff); }
+.cook-head .icon { width: 14px; height: 14px; }
+.cook-head .chev { display: inline-flex; transition: transform 0.2s var(--ease); }
+.column.cooking-collapsed .cook-head .chev { transform: rotate(-90deg); }
+.cook-count { font-variant-numeric: tabular-nums; }
+.column.cooking-collapsed .active-list, .column.cooking-collapsed .active-empty { display: none; }
+
+/* New prompt | Dictate: two equal halves (the owner starts about half their prompts by voice) */
+.col-new { flex: none; display: flex; gap: 6px; padding: 6px 8px 2px; container-type: inline-size; }
 .new-prompt {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   height: 36px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 8px 0 7px;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 6px;
   border-radius: 10px;
   background: #fff;
   border: 1.5px solid color-mix(in srgb, var(--accent) 45%, transparent);
   box-shadow: var(--shadow-sm);
   color: var(--accent-ink);
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 650;
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
 }
 .new-prompt:hover { background: var(--accent-tint); border-color: var(--accent); box-shadow: var(--shadow-md); }
-.new-prompt:active, .new-voice:active { transform: scale(0.98); }
-.np-plus {
+.new-prompt:active { transform: scale(0.98); }
+.np-icon {
+  position: relative;
   width: 22px;
   height: 22px;
   flex: none;
@@ -547,33 +564,29 @@ body.is-dragging .col-resize { display: none; }
   background: var(--accent-deep);
   color: #fff;
 }
-.np-plus .icon { width: 15px; height: 15px; stroke-width: 2.4; }
-.np-label { white-space: nowrap; }
-.np-draft {
-  display: none;
-  margin-left: auto;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--accent-deep);
-  color: #fff;
-  font-size: 10.5px;
-  font-weight: 700;
+.np-icon .icon { width: 15px; height: 15px; stroke-width: 2.4; }
+.new-voice .np-icon .icon { width: 14px; height: 14px; stroke-width: 2.1; }
+.np-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lbl-short, .lbl-draft { display: none; }
+/* an unsaved draft: the button says "Draft" and its + gets a dot */
+.new-prompt.has-draft .lbl-long, .new-prompt.has-draft .lbl-short { display: none !important; }
+.new-prompt.has-draft .lbl-draft { display: inline; }
+.new-prompt.has-draft .np-icon::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px #fff;
 }
-.new-prompt.has-draft .np-draft { display: inline; }
-.new-voice {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: #fff;
-  border: 1.5px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  box-shadow: var(--shadow-sm);
-  color: var(--accent-ink);
-  transition: background 0.15s, border-color 0.15s;
+/* narrow columns: "New" instead of "New prompt" */
+@container (max-width: 244px) {
+  .col-add .lbl-long { display: none; }
+  .col-add .lbl-short { display: inline; }
 }
-.new-voice:hover { background: var(--accent-tint); border-color: var(--accent); }
 .col-compose { flex: none; padding: 8px 8px 0; }
 .col-compose:empty { display: none; }
 
@@ -613,7 +626,7 @@ body.is-dragging .col-resize { display: none; }
 .empty-new .icon { width: 15px; height: 15px; }
 .empty-new:hover { background: #fff; border-style: solid; }
 
-/* ------------------------------------------------------------------ Combined (data name "used") */
+/* ------------------------------------------------------------------ Cooked (data name "used") */
 
 .used {
   margin-top: 10px;
@@ -764,7 +777,7 @@ body.is-dragging .used.is-empty { background: var(--aug-bg); border-color: var(-
 .used.is-editing .aug-note, .used.is-editing .aug-under { display: none; }
 body.is-dragging .aug-empty { opacity: 1; }
 
-/* ------------------------------------------------------------------ Final (data name "combined") */
+/* ------------------------------------------------------------------ Served (data name "combined") */
 
 .final {
   margin-top: 10px;
@@ -824,7 +837,7 @@ body.is-dragging .final.is-empty { background: rgba(16, 168, 116, 0.08); border-
   -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent);
 }
 .final-text.fits { -webkit-mask-image: none; }
-/* opened up: taller, but still capped, and it scrolls inside, so a long Final never swamps the column */
+/* opened up: taller, but still capped, and it scrolls inside, so a long Served never swamps the column */
 .final.is-expanded .final-text { max-height: min(56vh, 480px); overflow-y: auto; -webkit-mask-image: none; }
 .final.is-empty .final-text, .final.is-empty .final-foot { display: none; }
 .final-empty { display: none; padding: 4px 2px; font-size: 12px; line-height: 1.4; color: var(--ink-3); text-align: center; }
@@ -834,7 +847,7 @@ body.is-dragging .final.is-empty { background: rgba(16, 168, 116, 0.08); border-
 .final-more, .final-parts-btn { flex: none; font-size: 11px; font-weight: 600; color: #047857; padding: 1px 6px; border-radius: 5px; }
 .final-more:hover, .final-parts-btn:hover, .final-parts-btn[aria-pressed="true"] { background: rgba(4, 120, 87, 0.12); }
 .final-parts { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); max-height: 220px; overflow-y: auto; }
-/* one row per part in the Notes lists of Combined and Final; its buttons show on hover */
+/* one row per part in the Notes lists of Cooked and Served; its buttons show on hover */
 .final-part { display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 2px 3px 0; border-radius: 6px; font-size: 12px; }
 .final-part:hover { background: rgba(12, 42, 29, 0.05); }
 .fp-num { flex: none; width: 16px; text-align: right; font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
@@ -848,7 +861,7 @@ body.is-dragging .final.is-empty { background: rgba(16, 168, 116, 0.08); border-
 .aug-parts .fp-acts button:hover:not(:disabled) { background: var(--aug-bg); color: var(--aug-ink); }
 .final-parts .fp-acts button:hover:not(:disabled) { background: rgba(4, 120, 87, 0.12); color: #047857; }
 .aug-text mark, .final-text mark { background: var(--highlight); color: inherit; border-radius: 3px; padding: 0 1px; }
-/* "Show more / Show less": a slim full-width bar right under the Combined note and the Final text */
+/* "Show more / Show less": a slim full-width bar right under the Cooked note and the Served text */
 .stage-more {
   width: 100%;
   display: flex;
@@ -1613,7 +1626,6 @@ body.theme-deep .col-head {
 }
 body.theme-deep .col-name { color: #fff; }
 body.theme-deep .col-leaf { color: rgba(255, 255, 255, 0.92); --rib: var(--accent-deep); }
-body.theme-deep .col-count { background: rgba(255, 255, 255, 0.22); color: #fff; }
 body.theme-deep .head-btn { color: rgba(255, 255, 255, 0.92); }
 body.theme-deep .head-btn:hover, body.theme-deep .head-btn.is-open { background: rgba(255, 255, 255, 0.18); }
 body.theme-deep .head-btn.has-draft::after { background: #fff; box-shadow: 0 0 0 2px var(--accent-deep); }
@@ -1650,7 +1662,6 @@ body.theme-deep .sel-hint { color: var(--ink-3); }
 
 .card-meta, .final-stats, .rec-time { font-family: var(--font-mono); }
 .card-meta, .final-stats { font-size: 11px; letter-spacing: -0.01em; }
-.col-count { font-size: 11.5px; font-weight: 700; }
 .card-text, .final-text { letter-spacing: -0.006em; }
 .btn, .menu-item, .toast, .selection-bar, .search input { letter-spacing: -0.01em; }
 

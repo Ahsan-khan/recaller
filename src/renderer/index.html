@@ -93,7 +93,7 @@
   <div class="selection-bar" id="selection-bar" hidden>
     <span class="sel-count" id="sel-count"></span>
     <span class="sel-hint">Ctrl+click to add or remove</span>
-    <button class="sel-btn" id="sel-used">Move to Combined</button>
+    <button class="sel-btn" id="sel-used">Move to Cooked</button>
     <button class="sel-btn" id="sel-clear">Clear</button>
   </div>
 
@@ -116,18 +116,19 @@
         </button>
       </header>
 
-      <p class="help-lead">Each project is a column. Inside it, prompts move down through three stages.</p>
+      <p class="help-lead">Each project is a column. Inside it, prompts move down through three stages: cooking, cooked, served.</p>
       <ol class="help-stages">
-        <li><span class="hs-dot hs-prompts"></span><div><b>Prompts</b><span>Write, dictate or paste a prompt. Click any card to copy it.</span></div></li>
-        <li><span class="hs-dot hs-combined"></span><div><b>Combined</b><span>Drag prompts down (or hover and click the stack icon) and they join into one note.</span></div></li>
-        <li><span class="hs-dot hs-final"></span><div><b>Final</b><span>Move the Combined note down (button, swipe left or drag) and it's added to the end of the final text.</span></div></li>
+        <li><span class="hs-dot hs-prompts"></span><div><b>Cooking</b><span>New prompts: type one (New prompt) or speak one (Dictate). Click any card to copy it.</span></div></li>
+        <li><span class="hs-dot hs-combined"></span><div><b>Cooked</b><span>Drag prompts down (or hover and click the stack icon) and they join into one note.</span></div></li>
+        <li><span class="hs-dot hs-final"></span><div><b>Served</b><span>Move the Cooked note down (button, swipe left or drag) and it's added to the end of the final text.</span></div></li>
       </ol>
 
       <h3 class="modal-section">Handy moves</h3>
       <ul class="help-list">
         <li><b>Copy several at once:</b> hold <kbd>Ctrl</kbd> and click cards. They're copied in click order.</li>
         <li><b>Delete:</b> hold a card and swipe it left. <kbd>Ctrl Z</kbd> undoes anything.</li>
-        <li><b>Edit Combined or Final:</b> the pencil edits the whole text; <b>Notes</b> lets you reorder, edit or send back one part.</li>
+        <li><b>Edit Cooked or Served:</b> the pencil edits the whole text; <b>Notes</b> lets you reorder, edit or send back one part.</li>
+        <li><b>Fold a stage away:</b> click its name (Cooking, Cooked or Served).</li>
         <li><b>Highlight a prompt</b> to check it again later: hover, then click the marker.</li>
         <li><b>Resize a column:</b> drag its right edge. The <b>↔</b> button in the top bar resets every width.</li>
         <li><b>Screenshots:</b> the camera in the editor, or paste an image.</li>
@@ -183,7 +184,7 @@
       </section>
 
       <section class="field">
-        <label>Join notes with <span class="muted">(Combined, Final and Ctrl+click copies)</span></label>
+        <label>Join notes with <span class="muted">(Cooked, Served and Ctrl+click copies)</span></label>
         <div class="segmented" id="set-joiner" role="radiogroup">
           <button type="button" data-value="blank" role="radio">Blank line</button>
           <button type="button" data-value="line" role="radio">New line</button>

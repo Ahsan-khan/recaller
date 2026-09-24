@@ -209,6 +209,38 @@ async function run() {
   check('New prompt bar opens the editor in its place', await js(`!!document.querySelector('.column[data-id="p1"] .col-compose .composer') && document.querySelector('.column[data-id="p1"] .col-new').hidden`));
   key('Escape');
   await sleep(250);
+
+  // ---------------------------------------------------------------- Cooking: a stage header like the others; New prompt | Dictate in halves
+  const bar = await js(`(() => {
+    const c = document.querySelector('.column[data-id="p1"]');
+    const a = c.querySelector('.col-add').getBoundingClientRect();
+    const m = c.querySelector('.col-mic').getBoundingClientRect();
+    const lbl = c.querySelector('.col-add .np-label');
+    return { add: Math.round(a.width), mic: Math.round(m.width), micLabel: c.querySelector('.col-mic').textContent.trim(), fits: lbl.scrollWidth <= lbl.clientWidth + 1 };
+  })()`);
+  check('New prompt and Dictate share the bar in equal halves, both fully labelled', Math.abs(bar.add - bar.mic) <= 1 && bar.mic > 100 && bar.micLabel === 'Dictate' && bar.fits, JSON.stringify(bar));
+  const cook = await js(`[document.querySelector('.column[data-id="p1"] .cook-head').textContent.trim(), !!document.querySelector('.column[data-id="p1"] .col-head .col-count')]`);
+  check('prompts sit under a "Cooking · n" header; the count left the column title', /^Cooking\s*· 4$/.test(cook[0]) && !cook[1], JSON.stringify(cook));
+  const savedProject = (id) => JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8')).projects.find((p) => p.id === id);
+  await clickSel('.column[data-id="p2"] .cook-head');
+  await sleep(600);
+  const folded = await js(`[document.querySelector('.column[data-id="p2"]').classList.contains('cooking-collapsed'), getComputedStyle(document.querySelector('.column[data-id="p2"] .active-list')).display]`);
+  const foldedSaved = savedProject('p2').notesCollapsed === true;
+  await clickSel('.column[data-id="p2"] .cook-head');
+  await sleep(600);
+  check('clicking "Cooking" folds the prompts away and back (remembered)', folded[0] && folded[1] === 'none' && foldedSaved && !('notesCollapsed' in savedProject('p2')) && await js(`getComputedStyle(document.querySelector('.column[data-id="p2"] .active-list')).display !== 'none'`), JSON.stringify(folded));
+  await clickSel('.column[data-id="p3"] .cook-head');
+  await sleep(300);
+  await clickSel('.column[data-id="p3"] .new-prompt');
+  await sleep(200);
+  await type('Quick one');
+  key('Enter', ['control']);
+  await sleep(400);
+  key('Escape');
+  await sleep(250);
+  check('a new prompt opens a folded Cooking so you can see it', !(await js(`document.querySelector('.column[data-id="p3"]').classList.contains('cooking-collapsed')`)) && (await colTexts('p3')).pop() === 'Quick one');
+  key('Z', ['control']); // remove "Quick one" again
+  await sleep(300);
   // long project name: wraps to two lines and never runs under the options button
   await js(`document.querySelector('.column[data-id="p3"] .col-name').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`);
   await sleep(150);
@@ -228,10 +260,10 @@ async function run() {
   check('column titles use the new default font, Instrument Sans', /Instrument Sans/.test(titleFamily) && await js(`document.fonts.check('650 16px "Instrument Sans"')`), titleFamily);
   check('the top bar has no + Project button', !(await js(`!!document.querySelector('#new-project')`)) && await js(`!!document.querySelector('.column') && !!document.querySelector('.add-column')`));
   const emptyAug = await js(`(() => { const s = getComputedStyle(document.querySelector('.column[data-id="p2"] .used')); return [s.backgroundColor, s.borderTopStyle]; })()`);
-  check('an empty Combined section is a quiet dashed outline, not a solid block', emptyAug[0] === 'rgba(0, 0, 0, 0)' && emptyAug[1] === 'dashed', emptyAug.join(' '));
+  check('an empty Cooked section is a quiet dashed outline, not a solid block', emptyAug[0] === 'rgba(0, 0, 0, 0)' && emptyAug[1] === 'dashed', emptyAug.join(' '));
   const band = await js(`getComputedStyle(document.querySelector('.column[data-id="p1"] .used-headrow')).backgroundImage`);
   const bandRgb = (band.match(/rgba?\(([^)]*)\)/) || [])[1]?.split(',').map(Number) || [];
-  check('Combined uses a muted slate band, not bright violet', bandRgb.length >= 3 && Math.max(...bandRgb.slice(0, 3)) - Math.min(...bandRgb.slice(0, 3)) < 50 && Math.max(...bandRgb.slice(0, 3)) < 120, band.slice(0, 60));
+  check('Cooked uses a muted slate band, not bright violet', bandRgb.length >= 3 && Math.max(...bandRgb.slice(0, 3)) - Math.min(...bandRgb.slice(0, 3)) < 50 && Math.max(...bandRgb.slice(0, 3)) < 120, band.slice(0, 60));
   await clickSel('#open-help');
   await sleep(300);
   const helpText = await js(`document.querySelector('#help').open && document.querySelector('#help h2').textContent`);
@@ -281,8 +313,8 @@ async function run() {
   await shot('03-dragging');
   mouse('mouseUp', usedHead.cx, usedHead.cy + 40);
   await sleep(450);
-  check('drag into Combined joins the note into it', (await augOf('p1')).includes('Benchmark heuristic_ai'));
-  check('move shows an Undo toast', (await texts('.toast')).some((t) => t.includes('Added to Combined') && t.includes('Undo')));
+  check('drag into Cooked joins the note into it', (await augOf('p1')).includes('Benchmark heuristic_ai'));
+  check('move shows an Undo toast', (await texts('.toast')).some((t) => t.includes('Added to Cooked') && t.includes('Undo')));
   await shot('04-moved-toast');
   const undoToast = await rect('.toast-action');
   await click(undoToast.cx, undoToast.cy);
@@ -295,12 +327,12 @@ async function run() {
   const hg = headRgb.startsWith('#') ? parseInt(headRgb.slice(3, 5), 16) / 255 : Number((headRgb.match(/srgb\s+[\d.]+\s+([\d.]+)/) || [])[1]);
   check('column headers are solid deep colour', hg > 0 && hg < 0.6, headRgb);
 
-  // ---------------------------------------------------------------- stages: prompts → Combined (one note) → Final (one text)
-  // (data names: Combined is `used`, Final is `combined`)
+  // ---------------------------------------------------------------- stages: prompts → Cooked (one note) → Served (one text)
+  // (data names: Cooked is `used`, Served is `combined`)
   const labels = await js(`[document.querySelector('.column[data-id="p1"] .used-head').textContent.trim(), document.querySelector('.column[data-id="p1"] .final-toggle').textContent.trim()]`);
-  check('the stages are called Combined and Final', labels[0].startsWith('Combined') && labels[1] === 'Final', JSON.stringify(labels));
-  check('Final section shows once Combined has notes', await js(`!document.querySelector('.column[data-id="p1"] .final').hidden`));
-  check('Final section hidden while Combined and Final are empty', await js(`document.querySelector('.column[data-id="p2"] .final').hidden`));
+  check('the stages are called Cooked and Served', labels[0].startsWith('Cooked') && labels[1] === 'Served', JSON.stringify(labels));
+  check('Served section shows once Cooked has notes', await js(`!document.querySelector('.column[data-id="p1"] .final').hidden`));
+  check('Served section hidden while Cooked and Served are empty', await js(`document.querySelector('.column[data-id="p2"] .final').hidden`));
   check('cards no longer carry the unused move-back button', !(await js(`!!document.querySelector('.card-wrap .act-back')`)));
   // work in the "Writing" column (px1): add three prompts, bring it into view
   await js(`document.querySelector('#board').scrollLeft = document.querySelector('.column[data-id="px1"]').offsetLeft - 20`);
@@ -315,18 +347,18 @@ async function run() {
     await sleep(150);
   }
   check('new prompts are added at the bottom of the list', JSON.stringify(await colTexts('px1')) === JSON.stringify(['Placeholder note for Writing', 'Alpha one', 'Beta two', 'Gamma three']), JSON.stringify(await colTexts('px1')));
-  // moves the newest (bottom) prompt into Combined
+  // moves the newest (bottom) prompt into Cooked
   const toAug = () => js(`[...document.querySelectorAll('.column[data-id="px1"] .active-list .act-used')].pop().click()`);
   await toAug(); await sleep(300); // Gamma three
   await toAug(); await sleep(300); // Beta two
   const aug1 = await augOf('px1');
-  check('Combined joins the moved prompts into ONE note, in the order added', (await js(`document.querySelectorAll('.column[data-id="px1"] .aug-note').length`)) === 1 && aug1 === 'Gamma three\n\nBeta two' && !(await colTexts('px1')).includes('Gamma three'), JSON.stringify(aug1));
+  check('Cooked joins the moved prompts into ONE note, in the order added', (await js(`document.querySelectorAll('.column[data-id="px1"] .aug-note').length`)) === 1 && aug1 === 'Gamma three\n\nBeta two' && !(await colTexts('px1')).includes('Gamma three'), JSON.stringify(aug1));
   await clipboard.writeText('');
   await clickSel('.column[data-id="px1"] .aug-note .aug-text');
   await sleep(250);
-  check('clicking the Combined note copies it', (await clipboard.readText()) === aug1);
+  check('clicking the Cooked note copies it', (await clipboard.readText()) === aug1);
   const finalOf = (id) => js(`document.querySelector('.column[data-id="${id}"] .final-text').textContent`);
-  // swipe the Combined note left → appended to Final, Combined empties
+  // swipe the Cooked note left → appended to Served, Cooked empties
   const an = await rect('.column[data-id="px1"] .aug-note');
   mouse('mouseMove', an.cx, an.cy, { modifiers: [] }); mouse('mouseDown', an.cx, an.cy);
   await drag(an.cx, an.cy, an.cx - 90, an.cy + 2, 8);
@@ -335,16 +367,16 @@ async function run() {
   mouse('mouseUp', an.cx - 190, an.cy + 3);
   await sleep(700);
   const final1 = await finalOf('px1');
-  check('swiping the Combined note left moves it down into Final', revealsMove && final1 === aug1 && (await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-empty')`)), JSON.stringify(final1));
-  // next batch via the Move to Final button: it combines with the Final text
+  check('swiping the Cooked note left moves it down into Served', revealsMove && final1 === aug1 && (await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-empty')`)), JSON.stringify(final1));
+  // next batch via the Move to Served button: it combines with the Served text
   await toAug(); await sleep(300); // Alpha one
   await toAug(); await sleep(300); // Placeholder note for Writing
   const aug2 = await augOf('px1');
   await clickSel('.column[data-id="px1"] .aug-move');
   await sleep(700);
   const final2 = await finalOf('px1');
-  check('Move to Final adds the whole Combined note to the end of the Final text', final2 === `${final1}\n\n${aug2}`, JSON.stringify(final2));
-  // a third batch dragged onto Final
+  check('Move to Served adds the whole Cooked note to the end of the Served text', final2 === `${final1}\n\n${aug2}`, JSON.stringify(final2));
+  // a third batch dragged onto Served
   await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Delta four'); key('Enter', ['control']); await sleep(200); key('Escape'); await sleep(150);
   await toAug(); await sleep(300);
   const an2 = await rect('.column[data-id="px1"] .aug-note');
@@ -355,31 +387,31 @@ async function run() {
   mouse('mouseUp', fh.cx, fh.cy + 20);
   await sleep(700);
   const finalNow = await finalOf('px1');
-  check('dragging the Combined note onto Final also moves it down', finalNow === `${final2}\n\nDelta four`, JSON.stringify(finalNow.slice(-40)));
-  check('Final has no counter and no Copy all button', await js(`(() => { const s = document.querySelector('.column[data-id="px1"] .final'); return !s.querySelector('.final-count, .final-copy') && s.querySelector('.final-toggle').textContent.trim() === 'Final'; })()`));
-  // Final starts at a fixed size; "Show more" opens it up for now only (not saved)
+  check('dragging the Cooked note onto Served also moves it down', finalNow === `${final2}\n\nDelta four`, JSON.stringify(finalNow.slice(-40)));
+  check('Served has no counter and no Copy all button', await js(`(() => { const s = document.querySelector('.column[data-id="px1"] .final'); return !s.querySelector('.final-count, .final-copy') && s.querySelector('.final-toggle').textContent.trim() === 'Served'; })()`));
+  // Served starts at a fixed size; "Show more" opens it up for now only (not saved)
   const finalBox = () => js(`(() => { const t = document.querySelector('.column[data-id="px1"] .final-text'); return { h: t.clientHeight, full: t.scrollHeight, line: parseFloat(getComputedStyle(t).lineHeight) }; })()`);
   const fb0 = await finalBox();
-  check('Final starts at a fixed height (6 lines) when its text is longer', fb0.h <= Math.ceil(fb0.line * 6) + 1 && fb0.full > fb0.h + 10, JSON.stringify(fb0));
+  check('Served starts at a fixed height (6 lines) when its text is longer', fb0.h <= Math.ceil(fb0.line * 6) + 1 && fb0.full > fb0.h + 10, JSON.stringify(fb0));
   await js(`document.querySelector('.column[data-id="px1"] .final-more').click()`);
   await sleep(300);
   const fb1 = await finalBox();
   const savedPx1 = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8')).projects.find((p) => p.id === 'px1');
-  check('Show more opens the Final text up, without saving that state', fb1.h > fb0.h + 20 && !('augExpanded' in savedPx1), `${fb0.h}px → ${fb1.h}px`);
+  check('Show more opens the Served text up, without saving that state', fb1.h > fb0.h + 20 && !('augExpanded' in savedPx1), `${fb0.h}px → ${fb1.h}px`);
   await js(`document.querySelector('.column[data-id="px1"] .final-more').click()`);
   await sleep(250);
   await clipboard.writeText('');
   await clickSel('.column[data-id="px1"] .final-text');
   await sleep(250);
-  check('clicking the Final text copies all of it (with a Copied chip)', (await clipboard.readText()) === finalNow && await js(`document.querySelector('.column[data-id="px1"] .final-body').classList.contains('is-copied')`));
+  check('clicking the Served text copies all of it (with a Copied chip)', (await clipboard.readText()) === finalNow && await js(`document.querySelector('.column[data-id="px1"] .final-body').classList.contains('is-copied')`));
   const footOverlaps = await js(`(() => {
     const r = (sel) => document.querySelector('.column[data-id="px1"] ' + sel).getBoundingClientRect();
     const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
     const stats = r('.final-stats');
     return ['.final-parts-btn', '.final-edit'].filter((sel) => hit(stats, r(sel)));
   })()`);
-  check('Final footer: stats, Notes and edit do not overlap', footOverlaps.length === 0, footOverlaps.join(', '));
-  // Combined parts: a prompt can be pulled back out
+  check('Served footer: stats, Notes and edit do not overlap', footOverlaps.length === 0, footOverlaps.join(', '));
+  // Cooked parts: a prompt can be pulled back out
   await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Epsilon five'); key('Enter', ['control']); await sleep(200); key('Escape'); await sleep(150);
   await toAug(); await sleep(300);
   const partText = await augOf('px1');
@@ -387,12 +419,12 @@ async function run() {
   await sleep(200);
   await js(`document.querySelector('.column[data-id="px1"] .ap-back').click()`);
   await sleep(400);
-  check('a prompt can be sent back out of Combined', (await colTexts('px1')).includes(partText.split('\n')[0]) && (await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-empty')`)));
+  check('a prompt can be sent back out of Cooked', (await colTexts('px1')).includes(partText.split('\n')[0]) && (await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-empty')`)));
   const stageColours = await js(`(() => {
     const c = (sel, prop = 'backgroundColor') => getComputedStyle(document.querySelector('.column[data-id="p1"] ' + sel))[prop];
     return [c('.active-list .card'), c('.used'), c('.final', 'backgroundImage'), c('.aug-note'), c('.final-body'), c('.used-headrow', 'backgroundImage')];
   })()`);
-  check('new, Combined and Final each look different (blocks, headers and inner notes)', new Set(stageColours.slice(0, 3)).size === 3 && new Set([stageColours[0], stageColours[3], stageColours[4]]).size === 3 && stageColours[5].includes('gradient'), stageColours.map((x) => x.slice(0, 40)).join(' | '));
+  check('new, Cooked and Served each look different (blocks, headers and inner notes)', new Set(stageColours.slice(0, 3)).size === 3 && new Set([stageColours[0], stageColours[3], stageColours[4]]).size === 3 && stageColours[5].includes('gradient'), stageColours.map((x) => x.slice(0, 40)).join(' | '));
   await shot('03b-stages');
   // separator setting
   await clickSel('#open-settings');
@@ -408,21 +440,21 @@ async function run() {
   key('Escape');
   await sleep(250);
 
-  // ---------------------------------------------------------------- reorder and edit the parts of Final and Combined
+  // ---------------------------------------------------------------- reorder and edit the parts of Served and Cooked
   const partsOf = (id, sel) => texts(`.column[data-id="${id}"] ${sel} .fp-text`);
   const finalRow = (i) => `document.querySelectorAll('.column[data-id="px1"] .final-parts .final-part')[${i}]`;
   await js(`document.querySelector('.column[data-id="px1"] .final-parts-btn').click()`);
   await sleep(200);
-  check('the Final Notes list shows each part with move, edit and send-back buttons', (await partsOf('px1', '.final-parts')).length === 5 && await js(`['.fp-up', '.fp-down', '.fp-edit', '.fp-back'].every((s) => ${finalRow(0)}.querySelector(s))`));
+  check('the Served Notes list shows each part with move, edit and send-back buttons', (await partsOf('px1', '.final-parts')).length === 5 && await js(`['.fp-up', '.fp-down', '.fp-edit', '.fp-back'].every((s) => ${finalRow(0)}.querySelector(s))`));
   await js(`${finalRow(0)}.querySelector('.fp-down').click()`);
   await sleep(300);
-  check('↓ moves a part down, and the Final text follows the new order', (await finalOf('px1')).startsWith('Beta two\n\nGamma three'), JSON.stringify((await finalOf('px1')).slice(0, 30)));
+  check('↓ moves a part down, and the Served text follows the new order', (await finalOf('px1')).startsWith('Beta two\n\nGamma three'), JSON.stringify((await finalOf('px1')).slice(0, 30)));
   await js(`${finalRow(1)}.querySelector('.fp-up').click()`);
   await sleep(300);
   check('↑ moves it back up', (await finalOf('px1')) === finalNow);
   await js(`${finalRow(4)}.querySelector('.fp-edit').click()`);
   await sleep(300);
-  check('a single Final part opens in an editor with just its text', (await composerValue()) === 'Delta four' && await js(`!!document.querySelector('.column[data-id="px1"] .final-edit-host .composer')`), JSON.stringify(await composerValue()));
+  check('a single Served part opens in an editor with just its text', (await composerValue()) === 'Delta four' && await js(`!!document.querySelector('.column[data-id="px1"] .final-edit-host .composer')`), JSON.stringify(await composerValue()));
   await type(' edited');
   key('Enter', ['control']);
   await sleep(400);
@@ -434,42 +466,42 @@ async function run() {
   await type(' Done.');
   key('Enter', ['control']);
   await sleep(400);
-  check('the Final pencil edits the whole text, saved as one note', wholeFinal === editedFinal && (await finalOf('px1')) === `${editedFinal} Done.` && (await partsOf('px1', '.final-parts')).length === 1);
+  check('the Served pencil edits the whole text, saved as one note', wholeFinal === editedFinal && (await finalOf('px1')) === `${editedFinal} Done.` && (await partsOf('px1', '.final-parts')).length === 1);
   key('Z', ['control']);
   await sleep(300);
   key('Z', ['control']);
   await sleep(350);
   check('Ctrl+Z undoes both edits', (await finalOf('px1')) === finalNow && (await partsOf('px1', '.final-parts')).length === 5);
-  await toAug(); await sleep(300); // Epsilon five → Combined
+  await toAug(); await sleep(300); // Epsilon five → Cooked
   await js(`document.querySelector('.column[data-id="px1"] .aug-parts .fp-edit').click()`);
   await sleep(300);
   const partValue = await composerValue();
   await type(' plus');
   key('Enter', ['control']);
   await sleep(400);
-  check('a part of the Combined note can be edited on its own too', partValue === 'Epsilon five' && (await augOf('px1')) === 'Epsilon five plus', JSON.stringify(await augOf('px1')));
+  check('a part of the Cooked note can be edited on its own too', partValue === 'Epsilon five' && (await augOf('px1')) === 'Epsilon five plus', JSON.stringify(await augOf('px1')));
   await clickSel('.column[data-id="px1"] .aug-edit');
   await sleep(300);
   const wholeAug = await composerValue();
   key('Escape');
   await sleep(300);
-  check('the Combined pencil still edits the whole note (Esc cancels)', wholeAug === 'Epsilon five plus' && !(await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-editing')`)) && (await augOf('px1')) === 'Epsilon five plus');
-  // a prompt that lands in Combined while its editor is open is kept, after the edited text
+  check('the Cooked pencil still edits the whole note (Esc cancels)', wholeAug === 'Epsilon five plus' && !(await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-editing')`)) && (await augOf('px1')) === 'Epsilon five plus');
+  // a prompt that lands in Cooked while its editor is open is kept, after the edited text
   await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Zeta six'); key('Enter', ['control']); await sleep(200); key('Escape'); await sleep(150);
   await clickSel('.column[data-id="px1"] .aug-edit');
   await sleep(300);
-  await toAug(); await sleep(300); // Zeta six → Combined, editor still open
+  await toAug(); await sleep(300); // Zeta six → Cooked, editor still open
   await js(`document.querySelector('.column[data-id="px1"] .aug-wrap .composer textarea').focus()`);
   await type(' again');
   key('Enter', ['control']);
   await sleep(400);
-  check('a prompt added while the Combined editor is open is not lost on save', (await augOf('px1')) === 'Epsilon five plus again\n\nZeta six', JSON.stringify(await augOf('px1')));
+  check('a prompt added while the Cooked editor is open is not lost on save', (await augOf('px1')) === 'Epsilon five plus again\n\nZeta six', JSON.stringify(await augOf('px1')));
   key('Z', ['control']); await sleep(300); // the edit
   key('Z', ['control']); await sleep(300); // the move
   await js(`document.querySelector('.column[data-id="px1"] .active-list .card').focus()`);
   key('Delete'); await sleep(600); // Zeta six out of the way again
 
-  // ---------------------------------------------------------------- Clear Combined / Clear Final (the old "Clear used" emptied the wrong stage)
+  // ---------------------------------------------------------------- Clear Cooked / Clear Served (the old "Clear used" emptied the wrong stage)
   const menuPick = async (colId, label) => {
     await js(`document.querySelector('.column[data-id="${colId}"] .col-menu').click()`);
     await sleep(200);
@@ -478,23 +510,23 @@ async function run() {
     await sleep(350);
     return items;
   };
-  const menuItems = await menuPick('px1', 'Clear Final');
-  check('the project menu offers Clear Combined and Clear Final, with counts', menuItems.includes('Clear Combined (1)') && menuItems.includes('Clear Final (5)'), menuItems.join(' | '));
-  check('Clear Final empties the Final text and leaves Combined alone', (await finalOf('px1')) === '' && (await augOf('px1')) === 'Epsilon five plus' && (await texts('.toast')).some((t) => t.includes('Cleared Final')));
+  const menuItems = await menuPick('px1', 'Clear Served');
+  check('the project menu offers Clear Cooked and Clear Served, with counts', menuItems.includes('Clear Cooked (1)') && menuItems.includes('Clear Served (5)'), menuItems.join(' | '));
+  check('Clear Served empties the Served text and leaves Cooked alone', (await finalOf('px1')) === '' && (await augOf('px1')) === 'Epsilon five plus' && (await texts('.toast')).some((t) => t.includes('Cleared Served')));
   key('Z', ['control']);
   await sleep(350);
-  check('Ctrl+Z brings the Final text back', (await finalOf('px1')) === finalNow);
-  await menuPick('px1', 'Clear Combined');
-  check('Clear Combined empties the Combined note and leaves Final alone', (await augOf('px1')) === '' && (await finalOf('px1')) === finalNow);
+  check('Ctrl+Z brings the Served text back', (await finalOf('px1')) === finalNow);
+  await menuPick('px1', 'Clear Cooked');
+  check('Clear Cooked empties the Cooked note and leaves Served alone', (await augOf('px1')) === '' && (await finalOf('px1')) === finalNow);
   key('Z', ['control']);
   await sleep(350);
 
-  // ---------------------------------------------------------------- search also marks matches in the Combined and Final texts
+  // ---------------------------------------------------------------- search also marks matches in the Cooked and Served texts
   const setSearch = (q) => js(`(() => { const s = document.querySelector('#search'); s.value = ${JSON.stringify(q)}; s.dispatchEvent(new Event('input')); })()`);
   await setSearch('epsilon gamma');
   await sleep(250);
   const marks = await js(`[[...document.querySelectorAll('.column[data-id="px1"] .aug-text mark')].map((m) => m.textContent), [...document.querySelectorAll('.column[data-id="px1"] .final-text mark')].map((m) => m.textContent)]`);
-  check('search highlights matches inside the Combined and Final texts', marks[0].join() === 'Epsilon' && marks[1].join() === 'Gamma', JSON.stringify(marks));
+  check('search highlights matches inside the Cooked and Served texts', marks[0].join() === 'Epsilon' && marks[1].join() === 'Gamma', JSON.stringify(marks));
   await setSearch('');
   await sleep(200);
 
@@ -556,8 +588,10 @@ async function run() {
   await ctrlClick(await rect('.column[data-id="p2"] .active-list .card', 0));
   const moving = (await colTexts('p2'))[0];
   await clickSel('#sel-used');
-  await sleep(450);
-  check('selection bar "Move to Combined" joins the notes into it', (await augOf('p2')).includes(moving) && !(await colTexts('p2')).includes(moving) && (await js(`document.querySelector('#sel-used').textContent`)) === 'Move to Combined');
+  let movedAug = '';
+  for (let t = 0; t < 20 && !movedAug.includes(moving); t++) { await sleep(100); movedAug = await augOf('p2'); }
+  const selLabel = await js(`document.querySelector('#sel-used').textContent`);
+  check('selection bar "Move to Cooked" joins the notes into it', movedAug.includes(moving) && !(await colTexts('p2')).includes(moving) && selLabel === 'Move to Cooked', JSON.stringify({ moving: moving.slice(0, 30), aug: movedAug.slice(0, 60), selLabel }));
   key('Z', ['control']);
   await sleep(350);
   check('and Ctrl+Z puts them back', (await colTexts('p2')).includes(moving));

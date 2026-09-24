@@ -39,14 +39,14 @@ Function and variable names below are real; search for them in the files. Line n
 5. `yourAction(id)`: `const loc = locate(id)`, then `checkpoint('Label')` BEFORE changing anything, then mutate, then `persist()`, then `render()`. Show a toast with Undo if the change is visible: `toast('Done', { action: 'Undo', onAction: undo, history: true })`.
 6. Buttons inside cards are skipped by the card gesture engine (its `closest('button, …')` check), so they won't trigger copy or drag.
 
-## Add an action on the Combined note or the Final text
+## Add an action on the Cooked note or the Served text
 
-- **Markup:** in `createColumn()`, in the `section.used` (Combined) or `section.final` (Final) template. Keep a reference in the column view object.
-- **Rendering:** in `updateColumn()`, in the "Combined" and "Final" blocks. If a new state affects the markup, add it to `augSig` or `finalSig`.
-- **Notes-list row buttons:** add them in `partsHtml()` (shared by both stages) and handle them in the board `click` listener's `.final-part` branch, which already routes `.fp-up`, `.fp-down`, `.fp-edit`, `.ap-back` (Combined → prompts) and `.fp-back` (Final → Combined). Tell the stages apart with `part.closest('.aug-parts')`.
+- **Markup:** in `createColumn()`, in the `section.used` (Cooked) or `section.final` (Served) template. Keep a reference in the column view object.
+- **Rendering:** in `updateColumn()`, in the "Cooked" and "Served" blocks. If a new state affects the markup, add it to `augSig` or `finalSig`.
+- **Notes-list row buttons:** add them in `partsHtml()` (shared by both stages) and handle them in the board `click` listener's `.final-part` branch, which already routes `.fp-up`, `.fp-down`, `.fp-edit`, `.ap-back` (Cooked → prompts) and `.fp-back` (Served → Cooked). Tell the stages apart with `part.closest('.aug-parts')`.
 - **Clicks:** the board `click` listener also handles `.aug-move`, `.aug-edit`, `.final-edit`, `.aug-parts-btn`, `.final-parts-btn`, `.aug-more`, `.final-more` and clicks on `.final-text` (copy).
 - **Editing:** reuse `editStage(projectId, list, partId?)`; don't create another composer host.
-- **Remember:** data `used` is Combined and `combined` is Final (`STAGE_NAME` maps them). Combined texts come from `augmentedText(project)` and `finalText(project)` (or `stageText(project, list)`), all using `joiner()`.
+- **Remember:** data `used` is Cooked and `combined` is Served (`STAGE_NAME` maps them). Cooked texts come from `augmentedText(project)` and `finalText(project)` (or `stageText(project, list)`), all using `joiner()`.
 
 ## Add or change a data field
 
