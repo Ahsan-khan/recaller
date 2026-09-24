@@ -71,7 +71,7 @@ The owner asked twice for more difference between the stages. Since 1.6 each sta
 | --- | --- |
 | New prompts | White cards with a 3px project-accent bar on the left (`--accent-deep` in Deep theme) |
 | Cooked (data `used`) | Pale cool-grey block (#e6e9ef, border #c9cfda, soft slate shadow) with a slate-navy header band (`--aug-band`) and white uppercase label "COOKED · n". One near-white note (#f9fafc, border #d6dbe4) with a 3px #3f4a62 bar. A full-width #3f4a62 "↓ Move to Served" bar (hover #2f384c). Collapsed, only the band shows. **Empty:** transparent with a 1.5px dashed slate outline and a slate label; it fills in while dragging |
-| Served (data `combined`) | A deep-green block with gradient #11523c → #0b3a2a (border #0a2f22), header label "SERVED" in #d1fae5 (no counter, no Copy all since 1.6), and a pale mint text box (#f3f8f5, border #cfe3d6) that gets an emerald ring on hover and a "Copied" chip when clicked. **Empty:** a dashed green outline with a green label |
+| Served (data `combined`) | 1.10: a light sage section (`--final-bg` #e4eee8, border `--final-edge` #c6dccd, faint shadow) with the header label "SERVED" in `--final-ink` #0b5a3f (no counter, no Copy all since 1.6). A near-white text box (#fbfdfb, border #d3e6da) gets an emerald ring on hover and a "Copied" chip when clicked. Before 1.10 it was a deep-green gradient block; the owner asked for less emphasis because "it will always be served". **Empty:** only its faint name; a drop zone while dragging |
 
 ### Project palette
 

@@ -203,3 +203,13 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 > When I have too many columns, it seems cluttered. Is there any way to Make it visually seem less cluttered and nice and open feeling without taking up more space.
 
 [Built as v1.9.0. The clutter came from furniture repeated in every column: tinted column bodies, a boxed Cooking strip, two outlined buttons with solid colour squares, and empty dashed Cooked/Served frames with helper sentences. All of it was made quiet or hidden at rest; column headers were left as they were (the owner likes them).]
+
+## Message 16 (sent as pasted, dictated text only)
+
+> You can highlight the served section less because. It will always be served, so maybe. Less deeper color or lighter color.
+>
+> By right-clicking on a prompt or cooked note or a served note, I should be able to edit it.
+>
+> After dictating or typing a new note, and when I press save, It should close the text field. And open up the buttons again.
+
+[Built as v1.10.0. Served became a light sage section. Right-click opens the matching editor: a card, the whole Cooked or Served text, or one part when clicked on a Notes row; with text selected the Copy menu is kept. Saving a new prompt now closes the composer.]

@@ -101,8 +101,11 @@
   --aug-bar: #3f4a62;
   --aug-bar-hover: #2f384c;
   --aug-band: linear-gradient(180deg, #47526b 0%, #384259 100%);
-  --final-card: #f3f8f5;
-  --final-card-edge: #cfe3d6;
+  --final-card: #fbfdfb;
+  --final-card-edge: #d3e6da;
+  --final-bg: #e4eee8;   /* Served (1.10): a light sage section, not a deep block; it's the calm end of the line */
+  --final-edge: #c6dccd;
+  --final-ink: #0b5a3f;
   --stage-lines: 6; /* Cooked note and Served text start at this many lines; "Show more" opens them up */
 
   --ink: #0c2a1d;
@@ -787,9 +790,9 @@ body.is-dragging .aug-empty { opacity: 1; }
 .final {
   margin-top: 10px;
   border-radius: 12px;
-  background: linear-gradient(180deg, #11523c 0%, #0b3a2a 100%);
-  border: 1px solid #0a2f22;
-  box-shadow: 0 8px 18px -10px rgba(6, 40, 28, 0.7);
+  background: var(--final-bg);
+  border: 1px solid var(--final-edge);
+  box-shadow: 0 6px 14px -12px rgba(6, 40, 28, 0.35);
   overflow: hidden;
 }
 .final-head { display: flex; align-items: center; gap: 6px; padding: 4px 5px 4px 0; }
@@ -801,7 +804,7 @@ body.is-dragging .aug-empty { opacity: 1; }
   gap: 6px;
   height: 28px;
   padding: 0 10px;
-  color: #d1fae5;
+  color: var(--final-ink);
   font-family: var(--font-ui);
   font-size: 11.5px;
   font-weight: 700;
@@ -1544,7 +1547,7 @@ body.is-dragging .card-actions { opacity: 0 !important; }
 .hs-dot { flex: none; width: 12px; height: 12px; margin-top: 3px; border-radius: 4px; }
 .hs-prompts { background: #fff; box-shadow: inset 0 0 0 1.5px var(--primary); }
 .hs-combined { background: var(--aug-bar); }
-.hs-final { background: #11523c; }
+.hs-final { background: #9cc9ae; }
 .help-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; font-size: 13px; line-height: 1.45; color: var(--ink); }
 .help-list b { font-weight: 650; }
 .help-keys { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; align-items: center; font-size: 13px; }
@@ -1641,7 +1644,7 @@ body.theme-deep .card { border-color: transparent; box-shadow: 0 1px 2px rgba(12
 body.theme-deep .card::before { background: var(--accent-deep); }
 body.theme-deep .card-wrap.is-hl .card::before { background: var(--hl); }
 body.theme-deep .col-resize::after { background: rgba(236, 253, 245, 0.6); }
-body.theme-deep .final { border-color: rgba(0, 0, 0, 0.35); }
+body.theme-deep .final { border-color: var(--final-edge); }
 
 body.theme-deep .add-column { border-color: rgba(236, 253, 245, 0.3); background: rgba(255, 255, 255, 0.05); color: #d1fae5; }
 body.theme-deep .add-column:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(236, 253, 245, 0.55); }

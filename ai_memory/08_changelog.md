@@ -83,7 +83,15 @@ Dates are 2026-09-23 and 2026-09-24. Versions 1.0.0 to 1.5.0 were built in one l
 - **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
 - **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
 
-## 1.9.0 (current)
+## 1.10.0 (current)
+
+- **Served is lighter:** a light sage section (#e4eee8, border #c6dccd) with a deep-green label and a near-white text box, instead of the solid deep-green block. The owner: "it will always be served", so it needs less emphasis. Cooked (slate band) is now the strongest stage.
+- **Right-click to edit:** right-clicking a prompt card opens its editor. On the Cooked note or the Served text it opens the whole-text editor; on a row of a Notes list it edits that part alone. If text is selected, the normal Copy menu shows instead.
+- **Saving a new prompt closes the editor** (typed or dictated, including Save during dictation) and the New prompt | Dictate buttons come back. Before, the editor stayed open and empty for the next prompt.
+- **Help panel:** "Edit anything" mentions right-click.
+- **Tests:** features 112 checks (new: save closes the editor; right-click edits all four targets; Esc after a right-click edit changes nothing; Served is light).
+
+## 1.9.0
 
 A calmer board with many columns, using no extra space (empty columns got shorter):
 

@@ -724,7 +724,10 @@
           p.draftImages = images;
           persistSoon();
         },
-        onSave: (text, images) => addNote(col.id, text, images),
+        onSave: (text, images) => {
+          addNote(col.id, text, images);
+          closeComposer('', []); // saved: the editor closes and New prompt | Dictate come back
+        },
         onCancel: (text, images) => closeComposer(text, images),
       });
       col.composeHost.appendChild(col.composer.root);
@@ -2877,6 +2880,27 @@
     // Clicking the final text copies it all, unless the user is selecting part of it
     // (or dragging the scrollbar of the opened-up text).
     if (e.target.closest('.final-text') && !String(window.getSelection()) && !onScrollbar(e)) copyFinal(col.id, e);
+  });
+
+  // Right-click edits: a prompt card, the Cooked note or the Served text (whole), or one row
+  // of their Notes lists (that part alone). With text selected, the usual Copy menu shows instead.
+  board.addEventListener('contextmenu', (e) => {
+    if (String(window.getSelection()).trim()) return;
+    if (e.target.closest('input, textarea, .composer')) return;
+    const colEl = e.target.closest('.column');
+    const col = colEl && columns.get(colEl.dataset.id);
+    if (!col) return;
+    const part = e.target.closest('.final-part');
+    const wrap = e.target.closest('.card-wrap');
+    let edit = null;
+    if (part) edit = () => editStage(col.id, part.closest('.aug-parts') ? 'used' : 'combined', part.dataset.id);
+    else if (wrap && !wrap.classList.contains('is-editing')) edit = () => startEdit(wrap.dataset.id);
+    else if (e.target.closest('.aug-note')) edit = () => editStage(col.id, 'used');
+    else if (e.target.closest('.final-body') && !col.finalSection.classList.contains('is-empty')) edit = () => editStage(col.id, 'combined');
+    if (!edit) return;
+    e.preventDefault();
+    closeMenu();
+    edit();
   });
 
   board.addEventListener('dblclick', (e) => {

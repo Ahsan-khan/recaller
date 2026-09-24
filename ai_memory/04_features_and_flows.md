@@ -28,7 +28,7 @@ Terms used below:
    - **Scroll area**:
      - **Prompt cards**, oldest at the top: since 1.7 new prompts are added at the bottom. "No prompts yet. Click New prompt to add one." is shown when there are none.
      - **Cooked block** (1.7: muted slate, with a slate-navy header band reading "COOKED · n" and a collapse arrow). Inside is one near-white **Cooked note** with the combined text, 6 lines tall with a fade when longer, and a slim **Show more** bar under it. Its footer shows "n prompts · w words", a **Notes** toggle and a pencil (edit). Under the note is a full-width slate **↓ Move to Served** bar. When empty, only its faint name shows ("⌄ COOKED", 60% opacity); while a card is being dragged it becomes a dashed drop zone with "Move prompts here and they join into one note".
-     - **Served block** (deep green, shown only when Cooked or Served has content). Its header reads "SERVED" with a collapse arrow; there is no counter and no Copy all button (both removed in 1.6). Inside is a pale mint box with the final text, 6 lines tall with a fade and a **Show more** bar when longer, then the footer "n notes · w words", a **Notes** toggle and a pencil (edit). When empty, only its faint name shows; while dragging it becomes a dashed drop zone saying "Move the Cooked note down to add it here".
+     - **Served block** (1.10: a light sage section with a deep-green label, shown only when Cooked or Served has content). Its header reads "SERVED" with a collapse arrow; there is no counter and no Copy all button (both removed in 1.6). Inside is a near-white box with the final text, 6 lines tall with a fade and a **Show more** bar when longer, then the footer "n notes · w words", a **Notes** toggle and a pencil (edit). When empty, only its faint name shows; while dragging it becomes a dashed drop zone saying "Move the Cooked note down to add it here".
 4. **Floating elements:**
    - toasts (bottom centre);
    - the Ctrl+click selection bar (bottom centre; toasts move up above it);
@@ -71,9 +71,9 @@ Terms used below:
 
 1. Click **New prompt** (or press Ctrl+N for the current column), or **Dictate** to start speaking straight away. The composer opens in place of the bar with any saved draft restored, and the cursor goes to the end.
 2. Type, dictate (see §12), paste or drop images, or take a screenshot (see §13).
-3. **Save** with Ctrl+Enter or the Save button.
+3. **Save** with Ctrl+Enter or the Save button. Since 1.10 **saving closes the editor** and the New prompt | Dictate buttons come back.
    - The note is added at the **bottom** of the prompts (since 1.7; it used to be the top), the column scrolls it into view, and the draft is cleared. Undoable, labelled "New note".
-   - The composer stays open and empty, ready for the next prompt.
+   - (Before 1.10 the composer stayed open and empty for the next prompt.)
    - Saving with no text and no images shakes the composer instead.
 4. **Close** with × or Esc. The text is kept as a draft, and the bar shows a "Draft" badge. If recording is on, the first Esc only stops recording.
 5. Clicking anywhere outside an *empty*, idle composer closes it. It closes on pointer release, so the layout doesn't shift mid-click.
@@ -184,7 +184,7 @@ Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New lin
 
 ## 11. Editing a card
 
-1. Hover a card and click the pencil, or press E or F2 on a focused card. The card turns into a composer holding its text and images.
+1. **Right-click the card** (1.10), hover it and click the pencil, or press E or F2 on a focused card. The card turns into a composer holding its text and images.
 2. Save (Ctrl+Enter) updates the text, images and updated time; this is undoable ("Edit note") only if something changed. Cancel (× or Esc) discards the edit. The trash button deletes the card.
 3. While a card is being edited, it stays visible even if search would hide it.
 
@@ -369,6 +369,14 @@ The footer holds **Open data folder** and **Done**.
 - "Nothing matches"
 
 At most three toasts show at once. Hovering a toast pauses its timer.
+
+## 21b. Right-click to edit (1.10)
+
+- **On a prompt card:** opens the card editor (like the pencil).
+- **On the Cooked note or the Served text:** opens that stage's whole-text editor (like its footer pencil).
+- **On a row of a Notes list** (Cooked or Served): edits that part alone (like its ✎).
+- **With text selected** (e.g. part of the Served text), the right-click is left alone, so the usual **Copy** menu appears.
+- **In a text field or an editor**, the usual Cut/Copy/Paste menu appears.
 
 ## 22. Column widths (1.6)
 

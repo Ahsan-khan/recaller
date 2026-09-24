@@ -15,7 +15,7 @@ npm install
 npm run dist
 ```
 
-This builds `dist/Recaller Setup 1.9.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
+This builds `dist/Recaller Setup 1.10.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
 
@@ -46,13 +46,13 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Highlight a note | Hover, click the highlighter and pick a colour: *Check again*, *Important*, *Idea* or *Ready*. Or focus a note and press `H` |
 | Move to another project | Drag it onto another column |
 | Reorder projects | Drag a column by its title |
-| New prompt | Click **New prompt** under the column name to type one, or **Dictate** (the other half of the bar) to speak one. New prompts are added at the bottom of **Cooking**, just above Cooked |
+| New prompt | Click **New prompt** under the column name to type one, or **Dictate** (the other half of the bar) to speak one. New prompts are added at the bottom of **Cooking**, just above Cooked. Saving closes the editor and the buttons come back |
 | Fold a stage away | Click its name: **Cooking**, **Cooked** or **Served** |
 | Put older prompts in date order | **⋯ → Sort prompts oldest first** (prompts saved before 1.7 were newest-first). Undoable |
 | Dictate | Click the mic beside **New prompt**. Text appears phrase by phrase as you speak, and you can keep typing and editing while it listens. Click the red **Stop** pill when done |
 | Add a screenshot | Click the camera in the editor, then drag over the area you want. Click once to capture the whole screen, or press `Esc` to cancel. You can also paste an image or drop an image file |
 | View an image | Hover the thumbnail and click the expand icon |
-| Edit | Hover, then click the pencil |
+| Edit | Right-click a prompt, the Cooked note or the Served text. Or hover and click the pencil. Right-click a row under **Notes** to edit just that part |
 | Rename a project | Double-click its title |
 | Scroll sideways | Mouse wheel over a header or empty space, the ‹ › buttons, or drag the empty background |
 | Resize a column | Drag its right edge. Double-click the edge (or **⋯ → Reset width**) for the default width again |

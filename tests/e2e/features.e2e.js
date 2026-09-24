@@ -210,6 +210,17 @@ async function run() {
   key('Escape');
   await sleep(250);
 
+  // saving a new prompt closes the editor and brings New prompt | Dictate back
+  await clickSel('.column[data-id="p1"] .col-add');
+  await sleep(200);
+  await type('Temporary prompt');
+  key('Enter', ['control']);
+  await sleep(400);
+  const afterSave = await js(`[!!document.querySelector('.column[data-id="p1"] .col-compose .composer'), document.querySelector('.column[data-id="p1"] .col-new').hidden]`);
+  check('saving a new prompt closes the editor and shows the buttons again', !afterSave[0] && !afterSave[1] && (await colTexts('p1')).pop() === 'Temporary prompt', JSON.stringify(afterSave));
+  key('Z', ['control']); // take "Temporary prompt" out again
+  await sleep(300);
+
   // ---------------------------------------------------------------- Cooking: a stage header like the others; New prompt | Dictate in halves
   const bar = await js(`(() => {
     const c = document.querySelector('.column[data-id="p1"]');
@@ -392,6 +403,9 @@ async function run() {
   const finalNow = await finalOf('px1');
   check('dragging the Cooked note onto Served also moves it down', finalNow === `${final2}\n\nDelta four`, JSON.stringify(finalNow.slice(-40)));
   check('Served has no counter and no Copy all button', await js(`(() => { const s = document.querySelector('.column[data-id="px1"] .final'); return !s.querySelector('.final-count, .final-copy') && s.querySelector('.final-toggle').textContent.trim() === 'Served'; })()`));
+  const servedBg = await js(`getComputedStyle(document.querySelector('.column[data-id="px1"] .final')).backgroundColor`);
+  const servedRgb = (servedBg.match(/\d+/g) || []).map(Number);
+  check('Served (with text in it) is a light, calm section, not a deep block', servedRgb.length >= 3 && Math.min(...servedRgb.slice(0, 3)) > 200, servedBg);
   // Served starts at a fixed size; "Show more" opens it up for now only (not saved)
   const finalBox = () => js(`(() => { const t = document.querySelector('.column[data-id="px1"] .final-text'); return { h: t.clientHeight, full: t.scrollHeight, line: parseFloat(getComputedStyle(t).lineHeight) }; })()`);
   const fb0 = await finalBox();
@@ -483,6 +497,30 @@ async function run() {
   key('Enter', ['control']);
   await sleep(400);
   check('a part of the Cooked note can be edited on its own too', partValue === 'Epsilon five' && (await augOf('px1')) === 'Epsilon five plus', JSON.stringify(await augOf('px1')));
+  // right-click edits: a prompt card, the Cooked note, the Served text, and a single Served part
+  const rightClick = (sel) => js(`document.querySelector(${JSON.stringify(sel)}).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 }))`);
+  await rightClick('.column[data-id="p2"] .active-list .card .card-text');
+  await sleep(300);
+  const rcCard = await js(`!!document.querySelector('.column[data-id="p2"] .card-wrap.is-editing .composer')`);
+  key('Escape'); await sleep(250);
+  await rightClick('.column[data-id="px1"] .aug-note .aug-text');
+  await sleep(300);
+  const rcCooked = [await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-editing')`), await composerValue()];
+  key('Escape'); await sleep(250);
+  await rightClick('.column[data-id="px1"] .final-text');
+  await sleep(300);
+  const rcServed = [await js(`document.querySelector('.column[data-id="px1"] .final').classList.contains('is-editing')`), await composerValue()];
+  key('Escape'); await sleep(250);
+  await rightClick(`.column[data-id="px1"] .final-parts .final-part:nth-child(2) .fp-text`);
+  await sleep(300);
+  const rcPart = await composerValue();
+  key('Escape'); await sleep(250);
+  check('right-click edits a prompt, the Cooked note, the Served text, or one Served part', rcCard && rcCooked[0] && rcCooked[1] === 'Epsilon five plus' && rcServed[0] && rcServed[1] === finalNow && rcPart === 'Beta two', JSON.stringify({ rcCard, rcCooked, served: rcServed[0], rcPart }));
+  check('Esc after a right-click edit changes nothing', (await augOf('px1')) === 'Epsilon five plus' && (await finalOf('px1')) === finalNow && !(await js(`!!document.querySelector('.composer')`)));
+
+  // the Served editors above scrolled the column down; bring the Cooked pencil back into view
+  await js(`document.querySelector('.column[data-id="px1"] .aug-edit').scrollIntoView({ block: 'center' })`);
+  await sleep(200);
   await clickSel('.column[data-id="px1"] .aug-edit');
   await sleep(300);
   const wholeAug = await composerValue();
