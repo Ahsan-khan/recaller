@@ -219,3 +219,9 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 > When I hover over a prompt. So, I don't, I'm currently seeing three options: highlight, move to. Cooked and edit. I don't want edit anymore because I can. Right click to edit. And basically highlight the move to cooked option, because that's what I'm clicking 90% of the time.
 
 [Built as v1.11.0. "Highlight the move to cooked option" was read as "make it stand out", not the highlighter feature: it became a filled slate "↓ Cooked" button; the edit pencil was removed.]
+
+## Message 18
+
+> Change cooked colors to something nicer. Current one is too ugly.
+
+[Built as v1.12.0. It was the second rejection of the Cooked colour, so six palettes were rendered side by side (`tests/e2e/.out/cooked-colour-options.png`). Caramel became the default, and all six are in Settings › Cooked colour.]

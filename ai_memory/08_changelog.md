@@ -83,7 +83,13 @@ Dates are 2026-09-23 and 2026-09-24. Versions 1.0.0 to 1.5.0 were built in one l
 - **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
 - **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
 
-## 1.11.0 (current)
+## 1.12.0 (current)
+
+- **Cooked colour picker:** the owner called the slate Cooked "too ugly" (after rejecting violet in 1.7). Six palettes were rendered side by side on a real board. **Caramel** (warm golden-brown, fitting "Cooked") is the new default, and **Settings › Cooked colour** offers Caramel, Espresso, Petrol, Graphite, Terracotta and Slate as live preview tiles. Stored in `prefs.cookedColor` only when picked.
+- Every Cooked colour (band, block, note, Move to Served bar, the card's ↓ Cooked button, the help dot) now derives from one palette. The hard-coded slate shadows and tints became `color-mix()` of `--aug-bar`.
+- **Tests:** features 114 checks (the band check is now "deep, muted, not violet"; new: the picker has 6 options, Caramel is the default, and a pick recolours and saves).
+
+## 1.11.0
 
 - **Card hover bar:** now just the highlighter and a filled slate **↓ Cooked** button (the owner moves prompts to Cooked ~90% of the time). The edit pencil was removed: right-click the card or press E / F2.
 - Help panel and guide say "hover a prompt and click ↓ Cooked" instead of "the stack icon".

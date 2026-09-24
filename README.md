@@ -15,7 +15,7 @@ npm install
 npm run dist
 ```
 
-This builds `dist/Recaller Setup 1.11.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
+This builds `dist/Recaller Setup 1.12.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
 
@@ -60,6 +60,7 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Default column width | **Settings → Column width**: Compact, Slim or Roomy |
 | Column colour | **⋯** menu: 18 colours |
 | Colours | **Settings → Colour**: Deep (dark forest canvas, solid headers) or Soft (light) |
+| Cooked colour | **Settings → Cooked colour**: Caramel (default), Espresso, Petrol, Graphite, Terracotta or Slate |
 | Column title font | **Settings → Column title font**: Instrument Sans (default), Plus Jakarta Sans, Onest, Sora, Space Grotesk, Inter Display, Manrope, Geist or Sora Caps. Each is previewed on a real header and applies instantly |
 
 ### Shortcuts

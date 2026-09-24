@@ -59,6 +59,9 @@
   const TITLE_FONTS = ['instrument', 'jakarta', 'onest', 'sora', 'space', 'inter', 'manrope', 'geist', 'caps'];
   const DEFAULT_TITLE_FONT = 'instrument';
   const titleFont = () => (TITLE_FONTS.includes(data.prefs.titleFont) ? data.prefs.titleFont : DEFAULT_TITLE_FONT);
+  // Settings › Cooked colour (1.12). Stored in prefs.cookedColor only when picked.
+  const COOKED_COLORS = ['caramel', 'espresso', 'petrol', 'graphite', 'terracotta', 'slate'];
+  const cookedColor = () => (COOKED_COLORS.includes(data.prefs.cookedColor) ? data.prefs.cookedColor : 'caramel');
   // Column widths: drag a column's edge; the top-bar button puts them all back to the default.
   const MIN_COL_W = 200;
   const MAX_COL_W = 900;
@@ -795,6 +798,8 @@
     document.body.classList.add(`density-${DENSITIES.includes(data.prefs.density) ? data.prefs.density : 'slim'}`);
     document.body.classList.remove(...TITLE_FONTS.map((t) => `title-${t}`));
     document.body.classList.add(`title-${titleFont()}`);
+    document.body.classList.remove(...COOKED_COLORS.map((c) => `cooked-${c}`));
+    document.body.classList.add(`cooked-${cookedColor()}`);
     ui.selection = ui.selection.filter((id) => locate(id)?.list === 'notes');
     const query = parseQuery(ui.search);
     const seen = new Set();
@@ -3150,6 +3155,7 @@
     density: $('#set-density'),
     theme: $('#set-theme'),
     titleFont: $('#set-title-font'),
+    cooked: $('#set-cooked'),
     joiner: $('#set-joiner'),
     backup: $('#set-backup'),
     backupStatus: $('#backup-status'),
@@ -3191,6 +3197,8 @@
     for (const b of f.density.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.value === data.prefs.density));
     const title = titleFont();
     for (const b of f.titleFont.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.value === title));
+    const cooked = cookedColor();
+    for (const b of f.cooked.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.value === cooked));
     const join = data.prefs.joiner === 'line' ? 'line' : 'blank';
     for (const b of f.joiner.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.value === join));
   }
@@ -3262,6 +3270,14 @@
     const b = e.target.closest('button[data-value]');
     if (!b) return;
     data.prefs.joiner = b.dataset.value;
+    persist();
+    paintDensity();
+    render();
+  });
+  f.cooked.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-value]');
+    if (!b) return;
+    data.prefs.cookedColor = b.dataset.value;
     persist();
     paintDensity();
     render();

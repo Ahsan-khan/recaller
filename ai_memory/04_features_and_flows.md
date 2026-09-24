@@ -291,6 +291,7 @@ Since 1.7 the fields are grouped under section headings: **Appearance** (1–4),
 1. **Colour:** Deep or Soft. Applies instantly, including the Windows title bar. Stored in settings.
 2. **Column width:** Compact (236px), Slim (268px, the default) or Roomy (330px). Stored in `data.prefs.density`. This is the default width; columns the user resized keep their own width (§22).
 3. **Join notes with:** Blank line or New line (`prefs.joiner`).
+3b. **Cooked colour** (1.12): six tiles, each a mini "COOKED" band on its own block colour: Caramel (default), Espresso, Petrol, Graphite, Terracotta, Slate. Applies instantly to everything Cooked-coloured. Stored in `prefs.cookedColor`.
 4. **Column title font:** nine preview tiles in a 3×3 grid, each rendered on an emerald header ("Wildfire RL"): Instrument Sans (default since 1.6), Plus Jakarta Sans, Onest, Sora, Space Grotesk, Inter Display, Manrope, Geist, Sora Caps. Applies instantly. Stored in `prefs.titleFont` only when picked.
 5. **OpenAI API key:** a password field showing "•••• last4" when a key is set, with a status line ("Saved and encrypted on this PC…" or "Using OPENAI_API_KEY from your environment…"). **Remove** is shown only for a saved key. A link points to platform.openai.com/api-keys. The key is saved when the field loses focus or the dialog closes.
 6. **Transcription model:** gpt-transcribe (recommended), gpt-4o-mini-transcribe (fastest), gpt-4o-transcribe, or whisper-1 (no live text). **Language** is optional (for example `en`).

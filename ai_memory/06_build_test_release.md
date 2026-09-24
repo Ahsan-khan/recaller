@@ -70,7 +70,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **Check syntax first:** run `node --check` on a suite before launching it. A syntax error makes Electron show an "App threw an error" dialog on the owner's screen until it times out.
 - **Real captures are deleted:** the features suite's real screen-snip test captures the owner's actual screen once. The suite deletes the images afterwards. Never view or keep those files.
 
-### `features.e2e.js` (113 checks, about 4 minutes)
+### `features.e2e.js` (114 checks, about 4 minutes)
 
 **Setup:**
 - **Seed data:** seven projects in the old v1 format, which also exercises loading old data.

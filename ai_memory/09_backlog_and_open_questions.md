@@ -87,10 +87,11 @@ These were covered only by simulations: a fake microphone, a mock OpenAI server,
 7. "All the colors are girly": did that mean only the Combined colours (changed in 1.7), or also the project palette (Blossom pink, Orchid, Fuchsia)? If the palette, offer a muted set.
 8. Which everyday-user items (above) to start with? The suggested first three are signing, auto-update and key-free voice.
 9. Is the 1.9 calm board calm enough with many columns? If not, offer a "calm headers" option (dark neutral header with a coloured stripe) or a narrower Compact default. Ask; don't impose.
+10. Which Cooked colour do they like? (Caramel is the default; five others are in Settings.)
 
 ## Suggested next steps for whoever continues
 
 1. Read `README.md` → `03` → `04` in this folder.
-2. Run `npm install`, then `npm test` and confirm everything is green: 12 + 21 + 113 checks.
+2. Run `npm install`, then `npm test` and confirm everything is green: 12 + 21 + 114 checks.
 3. Check which version the owner has installed (see `13`) and ask how 1.6.0 feels, especially the new stage colours, the title font and resizing.
 4. Ask the owner the open questions above before building bigger features.

@@ -29,6 +29,8 @@ The installed program lives separately in `%LOCALAPPDATA%\Programs\recaller\`.
   "version": 2,                       // max(2, whatever the file had); never lowered
   "prefs": {                          // renderer-owned UI preferences
     "density": "slim",                // "compact" | "slim" | "roomy" (unknown values kept, drawn as slim)
+    "cookedColor": "caramel",         // 1.12+: "caramel" | "espresso" | "petrol" | "graphite" | "terracotta" | "slate"
+                                      //   (absent → caramel). Only written when picked in Settings
     "titleFont": "instrument",        // "instrument" | "jakarta" | "onest" | "sora" | "space" | "inter" | "manrope" | "geist" | "caps"
                                       //   (absent → instrument since 1.6; it was sora before, so an absent value now draws differently by design)
     "joiner": "blank",                // "blank" (\n\n) | "line" (\n) — separator for Combined, Final and Ctrl+click copies (absent → blank)
@@ -189,6 +191,7 @@ Unknown keys are preserved. The whole object (defaults included) is rewritten on
 - **1.3.0 added** backups, `lastVersion`, `prefs.scroll`, `prefs.lastProjectId`, `note.expanded`, `project.augExpanded` and `prefs.titleFont`.
 - **1.4.0 added** `project.combined`, `note.highlight` and the stage swap (labels only; data unchanged).
 - **1.5.0 added** `prefs.joiner` and `project.usedExpanded`. Augmented changed from a list of cards to one combined note (display only; the data is still a list of notes in `used`).
+- **1.12.0** added `prefs.cookedColor` (only when picked).
 - **1.8.0** added `project.notesCollapsed` (only while Cooking is folded). The stage labels changed again: prompts → Cooking, Combined → Cooked, Final → Served; data unchanged.
 - **1.7.0** added no fields. New prompts are appended to `notes` instead of prepended. `usedExpanded` / `augExpanded` are no longer read (Combined and Final always start at their fixed size); they're left in the file untouched.
 - **1.6.0 added** `prefs.colWidths` (only when the user resizes a column), ten palette ids and three title-font ids. The default title font (when `prefs.titleFont` is absent) became `instrument`. Stage labels changed (Augmented → Combined, Used → Final); data unchanged. `DATA_VERSION` is still 2.

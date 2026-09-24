@@ -281,7 +281,9 @@ async function run() {
   check('every column shares one calm background (colour stays in the headers)', new Set(bodies).size === 1, bodies.join(' | '));
   const band = await js(`getComputedStyle(document.querySelector('.column[data-id="p1"] .used-headrow')).backgroundImage`);
   const bandRgb = (band.match(/rgba?\(([^)]*)\)/) || [])[1]?.split(',').map(Number) || [];
-  check('Cooked uses a muted slate band, not bright violet', bandRgb.length >= 3 && Math.max(...bandRgb.slice(0, 3)) - Math.min(...bandRgb.slice(0, 3)) < 50 && Math.max(...bandRgb.slice(0, 3)) < 120, band.slice(0, 60));
+  // hue of the band's first colour: deep and muted (no channel above 180), and not violet/pink (hue 250°–340°)
+  const hue = (() => { const [r, g, b] = bandRgb.map((v) => v / 255); const mx = Math.max(r, g, b); const mn = Math.min(r, g, b); const d = mx - mn; if (!d) return 0; const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (h * 60 + 360) % 360; })();
+  check('Cooked uses a deep, muted band (Caramel by default), not bright violet', bandRgb.length >= 3 && Math.max(...bandRgb.slice(0, 3)) < 180 && !(hue >= 250 && hue <= 340) && await js(`document.body.classList.contains('cooked-caramel')`), `${band.slice(0, 50)} hue ${Math.round(hue)}`);
   await clickSel('#open-help');
   await sleep(300);
   const helpText = await js(`document.querySelector('#help').open && document.querySelector('#help h2').textContent`);
@@ -801,6 +803,21 @@ async function run() {
   await sleep(250);
   const savedTheme = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-settings.json'), 'utf8')).theme;
   check('theme choice is saved', savedTheme === 'deep' && await js(`document.body.classList.contains('theme-deep')`), savedTheme);
+
+  // Settings › Cooked colour: six options, Caramel by default; picking one recolours Cooked and is saved
+  await js(`document.querySelector('#open-settings').click()`);
+  await sleep(300);
+  const cookedOpts = await js(`[...document.querySelectorAll('#set-cooked [data-value]')].map((b) => b.dataset.value + (b.getAttribute('aria-checked') === 'true' ? '*' : ''))`);
+  const bandBefore = await js(`getComputedStyle(document.querySelector('.column[data-id="p1"] .used-headrow')).backgroundImage`);
+  await js(`document.querySelector('#set-cooked [data-value="petrol"]').click()`);
+  await sleep(600);
+  const bandPetrol = await js(`getComputedStyle(document.querySelector('.column[data-id="p1"] .used-headrow')).backgroundImage`);
+  const savedCooked = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8')).prefs.cookedColor;
+  await js(`document.querySelector('#set-cooked [data-value="caramel"]').click()`);
+  await sleep(300);
+  key('Escape');
+  await sleep(250);
+  check('Settings › Cooked colour: 6 options, Caramel by default, a pick recolours Cooked and is saved', cookedOpts.length === 6 && cookedOpts[0] === 'caramel*' && bandPetrol !== bandBefore && savedCooked === 'petrol' && await js(`document.body.classList.contains('cooked-caramel')`), `${cookedOpts.join(',')} | saved ${savedCooked}`);
 
   // ---------------------------------------------------------------- resize columns, then reset them from the top bar
   const prefsNow = () => JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8')).prefs;

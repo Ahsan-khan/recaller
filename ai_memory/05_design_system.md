@@ -73,6 +73,21 @@ The owner asked twice for more difference between the stages. Since 1.6 each sta
 | Cooked (data `used`) | Pale cool-grey block (#e6e9ef, border #c9cfda, soft slate shadow) with a slate-navy header band (`--aug-band`) and white uppercase label "COOKED · n". One near-white note (#f9fafc, border #d6dbe4) with a 3px #3f4a62 bar. A full-width #3f4a62 "↓ Move to Served" bar (hover #2f384c). Collapsed, only the band shows. **Empty:** transparent with a 1.5px dashed slate outline and a slate label; it fills in while dragging |
 | Served (data `combined`) | 1.10: a light sage section (`--final-bg` #e4eee8, border `--final-edge` #c6dccd, faint shadow) with the header label "SERVED" in `--final-ink` #0b5a3f (no counter, no Copy all since 1.6). A near-white text box (#fbfdfb, border #d3e6da) gets an emerald ring on hover and a "Copied" chip when clicked. Before 1.10 it was a deep-green gradient block; the owner asked for less emphasis because "it will always be served". **Empty:** only its faint name; a drop zone while dragging |
 
+### Cooked palettes (1.12)
+
+`body.cooked-<name>` (and `.co-<name>` for the Settings tiles) sets `--aug-band`, `--aug-bar`, `--aug-bar-hover`, `--aug-ink`, `--aug-bg`, `--aug-edge`, `--aug-card` and `--aug-card-edge`. Shadows and tints are `color-mix()` of `--aug-bar`, so one palette recolours everything Cooked.
+
+| Name | Band (gradient) | Bar | Block bg | Note |
+| --- | --- | --- | --- | --- |
+| **caramel** (default) | #9c6b3d → #85582f | #8a5c30 | #f3ece3 | #fffcf8 |
+| espresso | #5d4c41 → #4b3d34 | #56463b | #eeeae6 | #fcfbfa |
+| petrol | #2f5d66 → #244b53 | #2b5861 | #e5eff0 | #f8fbfc |
+| graphite | #3b3e44 → #2e3136 | #383b41 | #ebecee | #fbfbfc |
+| terracotta | #a55f47 → #8d4e39 | #9b5740 | #f5ece8 | #fffbf9 |
+| slate (1.7–1.11 default) | #47526b → #384259 | #3f4a62 | #e6e9ef | #f9fafc |
+
+The `:root` `--aug-*` values are the slate fallback; `render()` always puts one `cooked-*` class on `<body>` (default caramel).
+
 ### Project palette
 
 See `03`. The order is emerald #0e9f6e, sky #0284c7, sun #d97706, orchid #9333ea, lime #65a30d, blossom #db2777, teal #0d9488, bark #78716c, then (1.6) indigo #4f46e5, ember #ea580c, lagoon #0891b2, ruby #dc2626, forest #15803d, fuchsia #c026d3, slate #475569, mustard #a16207, navy #1e3a8a, wine #9f1239. New projects take the first unused colour. The ⋯ menu shows them as a 9-column grid of 19px swatches. All are mid-to-dark so white header text stays readable in Deep theme.
