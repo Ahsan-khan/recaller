@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src blob:; font-src 'self'; object-src 'none'; base-uri 'none'" />
+  <title>Recaller screenshot</title>
+  <style>
+    @font-face { font-family: "Geist"; src: url("../renderer/fonts/geist-latin.woff2") format("woff2"); font-weight: 100 900; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #000; cursor: crosshair; user-select: none; }
+    #shot { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; pointer-events: none; }
+    #veil { position: fixed; inset: 0; background: rgba(4, 30, 20, 0.45); pointer-events: none; }
+    #sel {
+      position: fixed;
+      outline: 2px solid #34d399;
+      box-shadow: 0 0 0 100vmax rgba(4, 30, 20, 0.45);
+      pointer-events: none;
+    }
+    #size {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #064e3b;
+      color: #ecfdf5;
+      font: 600 12px "Geist", "Segoe UI", system-ui, sans-serif;
+      white-space: nowrap;
+    }
+    #hint {
+      position: fixed;
+      top: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 9px 16px;
+      border-radius: 999px;
+      background: rgba(6, 40, 28, 0.88);
+      color: #ecfdf5;
+      font: 500 13px "Geist", "Segoe UI", system-ui, sans-serif; letter-spacing: -0.01em;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      pointer-events: none;
+      transition: opacity 0.15s;
+    }
+    #hint b { color: #6ee7b7; font-weight: 600; }
+    body.selecting #hint { opacity: 0; }
+    body.selecting #veil { display: none; }
+  </style>
+</head>
+<body>
+  <img id="shot" alt="" />
+  <div id="veil"></div>
+  <div id="sel" hidden><span id="size"></span></div>
+  <div id="hint"><b>Drag</b> to capture an area · <b>Click</b> for the whole screen · <b>Esc</b> to cancel</div>
+  <script src="overlay.js"></script>
+</body>
+</html>

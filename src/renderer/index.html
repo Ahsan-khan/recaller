@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: recaller-img:; media-src 'self' blob:; connect-src 'none'; object-src 'none'; base-uri 'none'" />
+  <title>Recaller</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="density-slim theme-deep title-sora">
+  <!-- Shared SVG symbols. Kept renderable (not display:none) so masks and gradients work. -->
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    <defs>
+      <mask id="mst-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+        <rect width="200" height="200" fill="#fff" />
+        <g stroke="#000" stroke-width="5.5" stroke-linecap="round" fill="none">
+          <path d="M88 52 L50 18" />
+          <path d="M84 80 L18 46" />
+          <path d="M82 108 L0 84" />
+          <path d="M82 134 L-2 126" />
+          <path d="M86 154 L22 182" />
+          <path d="M113 52 L152 16" />
+          <path d="M117 80 L184 44" />
+          <path d="M119 108 L202 84" />
+          <path d="M119 134 L204 126" />
+          <path d="M115 154 L178 182" />
+        </g>
+        <g fill="#000">
+          <ellipse cx="89" cy="67" rx="6.4" ry="3" transform="rotate(32 89 67)" />
+          <ellipse cx="87" cy="95" rx="7" ry="3.2" transform="rotate(22 87 95)" />
+          <ellipse cx="87" cy="122" rx="7" ry="3.2" transform="rotate(10 87 122)" />
+          <ellipse cx="112" cy="67" rx="6.4" ry="3" transform="rotate(-32 112 67)" />
+          <ellipse cx="114" cy="95" rx="7" ry="3.2" transform="rotate(-22 114 95)" />
+          <ellipse cx="114" cy="122" rx="7" ry="3.2" transform="rotate(-10 114 122)" />
+        </g>
+      </mask>
+    </defs>
+    <symbol id="monstera" viewBox="0 0 200 212">
+      <path d="M100 166 C101 182 103 196 107 212" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+      <g mask="url(#mst-cut)">
+        <path fill="currentColor"
+              d="M100 166 C88 182 70 190 52 184 C26 176 12 150 12 118 C12 72 48 26 104 10 C156 24 190 70 188 118 C186 152 170 178 146 185 C128 190 110 182 100 166 Z" />
+        <path d="M100 166 C98 120 98 60 104 12" fill="none" stroke="var(--rib, rgba(255,255,255,.28))" stroke-width="2.4" stroke-linecap="round" />
+      </g>
+    </symbol>
+  </svg>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark"><svg><use href="#monstera" /></svg></span>
+      <span class="brand-name">Recaller</span>
+    </div>
+    <label class="search">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
+      <input id="search" type="search" placeholder="Search prompts" spellcheck="false" autocomplete="off" />
+      <kbd>Ctrl K</kbd>
+    </label>
+    <div class="topbar-actions">
+      <div class="history">
+        <button class="icon-btn" id="undo" disabled aria-label="Undo">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>
+        </button>
+        <button class="icon-btn" id="redo" disabled aria-label="Redo">
+          <svg class="icon" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5" /><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" /></svg>
+        </button>
+      </div>
+      <button class="btn btn-primary btn-sm" id="new-project" title="New project (Ctrl+Shift+N)">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+        <span>Project</span>
+      </button>
+      <button class="icon-btn" id="open-settings" title="Settings (Ctrl+,)" aria-label="Settings">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" /></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="backdrop" aria-hidden="true">
+      <svg class="leaf leaf-a"><use href="#monstera" /></svg>
+      <svg class="leaf leaf-b"><use href="#monstera" /></svg>
+    </div>
+    <main class="board" id="board"></main>
+    <button class="pan-btn pan-left" id="pan-left" hidden aria-label="Scroll left" title="Scroll left">
+      <svg class="icon" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6" /></svg>
+    </button>
+    <button class="pan-btn pan-right" id="pan-right" hidden aria-label="Scroll right" title="Scroll right">
+      <svg class="icon" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" /></svg>
+    </button>
+  </div>
+
+  <div class="selection-bar" id="selection-bar" hidden>
+    <span class="sel-count" id="sel-count"></span>
+    <span class="sel-hint">Ctrl+click to add or remove</span>
+    <button class="sel-btn" id="sel-used">Move to Augmented</button>
+    <button class="sel-btn" id="sel-clear">Clear</button>
+  </div>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <dialog class="lightbox" id="lightbox">
+    <img id="lightbox-img" alt="" />
+    <div class="lightbox-bar">
+      <button class="btn btn-primary btn-sm" id="lightbox-copy">Copy image</button>
+      <button class="btn btn-glass btn-sm" id="lightbox-close">Close</button>
+    </div>
+  </dialog>
+
+  <dialog class="modal" id="settings">
+    <form method="dialog" class="modal-card" id="settings-form">
+      <header class="modal-head">
+        <h2>Settings</h2>
+        <button class="icon-btn" value="close" title="Close" aria-label="Close">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+      </header>
+
+      <section class="field-grid">
+        <div class="field">
+          <label>Colour</label>
+          <div class="segmented" id="set-theme" role="radiogroup">
+            <button type="button" data-value="deep" role="radio">Deep</button>
+            <button type="button" data-value="soft" role="radio">Soft</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Column width</label>
+          <div class="segmented" id="set-density" role="radiogroup">
+            <button type="button" data-value="compact" role="radio">Compact</button>
+            <button type="button" data-value="slim" role="radio">Slim</button>
+            <button type="button" data-value="roomy" role="radio">Roomy</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="field">
+        <label>Join notes with <span class="muted">(Augmented, Used and Ctrl+click copies)</span></label>
+        <div class="segmented" id="set-joiner" role="radiogroup">
+          <button type="button" data-value="blank" role="radio">Blank line</button>
+          <button type="button" data-value="line" role="radio">New line</button>
+        </div>
+      </section>
+
+      <section class="field">
+        <label>Column title font</label>
+        <div class="title-picker" id="set-title-font" role="radiogroup">
+          <button type="button" class="title-opt t-sora" data-value="sora" role="radio"><span>Wildfire RL</span><small>Sora</small></button>
+          <button type="button" class="title-opt t-space" data-value="space" role="radio"><span>Wildfire RL</span><small>Space Grotesk</small></button>
+          <button type="button" class="title-opt t-inter" data-value="inter" role="radio"><span>Wildfire RL</span><small>Inter Display</small></button>
+          <button type="button" class="title-opt t-manrope" data-value="manrope" role="radio"><span>Wildfire RL</span><small>Manrope</small></button>
+          <button type="button" class="title-opt t-geist" data-value="geist" role="radio"><span>Wildfire RL</span><small>Geist</small></button>
+          <button type="button" class="title-opt t-caps" data-value="caps" role="radio"><span>Wildfire RL</span><small>Sora Caps</small></button>
+        </div>
+      </section>
+
+      <section class="field">
+        <label for="set-key">OpenAI API key <span class="muted">(voice to text)</span></label>
+        <div class="key-row">
+          <input id="set-key" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false" />
+          <button type="button" class="btn btn-ghost" id="set-key-remove">Remove</button>
+        </div>
+        <p class="help" id="set-key-status"></p>
+      </section>
+
+      <section class="field-grid">
+        <div class="field">
+          <label for="set-model">Transcription model</label>
+          <select id="set-model">
+            <option value="gpt-transcribe">gpt-transcribe (recommended)</option>
+            <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe (fastest)</option>
+            <option value="gpt-4o-transcribe">gpt-4o-transcribe</option>
+            <option value="whisper-1">whisper-1 (no live text)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="set-language">Language <span class="muted">(optional)</span></label>
+          <input id="set-language" type="text" placeholder="auto · e.g. en" maxlength="12" spellcheck="false" />
+        </div>
+      </section>
+
+      <section class="field">
+        <label for="set-hint">Vocabulary hint <span class="muted">(optional)</span></label>
+        <input id="set-hint" type="text" placeholder="Words it should spell right, e.g. PyTorch, Electron, iresine" spellcheck="false" />
+      </section>
+
+      <section class="field-grid">
+        <div class="field">
+          <label for="set-hotkey">Show/hide Recaller <span class="muted">(anywhere)</span></label>
+          <input id="set-hotkey" class="hotkey-input" data-setting="hotkey" type="text" readonly placeholder="Click, then press keys" />
+          <p class="help" id="set-hotkey-status"></p>
+        </div>
+        <div class="field">
+          <label for="set-shot-hotkey">Screenshot to note <span class="muted">(anywhere)</span></label>
+          <input id="set-shot-hotkey" class="hotkey-input" data-setting="shotHotkey" type="text" readonly placeholder="Click, then press keys" />
+          <p class="help" id="set-shot-hotkey-status"></p>
+        </div>
+      </section>
+
+      <section class="field">
+        <label class="switch">
+          <input id="set-hide" type="checkbox" />
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+          <span>Minimize Recaller after copying</span>
+        </label>
+      </section>
+
+      <section class="field">
+        <label for="set-backup">Backups</label>
+        <div class="key-row">
+          <select id="set-backup"></select>
+          <button type="button" class="btn btn-ghost" id="backup-now">Back up now</button>
+          <button type="button" class="btn btn-ghost" id="backup-restore">Restore</button>
+        </div>
+        <p class="help" id="backup-status"></p>
+      </section>
+
+      <footer class="modal-foot">
+        <button type="button" class="btn btn-ghost" id="open-data">Open data folder</button>
+        <span class="spacer"></span>
+        <button class="btn btn-primary" value="close">Done</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script src="icons.js"></script>
+  <script src="voice.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

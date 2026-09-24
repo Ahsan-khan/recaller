@@ -1,0 +1,49 @@
+{
+  "name": "recaller",
+  "productName": "Recaller",
+  "version": "1.5.0",
+  "description": "Your prompts and notes, one click away.",
+  "main": "src/main.js",
+  "author": "AKhan",
+  "license": "MIT",
+  "scripts": {
+    "start": "node scripts/run-electron.js .",
+    "icon": "node scripts/run-electron.js scripts/make-icon.js",
+    "dist": "electron-builder --win nsis",
+    "pack": "electron-builder --dir",
+    "test": "npm run test:multicopy && npm run test:update && npm run test:features",
+    "test:features": "node scripts/run-electron.js tests/e2e/features.e2e.js",
+    "test:update": "node scripts/run-electron.js tests/e2e/update-safety.e2e.js",
+    "test:multicopy": "node scripts/run-electron.js tests/e2e/multi-copy.e2e.js",
+    "capture": "node scripts/run-electron.js tests/e2e/capture-board.js"
+  },
+  "build": {
+    "appId": "com.akhan.recaller",
+    "productName": "Recaller",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Recaller",
+      "deleteAppDataOnUninstall": false
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  }
+}
