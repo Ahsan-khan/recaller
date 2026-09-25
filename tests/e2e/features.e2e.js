@@ -751,6 +751,44 @@ async function run() {
   key('Escape');
   await sleep(200);
 
+  // ---------------------------------------------------------------- pictures in Cooked and Served: shown under the text, copied on their own
+  const hasPng = async () => (await clipboard.read()).some((it) => it.types.includes('image/png'));
+  await js(`[...document.querySelectorAll('.column[data-id="p3"] .active-list .act-used')].pop().click()`);
+  await sleep(400);
+  await clickSel('.column[data-id="p3"] .used-head'); // p3 starts with Cooked folded
+  await sleep(300);
+  const augTiles = await js(`[...document.querySelectorAll('.column[data-id="p3"] .aug-images:not([hidden]) .card-img img')].map((i) => i.complete && i.naturalWidth)`);
+  check('a prompt moved to Cooked shows its picture under the Cooked note', augTiles.length === 1 && augTiles[0] > 0, JSON.stringify(augTiles));
+  await shot('08b-cooked-with-image');
+  await clipboard.writeText('');
+  await clickSel('.column[data-id="p3"] .aug-text');
+  await sleep(300);
+  const augTextNow = await augOf('p3');
+  const augChip = await js(`document.querySelector('.column[data-id="p3"] .aug-note .copied-chip')?.textContent`);
+  check('clicking the Cooked text copies the text alone ("Text copied")', augTextNow.endsWith('Why is this chart wrong?') && (await clipboard.readText()) === augTextNow && !(await hasPng()) && augChip === 'Text copied', JSON.stringify(augChip));
+  await clipboard.writeText('');
+  await clickSel('.column[data-id="p3"] .aug-images .card-img');
+  await sleep(300);
+  check('clicking the picture under Cooked copies the picture', (await hasPng()) && await js(`document.querySelector('.column[data-id="p3"] .aug-images .card-img').classList.contains('is-copied')`));
+  await js(`document.querySelector('.column[data-id="p3"] .aug-move').click()`);
+  await sleep(400);
+  check('moving it to Served carries the picture along', (await js(`document.querySelectorAll('.column[data-id="p3"] .final-images:not([hidden]) .card-img').length`)) === 1 && (await js(`document.querySelector('.column[data-id="p3"] .aug-images').hidden`)));
+  await clipboard.writeText('');
+  await clickSel('.column[data-id="p3"] .final-images .card-img');
+  await sleep(300);
+  check('clicking the picture under Served copies the picture', await hasPng());
+  await clipboard.writeText('');
+  await clickSel('.column[data-id="p3"] .final-text');
+  await sleep(300);
+  check('clicking the Served text still copies the text alone', (await clipboard.readText()) === augTextNow && !(await hasPng()));
+  key('Z', ['control']); // Move to Served
+  await sleep(250);
+  key('Z', ['control']); // Move to Cooked
+  await sleep(250);
+  await clickSel('.column[data-id="p3"] .used-head');
+  await sleep(250);
+  check('undo puts the picture prompt back in Cooking', (await js(`document.querySelectorAll('.column[data-id="p3"] .active-list .card-img').length`)) === 1 && (await augOf('p3')) === 'Label studio setup steps');
+
   // ---------------------------------------------------------------- horizontal scrolling
   const sl0 = await js('document.querySelector("#board").scrollLeft');
   check('right scroll arrow visible when columns overflow', !(await js(`document.querySelector('#pan-right').hidden`)));

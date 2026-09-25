@@ -2,7 +2,7 @@
 
 This folder is the complete handoff for **Recaller**. It lets any person, AI agent or LLM continue development without the original conversation. Everything here is plain text, and every user flow is described in words.
 
-Status as of **2026-09-24**, end of the second session: version **1.13.0** is the source version and its installer is built (`dist\Recaller Setup 1.13.0.exe`). **1.12.0 is installed** on the owner's PC; they install new versions themselves. Every automated test suite passes (12 + 21 + 114, plus 9 on a copy of the real data). The 1.13.0 changes are **uncommitted** on branch `v1` (see "Where things are").
+Status as of **2026-09-24**, third session: version **1.14.0** is the source version and its installer is built (`dist\Recaller Setup 1.14.0.exe`). **1.13.0 is installed** on the owner's PC and committed on `v1` as "1.13" (`0f7ceea`); they install and commit new versions themselves. Every automated test suite passes (12 + 21 + 121, plus 9 on a copy of the real data). The 1.14.0 changes (screenshots shown and copyable in Cooked and Served) are **uncommitted** on branch `v1` (see "Where things are").
 
 ## What Recaller is
 
@@ -29,7 +29,7 @@ Recaller is a Windows desktop app (Electron 44, vanilla JavaScript, no bundler) 
 | `05_design_system.md` | Colours, themes, fonts, sizes, stage colours, palettes and design rules learned from user feedback |
 | `06_build_test_release.md` | How to run, build, test and release. What the end-to-end suites check and how they work |
 | `07_gotchas_and_lessons.md` | Every pitfall hit so far: symptom, cause and fix |
-| `08_changelog.md` | Versions 1.0.0 to 1.13.0 and what changed in each |
+| `08_changelog.md` | Versions 1.0.0 to 1.14.0 and what changed in each |
 | `09_backlog_and_open_questions.md` | The roadmap for making Recaller usable by everyone, known issues, untested areas, ideas the user may want, technical debt and suggested next steps |
 | `10_user_messages_verbatim.md` | Every message the owner sent, word for word, with notes on how each was interpreted |
 | `11_decision_log.md` | Why each major choice was made (Electron, vanilla JS, voice design, undo, storage, fonts, …) and when to revisit it |
@@ -69,8 +69,8 @@ AI agents should read `13` first, then continue with the order above.
 
 - **Project root:** `C:\Users\User\Documents\recaller\` (moved out of `Documents\iresine\recaller` on 2026-09-24). It is its own git repo with remote `origin` = https://github.com/Ahsan-khan/recaller.
   - `main` holds the 1.5.0 commit (`3876950`).
-  - `v1` is the working branch. The owner commits each version there with a short message ("1.8", "1.9", … "1.12" = `290c74d`) and pushes; at the end of the session `v1` was 1 commit ahead of `origin/v1` (1.12 not yet pushed).
-  - The 1.13.0 work (Cooked as a light Ocean section) is uncommitted in the working tree.
+  - `v1` is the working branch. The owner commits each version there with a short message ("1.8", "1.9", … "1.12" = `290c74d`, "1.13" = `0f7ceea`) and pushes.
+  - The 1.14.0 work (pictures in Cooked and Served) is uncommitted in the working tree.
 - **Source:** `C:\Users\User\Documents\recaller\src\`.
 - **Tests:** `C:\Users\User\Documents\recaller\tests\e2e\`. Run them with `npm test`.
 - **Installer output:** `C:\Users\User\Documents\recaller\dist\Recaller Setup <version>.exe`.

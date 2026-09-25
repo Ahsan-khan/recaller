@@ -41,6 +41,7 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Edit Cooked or Served | The pencil in the footer edits the whole text (it's then saved as one note). **Notes** lists the separate notes inside: hover one to move it up ↑ or down ↓, edit just that one ✎, or send it back ↩ |
 | Read a long Cooked or Served text | Both start at a fixed height (6 lines). **Show more** under the text opens it up, and a very long text scrolls inside. They always start small again next time |
 | Copy a combined text | Click the Cooked note or the Served text |
+| Copy a screenshot from Cooked or Served | Screenshots follow their prompt down and show as small pictures under the text. Click one to copy it. The text and the pictures are copied separately (paste the text, then click the picture and paste again), because Claude, ChatGPT and most chat boxes keep only the picture when you paste both at once |
 | Empty a stage | Project menu **⋯ → Clear Cooked** or **Clear Served** (undoable) |
 | Blank line or new line | **Settings → Join notes with** sets how notes are joined in Cooked, Served and Ctrl+click copies |
 | Highlight a note | Hover, click the highlighter and pick a colour: *Check again*, *Important*, *Idea* or *Ready*. Or focus a note and press `H` |

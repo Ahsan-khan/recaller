@@ -1094,6 +1094,13 @@ body.has-selection .toasts { bottom: 74px; }
 }
 @keyframes fade-out { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
 
+/* The pictures of Cooked and Served: small tiles under the text; click one to copy it */
+.stage-images { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.stage-images .card-img { flex: none; width: 72px; height: 52px; aspect-ratio: auto; cursor: pointer; }
+.stage-images .card-img .img-expand { top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 5px; }
+.stage-images .card-img .img-expand .icon { width: 11px; height: 11px; }
+.stage-images .card-img.is-copied::after { content: "Copied"; font-size: 11px; }
+
 .card-meta {
   display: flex;
   align-items: center;

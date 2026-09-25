@@ -92,7 +92,7 @@ These were covered only by simulations: a fake microphone, a mock OpenAI server,
 ## Suggested next steps for whoever continues
 
 1. Read `README.md` → `03` → `04` in this folder.
-2. Run `npm install`, then `npm test` and confirm everything is green: 12 + 21 + 114 checks.
-3. Check which version the owner has installed (see `13`). At the end of the second session **1.12.0 was installed and 1.13.0 was built but not yet seen by the owner**. The first thing to ask is whether the light Ocean Cooked (1.13) finally looks right; if not, show the four palettes side by side (`npm run capture` plus Settings › Cooked colour) instead of guessing.
-4. Check git: the 1.13.0 work is uncommitted on branch `v1`. The owner commits versions themselves ("1.8" … "1.12"); don't commit unless asked.
+2. Run `npm install`, then `npm test` and confirm everything is green: 12 + 21 + 121 checks.
+3. Check which version the owner has installed (see `13`). In the third session **1.13.0 was installed and 1.14.0 was built but not yet seen by the owner**. Ask whether the Cooked/Served picture tiles work for them (text and picture are two pastes; see `11` #45), and whether the light Ocean Cooked (1.13) looks right.
+4. Check git: the 1.14.0 work is uncommitted on branch `v1`. The owner commits versions themselves ("1.8" … "1.13"); don't commit unless asked.
 5. Ask the owner the open questions above before building bigger features. The everyday-user roadmap at the top of this file is the biggest next step if they want to share Recaller.

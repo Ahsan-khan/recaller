@@ -3,10 +3,10 @@
 ## Session start (about 5 minutes)
 
 1. Read `README.md`, then `03_data_model.md`, then `04_features_and_flows.md` in this folder. Skim `09` for open issues and `10` for how the owner phrases things.
-2. **Installed version:** in the scratchpad, `npx @electron/asar extract-file "%LOCALAPPDATA%\Programs\recaller\resources\app.asar" package.json`, then read `version` and delete the extracted file. When the second session ended, 1.12.0 was installed and 1.13.0 was built (not yet installed or seen by the owner); the owner installs new versions themselves.
-3. **Git state:** `git -C C:\Users\User\Documents\recaller status -sb` and `git log --oneline -5`. The owner commits each version on branch `v1` ("1.8" … "1.12"); `main` has 1.5.0. At the end of the second session the 1.13.0 work was uncommitted. Don't commit or push unless asked.
-4. **Tests:** `npm install` if needed, then `npm test`. Expect 12 + 21 + 114 passing (about 5 minutes; run it in the background and grep the log). A single failure that passes on re-run is usually timing or the owner's mouse (see `06`).
-5. **Ask first about the last change.** The owner hadn't seen 1.13.0 (the light Ocean Cooked) when the session ended; ask whether it looks right before building anything else.
+2. **Installed version:** in the scratchpad, `npx @electron/asar extract-file "%LOCALAPPDATA%\Programs\recaller\resources\app.asar" package.json`, then read `version` and delete the extracted file. In the third session 1.13.0 was installed and 1.14.0 was built (not yet installed or seen by the owner); the owner installs new versions themselves.
+3. **Git state:** `git -C C:\Users\User\Documents\recaller status -sb` and `git log --oneline -5`. The owner commits each version on branch `v1` ("1.8" … "1.13"); `main` has 1.5.0. In the third session the 1.14.0 work was uncommitted. Don't commit or push unless asked.
+4. **Tests:** `npm install` if needed, then `npm test`. Expect 12 + 21 + 121 passing (about 5 minutes; run it in the background and grep the log). A single failure that passes on re-run is usually timing or the owner's mouse (see `06`).
+5. **Ask first about the last change.** The owner hadn't seen 1.14.0 (screenshots as tiles under the Cooked/Served text, copied separately from the text) when the session ended; ask whether the two-paste flow works for them, or whether they paste somewhere that takes text and a picture together (see `11` #45).
 
 ## The per-request workflow that worked
 

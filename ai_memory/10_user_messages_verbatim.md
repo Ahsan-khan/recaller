@@ -239,3 +239,9 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 > update the files in C:\Users\User\Documents\recaller\ai_memory
 
 [Done at the end of the second session. 1.13.0 was finished and tested, and every file in this folder was audited against the code: stale names, counts, git state and looks were corrected, the everyday loop was added to `04` §24, the release checklist in `06` was tightened, and the playbook in `13` gained this session's working lessons.]
+
+## Message 21 (third session)
+
+> When I paste. The copied thing. Like from cooked it. It doesn't paste the image. That I initially. Took as a screenshot in cooking.
+
+[Built as v1.14.0. Cooked and Served never showed or copied their prompts' images. Text + image in one clipboard write was tested, but the Claude Code VS Code chat box drops the text when an image comes with it, so the pictures now show as tiles under the Cooked/Served text and copy with a click, separately from the text.]

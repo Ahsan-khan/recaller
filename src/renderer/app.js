@@ -471,6 +471,7 @@
             <div class="aug-note" tabindex="0" title="Click to copy · swipe left or drag onto Served to move it down">
               <div class="aug-text"></div>
               <button class="aug-more stage-more" hidden></button>
+              <div class="aug-images stage-images" hidden></div>
               <div class="aug-foot"><span class="aug-stats"></span><span class="spacer"></span><button class="aug-parts-btn">Notes</button><button class="aug-edit" title="Edit the cooked note" aria-label="Edit the cooked note">${I.edit}</button></div>
               <div class="aug-parts" hidden></div>
             </div>
@@ -485,6 +486,7 @@
           <div class="final-body">
             <div class="final-text" title="Click to copy it all"></div>
             <button class="final-more stage-more" hidden></button>
+            <div class="final-images stage-images" hidden></div>
             <div class="final-empty">Move the Cooked note down to add it here</div>
             <div class="final-foot"><span class="final-stats"></span><span class="spacer"></span><button class="final-parts-btn">Notes</button><button class="final-edit" title="Edit the served text" aria-label="Edit the served text">${I.edit}</button></div>
             <div class="final-parts" hidden></div>
@@ -514,6 +516,7 @@
       augText: $('.aug-text', root),
       augStats: $('.aug-stats', root),
       augMore: $('.aug-more', root),
+      augImages: $('.aug-images', root),
       augParts: $('.aug-parts', root),
       augPartsBtn: $('.aug-parts-btn', root),
       augMoveBtn: $('.aug-move', root),
@@ -529,6 +532,7 @@
       finalText: $('.final-text', root),
       finalStats: $('.final-stats', root),
       finalMore: $('.final-more', root),
+      finalImages: $('.final-images', root),
       finalParts: $('.final-parts', root),
       finalPartsBtn: $('.final-parts-btn', root),
       finalEditHost: $('.final-edit-host', root),
@@ -586,6 +590,22 @@
       <div class="card-img" data-img="${img.id}" title="Click to copy image">
         <img src="${imgUrl(img.id, true)}" alt="" draggable="false" loading="lazy" />
         ${i === 2 && images.length > 3 ? `<span class="more">+${images.length - 3}</span>` : ''}
+        <button class="img-expand" title="View full size" aria-label="View full size">${I.expand}</button>
+      </div>`).join('');
+  }
+
+  // The pictures of every note in Cooked or Served, in order, shown as a strip under the text.
+  // Clicking one copies it (the text is copied on its own; see copyStageImage).
+  function stageImages(notes) {
+    const seen = new Set();
+    return notes.flatMap((n) => n.images).filter((img) => !seen.has(img.id) && seen.add(img.id));
+  }
+
+  function renderStageImages(box, images) {
+    box.hidden = !images.length;
+    box.innerHTML = images.map((img) => `
+      <div class="card-img" data-img="${img.id}" title="Click to copy this image">
+        <img src="${imgUrl(img.id, true)}" alt="" draggable="false" loading="lazy" />
         <button class="img-expand" title="View full size" aria-label="View full size">${I.expand}</button>
       </div>`).join('');
   }
@@ -755,10 +775,12 @@
     col.usedSection.classList.toggle('is-expanded', col.augExpanded || hitsAll(augText, query));
     col.usedSection.classList.toggle('is-editing', augEditing);
     col.augMoveBtn.hidden = !nAug || augEditing;
-    const augSig = `${augText}\u0001${project.used.map((n) => n.id).join(',')}\u0001${col.augPartsOpen}\u0001${query.key}`;
+    const augImages = stageImages(project.used);
+    const augSig = `${augText}\u0001${project.used.map((n) => n.id).join(',')}\u0001${augImages.map((i) => i.id).join(',')}\u0001${col.augPartsOpen}\u0001${query.key}`;
     if (col.augSig !== augSig) {
       col.augSig = augSig;
       col.augText.innerHTML = highlight(augText, query);
+      renderStageImages(col.augImages, augImages);
       const words = augText.trim() ? augText.trim().split(/\s+/).length : 0;
       col.augStats.textContent = `${nAug} prompt${nAug === 1 ? '' : 's'} · ${words.toLocaleString()} words`;
       col.augParts.hidden = !col.augPartsOpen;
@@ -775,10 +797,12 @@
     col.finalSection.classList.toggle('is-expanded', col.finalExpanded || hitsAll(combined, query));
     col.finalSection.classList.toggle('is-empty', !project.combined.length);
     col.finalSection.classList.toggle('is-editing', col.stageEditor?.list === 'combined');
-    const sig = `${combined}\u0001${project.combined.map((n) => n.id).join(',')}\u0001${col.partsOpen}\u0001${query.key}`;
+    const finalImages = stageImages(project.combined);
+    const sig = `${combined}\u0001${project.combined.map((n) => n.id).join(',')}\u0001${finalImages.map((i) => i.id).join(',')}\u0001${col.partsOpen}\u0001${query.key}`;
     if (col.finalSig !== sig) {
       col.finalSig = sig;
       col.finalText.innerHTML = highlight(combined, query);
+      renderStageImages(col.finalImages, finalImages);
       const n = project.combined.length;
       const words = combined.trim() ? combined.trim().split(/\s+/).length : 0;
       col.finalStats.textContent = `${n} note${n === 1 ? '' : 's'} · ${words.toLocaleString()} words`;
@@ -1052,7 +1076,7 @@
       return;
     }
     ui.lastProjectId = projectId;
-    flashCopied(col.finalBody, event, 'Copied');
+    flashCopied(col.finalBody, event, col.finalImages.hidden ? 'Copied' : 'Text copied');
     col.finalSection.classList.remove('is-flash');
     void col.finalSection.offsetWidth;
     col.finalSection.classList.add('is-flash');
@@ -1226,7 +1250,8 @@
     const project = findProject(projectId);
     if (!col || !project) return;
     const text = augmentedText(project);
-    if (!text) return;
+    // Only pictures, no text: copy the first picture, like an image-only card.
+    if (!text) return void (col.augImages.firstElementChild && copyStageImage(col, col.augImages.firstElementChild, event));
     try {
       await api.copy(text);
     } catch (err) {
@@ -1235,7 +1260,30 @@
       return;
     }
     ui.lastProjectId = projectId;
-    flashCopied(col.augNote, event, 'Copied');
+    flashCopied(col.augNote, event, col.augImages.hidden ? 'Copied' : 'Text copied');
+    if (ui.settings?.hideAfterCopy) setTimeout(() => api.minimize(), 260);
+  }
+
+  // A picture in the strip under the Cooked note or the Served text copies on its own.
+  // The text never carries its pictures: when the clipboard holds text and a picture,
+  // Claude, ChatGPT and most chat boxes attach the picture and drop the text.
+  async function copyStageImage(col, tile, event) {
+    let ok = false;
+    try {
+      ok = await api.copyImage(tile.dataset.img);
+    } catch (err) {
+      console.error(err);
+    }
+    if (!ok) {
+      toast("Couldn't copy to the clipboard.");
+      return;
+    }
+    ui.lastProjectId = col.id;
+    tile.classList.remove('is-copied');
+    void tile.offsetWidth;
+    tile.classList.add('is-copied');
+    setTimeout(() => tile.classList.remove('is-copied'), 1300);
+    flashCopied(tile.closest('.aug-note, .final-body'), event, 'Image copied');
     if (ui.settings?.hideAfterCopy) setTimeout(() => api.minimize(), 260);
   }
 
@@ -2109,6 +2157,9 @@
     if (!col) return;
     const note = col.augNote;
     const g = { x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, mode: null, travel: 0 };
+    // A click on a picture in the strip copies that picture; anywhere else copies the text.
+    const tile = e.target.closest('.aug-images .card-img');
+    const copy = (ev) => (tile ? copyStageImage(col, tile, ev) : copyAugmented(col.id, ev));
     const beginDrag = () => {
       g.mode = 'drag';
       dragActive = true;
@@ -2163,7 +2214,7 @@
       onEnd(ev, cancelled) {
         clearTimeout(hold);
         if (!g.mode) {
-          if (!cancelled) copyAugmented(col.id, ev);
+          if (!cancelled) copy(ev);
           return;
         }
         if (g.mode === 'swipe') {
@@ -2199,7 +2250,7 @@
         } else {
           g.ghost.remove();
           render();
-          if (stillClick) copyAugmented(col.id, ev);
+          if (stillClick) copy(ev);
         }
       },
     });
@@ -2881,6 +2932,10 @@
       if (e.target.closest('.fp-back')) return sendBackFromFinal(id);
       return;
     }
+    // A picture under the Served text copies just that picture (the Cooked note's strip
+    // is handled by its press gesture).
+    const servedImg = e.target.closest('.final-images .card-img');
+    if (servedImg) return copyStageImage(col, servedImg, e);
     // Clicking the final text copies it all, unless the user is selecting part of it
     // (or dragging the scrollbar of the opened-up text).
     if (e.target.closest('.final-text') && !String(window.getSelection()) && !onScrollbar(e)) copyFinal(col.id, e);

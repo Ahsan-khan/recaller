@@ -83,7 +83,14 @@ Dates are 2026-09-23 and 2026-09-24. Versions 1.0.0 to 1.5.0 were built in one l
 - **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
 - **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
 
-## 1.13.0 (current)
+## 1.14.0 (current)
+
+- **Screenshots in Cooked and Served:** the owner found that pasting the copied Cooked text didn't bring the screenshot they had attached in Cooking. The images always moved with their prompts but were never shown or copied. Both stages now show every picture as a strip of small tiles under the text. Click a tile to copy that picture; the expand icon opens the lightbox.
+- **The text is still copied on its own**, and its chip now says "Text copied" when the stage has pictures. Copying text and picture together was tested and rejected: the Claude Code VS Code chat box (and very likely claude.ai and ChatGPT) keeps only the picture and drops the text (`07` #54). A Cooked note with pictures but no text copies its first picture.
+- Help panel and README explain it: click the text and paste, then click the picture and paste.
+- **Tests:** features 121 checks (new: the Cooked strip shows the picture, the Cooked text copies without it, a tile copies the picture, the picture moves to Served, the Served tile and text copy separately, and undo puts it all back).
+
+## 1.13.0
 
 - **Cooked recoloured again, and restyled:** the owner said the caramel (brown) default "looks like shit". Cooked is now a **light section like Served**: a pale block, a coloured "COOKED" label with no dark header band, a white note, and one filled accent. The default is **Ocean** (#3a6fb5 on #e9f1fb).
 - **Settings › Cooked colour** now offers Ocean, Teal, Midnight and Graphite. The browns (Caramel, Espresso, Terracotta) and the band palettes (Petrol, Slate) are gone. A stored old value (e.g. `caramel`) draws as Ocean; the stored value itself is left alone.

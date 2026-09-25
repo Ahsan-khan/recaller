@@ -139,7 +139,8 @@ Terms used below:
 
 ### The Cooked note
 
-- **Click:** copies the combined text.
+- **Click:** copies the combined text. When the stage holds pictures, the chip says "Text copied" (the pictures are not included; see "Pictures in Cooked and Served" below). A Cooked note with pictures but no text copies its first picture.
+- **Pictures (1.14):** every screenshot of the prompts in Cooked shows as a small 72×52 tile in a strip under the text. Click a tile to copy that picture ("Copied" on the tile, "Image copied" chip); the expand icon opens the lightbox. Swiping or dragging from a tile still moves the whole note.
 - **Notes:** a toggle (looks pressed while open) that lists each part: number, first line, and on hover four buttons (see "The Notes list" below).
 - **Pencil (edit):** opens a composer in place of the note, holding the combined text and all the prompts' images. Saving a changed text replaces Cooked with ONE note containing it (undo label "Edit Cooked"). Saving it unchanged does nothing, so the parts stay separate. Cancel (× or Esc) leaves it untouched.
 - **Show more / Show less** (the slim bar under the text, 1.7): the note starts 6 lines tall. Show more opens it to at most min(56vh, 480px), and a longer text scrolls inside. Not remembered: it always starts small (older versions saved this as `usedExpanded`, which is no longer read).
@@ -156,7 +157,8 @@ All three **append every Cooked prompt to the end of Served**, in order, and emp
 ### Served (the final text)
 
 - It shows the exact texts of every note moved there, in order, joined by the separator.
-- **Click the text** to copy it all.
+- **Click the text** to copy it all ("Text copied" when it has pictures).
+- **Pictures (1.14):** the same strip of tiles as Cooked, under the text; click one to copy it.
 - **Fixed size (1.7):** like Cooked, it starts 6 lines tall with a fade. **Show more** opens it to a capped, scrolling view for the session. The owner asked for this because a 24-note Served (with "Show all" saved on) filled the whole column. `augExpanded` is no longer read.
 - **Pencil (edit):** like Cooked's: the whole Served text in a composer (placed under the Served header, the text box hidden meanwhile). A changed text is saved as ONE note ("Edit Served"); unchanged does nothing.
 - **Notes** lists the parts, with the same row buttons; ↩ sends one back to the end of Cooked ("Sent back to Cooked · Undo").
@@ -254,6 +256,8 @@ Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New lin
 - On a saved card, images show as thumbnails (one large, or a grid of three with "+N").
 - Clicking a thumbnail copies that image.
 - The expand icon on hover opens the **lightbox**: the full image, with **Copy image** and **Close**. Clicking the image or backdrop, or pressing Esc, closes it.
+
+**Pictures in Cooked and Served (1.14):** a prompt's images move with it (they always did in the data; before 1.14 they were just not shown). Both stages show all their pictures, in note order, as a strip of small tiles under the text. The text and the pictures are copied **separately on purpose**: clicking the text copies only the text, and clicking a tile copies only that picture. Putting both on the clipboard at once was tested and rejected: Chromium hands a paste of text + image to the page as text plus an image file, and the Claude Code VS Code chat box (checked in its code), and very likely claude.ai and ChatGPT, attach the file and throw the text away. See `07` #54.
 
 **Cleanup:** at startup, image files that no note, draft or backup references, and that are more than one hour old, are deleted.
 

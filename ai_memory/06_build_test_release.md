@@ -48,7 +48,7 @@ The owner's VS Code / Claude Code terminal sets `ELECTRON_RUN_AS_NODE=1`, which 
 
 1. Give them `dist\Recaller Setup X.Y.Z.exe`. They double-click it; it installs over the previous version (closing the running app if needed) and relaunches.
 2. Their data in `%APPDATA%\Recaller` is untouched, and the new version makes an `upgrade` backup on first start.
-3. **Currently installed:** 1.12.0 at the end of the second session (2026-09-24). The 1.13.0 installer (`dist\Recaller Setup 1.13.0.exe`) was built and tested but not yet installed. Installers for 1.5.0–1.13.0 sit in `dist\` (1.10.0's was deleted after a mislabelled rebuild; see `07` #52). Always check the installed version at session start (see `13`).
+3. **Currently installed:** 1.13.0 in the third session (2026-09-24). The 1.14.0 installer (`dist\Recaller Setup 1.14.0.exe`) was built and tested but not yet installed. Installers for 1.5.0–1.14.0 sit in `dist\` (1.10.0's was deleted after a mislabelled rebuild; see `07` #52). Always check the installed version at session start (see `13`).
 
 ## End-to-end test suites (`tests/e2e/`)
 
@@ -245,7 +245,7 @@ Every suite checks that `APP_MAIN` exists and otherwise prints `HARNESS FAIL: no
 ## Git status (important)
 
 - **Repository:** since 2026-09-24 Recaller is its own repo at `C:\Users\User\Documents\recaller` (moved out of `Documents\iresine\recaller`), remote `origin` = https://github.com/Ahsan-khan/recaller.
-- **Branches:** `main` has the 1.5.0 commit (`3876950`). `v1` is the working branch: the owner commits each version there with a short message ("initial commits" = 1.6, `ee2572a` "v1" = 1.7, then "1.8", "1.9", "1.10", "1.11", "1.12" = `290c74d`) and pushes. At the end of the second session `v1` was 1 commit ahead of `origin/v1`, and the 1.13.0 work was uncommitted in the working tree.
+- **Branches:** `main` has the 1.5.0 commit (`3876950`). `v1` is the working branch: the owner commits each version there with a short message ("initial commits" = 1.6, `ee2572a` "v1" = 1.7, then "1.8", "1.9", "1.10", "1.11", "1.12" = `290c74d`, "1.13" = `0f7ceea`) and pushes. In the third session the 1.14.0 work was uncommitted in the working tree.
 - **When committing is requested:** follow the owner's pattern (commit on `v1` with the version as the message) unless told otherwise, and add the attribution the environment requires. Push only when asked.
 - **Ignored:** `.gitignore` ignores `node_modules/`, `dist/` and `tests/e2e/.out/`.
 - **GitHub CLI:** `gh` isn't on PATH; use `C:\Program Files\GitHub CLI\gh.exe`.
