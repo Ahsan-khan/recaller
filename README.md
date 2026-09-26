@@ -15,7 +15,7 @@ npm install
 npm run dist
 ```
 
-This builds `dist/Recaller Setup 1.13.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
+This builds `dist/Recaller Setup 1.15.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
 
@@ -35,10 +35,11 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Copy a note | Click it. Click an image on the card to copy the image instead |
 | Copy several notes at once | Hold `Ctrl` and click each note. The clipboard holds them all, in click order, with a blank line between each. Numbered badges show that order. A note you plain-clicked just before counts as the first one, like in File Explorer. `Ctrl`+click a note again to drop it. `Esc`, clicking empty space, or switching to another app starts a fresh selection. The bar at the bottom can also move the picked notes to Cooked |
 | Delete a note | Hold the mouse on it and swipe left |
+| Delete from Cooked or Served | Click **Notes** under the text, hover a note and click its trash to delete just that one. To delete the whole Cooked note (or Served text), right-click it and click the trash in the editor. Both are undoable |
 | Undo anything | `Ctrl+Z`, the ↶ button in the top bar, or **Undo** on the toast. `Ctrl+Y` redoes |
 | Add a prompt to Cooked | Hover it and click **↓ Cooked** (or press `U`), or drag it down onto **Cooked**. It joins the end of the Cooked note |
 | Move the Cooked note into Served | Click **Move to Served**, swipe the note left, or drag it onto **Served**. Its text is added to the end of Served, and Cooked starts empty for the next batch |
-| Edit Cooked or Served | The pencil in the footer edits the whole text (it's then saved as one note). **Notes** lists the separate notes inside: hover one to move it up ↑ or down ↓, edit just that one ✎, or send it back ↩ |
+| Edit Cooked or Served | The pencil in the footer edits the whole text (it's then saved as one note). **Notes** lists the separate notes inside: hover one to move it up ↑ or down ↓, edit just that one ✎, send it back ↩, or delete it with the trash |
 | Read a long Cooked or Served text | Both start at a fixed height (6 lines). **Show more** under the text opens it up, and a very long text scrolls inside. They always start small again next time |
 | Copy a combined text | Click the Cooked note or the Served text |
 | Copy a screenshot from Cooked or Served | Screenshots follow their prompt down and show as small pictures under the text. Click one to copy it. The text and the pictures are copied separately (paste the text, then click the picture and paste again), because Claude, ChatGPT and most chat boxes keep only the picture when you paste both at once |

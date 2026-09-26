@@ -39,6 +39,8 @@ The owner asked what it would take for everyday users, not just them. The answer
 4. **Whole-text edit merges parts.** Saving a *changed* whole Cooked or Served text replaces its parts with one note (as in 1.5). Per-part editing (✎ in Notes) avoids that. Watch whether the owner expects the parts to survive a whole-text edit.
 5. **Mixed prompt order in old columns.** Since 1.7 new prompts go to the bottom, but prompts saved earlier stay newest-first until the owner uses ⋯ → Sort prompts oldest first. It isn't done automatically (update safety; the owner may have ordered some by hand).
 6. **`cardTarget()` has an unused `project` variable.** Trivial.
+7. **The row trash hides behind the Notes toggle (1.15).** Deleting one prompt from Cooked takes Notes → hover → trash. The Notes list is closed at start and isn't remembered. If the owner doesn't find it, options: open the list by default when Cooked has 2+ notes, remember `augPartsOpen` per column, or make Delete work on a focused row. A hovered row at slim width keeps only ~60px of its text for the five buttons.
+8. **Deleting a note from Cooked/Served isn't animated.** The row and the text just update (like ↑ / ↓). Cards animate out; stage parts don't.
 
 ## Untested in real conditions
 
@@ -71,7 +73,7 @@ These were covered only by simulations: a fake microphone, a mock OpenAI server,
 
 ## Technical debt
 
-- **`src/renderer/app.js` is about 3,400 lines in one file.** It is organised by sections but monolithic. Splitting it into modules (views, gestures, composer, stages, settings) would help. Use classic scripts or a bundler; ES modules over `file://` were deliberately avoided.
+- **`src/renderer/app.js` is about 3,560 lines in one file.** It is organised by sections but monolithic. Splitting it into modules (views, gestures, composer, stages, settings) would help. Use classic scripts or a bundler; ES modules over `file://` were deliberately avoided.
 - **The data and UI names for the stages differ** (`notes` = Cooking, `used` = Cooked, `combined` = Served). This is documented everywhere; a future migration could rename them, but only with a lossless, backed-up, tested migration, and only if the owner agrees.
 - **No unit tests.** Only end-to-end suites exist. The e2e suites depend on timing, and the owner's real mouse moving over the test window can occasionally interfere; re-run before debugging.
 - **The Soft theme gets less attention** than Deep, which is the default and what the owner uses.
@@ -88,11 +90,13 @@ These were covered only by simulations: a fake microphone, a mock OpenAI server,
 8. Which everyday-user items (above) to start with? The suggested first three are signing, auto-update and key-free voice.
 9. Is the 1.9 calm board calm enough with many columns? If not, offer a "calm headers" option (dark neutral header with a coloured stripe) or a narrower Compact default. Ask; don't impose.
 10. Which Cooked colour do they like? (Ocean is the default since 1.13; Teal, Midnight and Graphite are in Settings. Brown is out.)
+11. Does the 1.15 delete match what they meant by "delete something in cooked": one prompt (Notes → trash) or the whole note (right-click → trash)? Is the row trash easy enough to find?
+12. Does the 1.14 picture flow (copy the text, then click the picture and copy again) work where they paste?
 
 ## Suggested next steps for whoever continues
 
 1. Read `README.md` → `03` → `04` in this folder.
-2. Run `npm install`, then `npm test` and confirm everything is green: 12 + 21 + 121 checks.
-3. Check which version the owner has installed (see `13`). In the third session **1.13.0 was installed and 1.14.0 was built but not yet seen by the owner**. Ask whether the Cooked/Served picture tiles work for them (text and picture are two pastes; see `11` #45), and whether the light Ocean Cooked (1.13) looks right.
-4. Check git: the 1.14.0 work is uncommitted on branch `v1`. The owner commits versions themselves ("1.8" … "1.13"); don't commit unless asked.
+2. Run `npm install`, then `npm test` and confirm everything is green: 12 + 21 + 130 checks.
+3. Check which version the owner has installed (see `13`). In the fourth session **1.14.0 was installed and 1.15.0 was built but not yet seen by the owner**. Ask whether the new trash buttons in Cooked do what they wanted (open question 11), and whether the picture tiles work for them (question 12).
+4. Check git: the 1.15.0 work is uncommitted on branch `v1`. The owner commits versions themselves ("1.8" … "1.14"); don't commit unless asked.
 5. Ask the owner the open questions above before building bigger features. The everyday-user roadmap at the top of this file is the biggest next step if they want to share Recaller.

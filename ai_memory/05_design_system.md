@@ -108,7 +108,7 @@ A highlighted card gets a tinted background, a 55% border, a 4px bar in the colo
 - **Selected (Ctrl+click):** a 2px accent ring, a light accent background, and a round `--accent-deep` badge with the order number (top-left, white outline).
 - **Drop targets:** a dashed outline (Cooked in slate #3f4a62, Served in #34d399). Dashed placeholders in the accent colour.
 - **Swipe backdrops:** red gradient for delete; green gradient (#0e9f6e) for "Move to Served" on the Cooked note.
-- **Notes-list rows** (Cooked and Served): number, first line, and on hover ↑ ↓ ✎ ↩ buttons (22px). The Notes toggle looks pressed (tinted background) while open; its label stays "Notes" so the word-count stats keep their room.
+- **Notes-list rows** (Cooked and Served): number, first line, and on hover ↑ ↓ ✎ ↩ 🗑 buttons (22px, icons 13px). The trash (`.fp-del`, 1.15) sits 3px apart from the others and is quiet grey like them; only on hover does it turn `--danger` red on a 10% red tint (the other buttons tint in the stage colour). At the slim default width a hovered row keeps about 60px for its text (checked by the suite: at least 40px). The Notes toggle looks pressed (tinted background) while open; its label stays "Notes" so the word-count stats keep their room.
 - **Column resize handle** (`.col-resize`): a 10px strip in the gap right of each column. On hover a 3px × 48px rounded line appears (dark ink at 30% in Soft, mint at 60% in Deep); while dragging it runs the full height and the cursor is `col-resize` everywhere.
 
 ## Typography

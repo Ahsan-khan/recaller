@@ -42,13 +42,13 @@ The owner's VS Code / Claude Code terminal sets `ELECTRON_RUN_AS_NODE=1`, which 
 - **Unsigned:** the build runs a signtool step, but there is no certificate, so the installer is unsigned and Windows SmartScreen may warn ("More info → Run anyway").
 - **First build downloads:** Electron zip, NSIS, 7zip and resources into electron-builder's cache. A build takes about 1 minute.
 - **Known flake:** the build sometimes exits with code 127 partway (while unpacking Electron or building NSIS), leaving `dist/win-unpacked.tmp` and `.tmp.lock`. Fix: `rm -rf dist/win-unpacked dist/win-unpacked.tmp dist/win-unpacked.tmp.lock`, then build again.
-- **Before each release:** clean the old output first with `rm -rf dist/win-unpacked dist/*.exe dist/*.blockmap`.
+- **Before each release:** clean the old unpacked output with `rm -rf dist/win-unpacked dist/win-unpacked.tmp dist/win-unpacked.tmp.lock`. Older installers have been kept in `dist\` so far (it's git-ignored); delete them only if the owner wants the space back.
 
 ## How the owner installs and updates
 
 1. Give them `dist\Recaller Setup X.Y.Z.exe`. They double-click it; it installs over the previous version (closing the running app if needed) and relaunches.
 2. Their data in `%APPDATA%\Recaller` is untouched, and the new version makes an `upgrade` backup on first start.
-3. **Currently installed:** 1.13.0 in the third session (2026-09-24). The 1.14.0 installer (`dist\Recaller Setup 1.14.0.exe`) was built and tested but not yet installed. Installers for 1.5.0–1.14.0 sit in `dist\` (1.10.0's was deleted after a mislabelled rebuild; see `07` #52). Always check the installed version at session start (see `13`).
+3. **Currently installed:** 1.14.0 in the fourth session (2026-09-26). The 1.15.0 installer (`dist\Recaller Setup 1.15.0.exe`) was built and tested but not yet installed. Installers for 1.5.0–1.15.0 sit in `dist\` (1.10.0's was deleted after a mislabelled rebuild; see `07` #52); only `dist/win-unpacked*` is cleaned before a build. Always check the installed version at session start (see `13`).
 
 ## End-to-end test suites (`tests/e2e/`)
 
@@ -70,7 +70,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **Check syntax first:** run `node --check` on a suite before launching it. A syntax error makes Electron show an "App threw an error" dialog on the owner's screen until it times out.
 - **Real captures are deleted:** the features suite's real screen-snip test captures the owner's actual screen once. The suite deletes the images afterwards. Never view or keep those files.
 
-### `features.e2e.js` (114 checks, about 4 minutes)
+### `features.e2e.js` (130 checks, about 4 minutes)
 
 **Setup:**
 - **Seed data:** seven projects in the old v1 format, which also exercises loading old data.
@@ -123,6 +123,8 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
   - a Cooked part can be edited alone; the Cooked pencil opens the whole note and Esc cancels;
   - a prompt that lands in Cooked while its editor is open survives the save.
 - **Clearing:** the menu lists "Clear Cooked (1)" and "Clear Served (5)"; each empties only its own stage; Ctrl+Z restores.
+- **Deleting inside Cooked and Served (1.15):** every Cooked Notes row has a trash; a row laid out with its five buttons still leaves at least 40px of text at slim width; the row trash deletes one note ("Note deleted" toast) and Ctrl+Z puts it back in place; the Cooked editor (opened by right-click) has a trash titled "Delete the whole cooked note" that empties Cooked, leaves Served alone, and Ctrl+Z restores both parts; a Served row's trash deletes one note and undoes. Screenshot `shots2/03c-cooked-row-trash.png` (the hovered row sits under the board's › arrow there; a scratch copy of `capture-board.js` that hovers a row in the first column shows the buttons clearly, see `13`).
+- **Pictures in Cooked and Served (1.14):** the Cooked strip shows the picture, the Cooked text copies without it, a tile copies the picture, the picture moves to Served, the Served tile and text copy separately, and undo puts it all back.
 - **Search in combined texts:** terms are marked inside the Cooked and Served texts.
 - **Colours:** the menu has 18 swatches; picking Navy applies it (then undone).
 - **1.7 checks:**
@@ -245,7 +247,8 @@ Every suite checks that `APP_MAIN` exists and otherwise prints `HARNESS FAIL: no
 ## Git status (important)
 
 - **Repository:** since 2026-09-24 Recaller is its own repo at `C:\Users\User\Documents\recaller` (moved out of `Documents\iresine\recaller`), remote `origin` = https://github.com/Ahsan-khan/recaller.
-- **Branches:** `main` has the 1.5.0 commit (`3876950`). `v1` is the working branch: the owner commits each version there with a short message ("initial commits" = 1.6, `ee2572a` "v1" = 1.7, then "1.8", "1.9", "1.10", "1.11", "1.12" = `290c74d`, "1.13" = `0f7ceea`) and pushes. In the third session the 1.14.0 work was uncommitted in the working tree.
+- **Branches:** `main` has the 1.5.0 commit (`3876950`). `v1` is the working branch: the owner commits each version there with a short message ("initial commits" = 1.6, `ee2572a` "v1" = 1.7, then "1.8", "1.9", "1.10", "1.11", "1.12" = `290c74d`, "1.13" = `0f7ceea`, "1.14" = `8776a32`) and pushes. In the fourth session the 1.15.0 work was uncommitted in the working tree.
+- **Line endings:** `app.js`, `styles.css`, the suites and the Markdown files are LF in the working tree; `index.html` is CRLF. Git warns "LF will be replaced by CRLF" on diff; that is harmless. Keep each file's existing endings when patching.
 - **When committing is requested:** follow the owner's pattern (commit on `v1` with the version as the message) unless told otherwise, and add the attribution the environment requires. Push only when asked.
 - **Ignored:** `.gitignore` ignores `node_modules/`, `dist/` and `tests/e2e/.out/`.
 - **GitHub CLI:** `gh` isn't on PATH; use `C:\Program Files\GitHub CLI\gh.exe`.

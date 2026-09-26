@@ -892,6 +892,9 @@ body.is-dragging .final.is-empty .final-body { display: block; background: trans
 .fp-acts button:disabled { opacity: 0.3; }
 .aug-parts .fp-acts button:hover:not(:disabled) { background: var(--aug-bg); color: var(--aug-ink); }
 .final-parts .fp-acts button:hover:not(:disabled) { background: rgba(4, 120, 87, 0.12); color: #047857; }
+/* the row's trash sits a little apart and turns red only on hover */
+.fp-acts .fp-del { margin-left: 3px; }
+.final-part .fp-acts .fp-del:hover:not(:disabled) { background: rgba(220, 79, 58, 0.1); color: var(--danger); }
 .aug-text mark, .final-text mark { background: var(--highlight); color: inherit; border-radius: 3px; padding: 0 1px; }
 /* "Show more / Show less": a slim full-width bar right under the Cooked note and the Served text */
 .stage-more {

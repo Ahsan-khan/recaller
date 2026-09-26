@@ -469,7 +469,7 @@ async function run() {
   const finalRow = (i) => `document.querySelectorAll('.column[data-id="px1"] .final-parts .final-part')[${i}]`;
   await js(`document.querySelector('.column[data-id="px1"] .final-parts-btn').click()`);
   await sleep(200);
-  check('the Served Notes list shows each part with move, edit and send-back buttons', (await partsOf('px1', '.final-parts')).length === 5 && await js(`['.fp-up', '.fp-down', '.fp-edit', '.fp-back'].every((s) => ${finalRow(0)}.querySelector(s))`));
+  check('the Served Notes list shows each part with move, edit, send-back and delete buttons', (await partsOf('px1', '.final-parts')).length === 5 && await js(`['.fp-up', '.fp-down', '.fp-edit', '.fp-back', '.fp-del'].every((s) => ${finalRow(0)}.querySelector(s))`));
   await js(`${finalRow(0)}.querySelector('.fp-down').click()`);
   await sleep(300);
   check('↓ moves a part down, and the Served text follows the new order', (await finalOf('px1')).startsWith('Beta two\n\nGamma three'), JSON.stringify((await finalOf('px1')).slice(0, 30)));
@@ -568,6 +568,58 @@ async function run() {
   check('Clear Cooked empties the Cooked note and leaves Served alone', (await augOf('px1')) === '' && (await finalOf('px1')) === finalNow);
   key('Z', ['control']);
   await sleep(350);
+
+  // ---------------------------------------------------------------- deleting inside Cooked and Served (1.15)
+  const augRow = (i) => `document.querySelectorAll('.column[data-id="px1"] .aug-parts .final-part')[${i}]`;
+  await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Eta seven'); key('Enter', ['control']); await sleep(200); key('Escape'); await sleep(150);
+  await toAug(); await sleep(300); // Eta seven → Cooked, after Epsilon five plus
+  const augBefore = await augOf('px1');
+  if ((await js(`document.querySelector('.column[data-id="px1"] .aug-parts-btn').getAttribute('aria-pressed')`)) !== 'true') {
+    await js(`document.querySelector('.column[data-id="px1"] .aug-parts-btn').click()`);
+    await sleep(200);
+  }
+  check('every row in the Cooked Notes list has a trash button', (await partsOf('px1', '.aug-parts')).length === 2 && await js(`[...document.querySelectorAll('.column[data-id="px1"] .aug-parts .final-part')].every((r) => r.querySelector('.fp-del'))`));
+  const rowFit = await js(`(() => {
+    const row = ${augRow(0)};
+    const acts = row.querySelector('.fp-acts');
+    acts.style.display = 'flex';
+    const r = row.getBoundingClientRect(), a = acts.getBoundingClientRect(), t = row.querySelector('.fp-text').getBoundingClientRect();
+    acts.style.display = '';
+    return { fits: a.right <= r.right + 0.5 && t.right <= a.left + 0.5, text: Math.round(t.width) };
+  })()`);
+  check('a Notes row still fits its five buttons, with room for its text, at the default width', rowFit.fits && rowFit.text >= 40, JSON.stringify(rowFit));
+  await js(`${augRow(0)}.scrollIntoView({ block: 'center' })`);
+  await sleep(150);
+  const row0 = await rect(`.column[data-id="px1"] .aug-parts .final-part`);
+  mouse('mouseMove', row0.cx, row0.cy);
+  await sleep(150);
+  await shot('03c-cooked-row-trash');
+  await js(`${augRow(0)}.querySelector('.fp-del').click()`);
+  await sleep(350);
+  check('the trash on a Cooked row deletes just that note (with an Undo toast)', augBefore === 'Epsilon five plus\n\nEta seven' && (await augOf('px1')) === 'Eta seven' && (await partsOf('px1', '.aug-parts')).length === 1 && (await texts('.toast')).some((t) => t.includes('Note deleted')), JSON.stringify(await augOf('px1')));
+  key('Z', ['control']);
+  await sleep(350);
+  check('Ctrl+Z puts the deleted note back in its place in Cooked', (await augOf('px1')) === augBefore, JSON.stringify(await augOf('px1')));
+  // the trash in the whole-text editor (right-click the Cooked note) deletes the whole Cooked note
+  await rightClick('.column[data-id="px1"] .aug-note .aug-text');
+  await sleep(300);
+  const delTitle = await js(`document.querySelector('.column[data-id="px1"] .aug-wrap .composer .comp-delete')?.title ?? null`);
+  await js(`document.querySelector('.column[data-id="px1"] .aug-wrap .composer .comp-delete')?.click()`);
+  await sleep(350);
+  check('the Cooked editor\'s trash deletes the whole Cooked note and leaves Served alone', delTitle === 'Delete the whole cooked note' && (await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-empty')`)) && !(await js(`!!document.querySelector('.composer')`)) && (await finalOf('px1')) === finalNow && (await texts('.toast')).some((t) => t.includes('Cooked note deleted')), JSON.stringify(delTitle));
+  key('Z', ['control']);
+  await sleep(350);
+  check('Ctrl+Z brings the whole Cooked note back, parts and all', (await augOf('px1')) === augBefore && (await partsOf('px1', '.aug-parts')).length === 2);
+  // Served rows have the same trash
+  await js(`${finalRow(1)}.querySelector('.fp-del').click()`);
+  await sleep(350);
+  check('the trash on a Served row deletes just that note', (await partsOf('px1', '.final-parts')).length === 4 && !(await finalOf('px1')).includes('Beta two') && (await augOf('px1')) === augBefore, JSON.stringify((await finalOf('px1')).slice(0, 40)));
+  key('Z', ['control']);
+  await sleep(350);
+  check('Ctrl+Z restores the Served note', (await finalOf('px1')) === finalNow);
+  await js(`${augRow(1)}.querySelector('.fp-del').click()`); // Eta seven out of the way again
+  await sleep(350);
+  check('deleting the last Cooked row leaves the other note', (await augOf('px1')) === 'Epsilon five plus', JSON.stringify(await augOf('px1')));
 
   // ---------------------------------------------------------------- search also marks matches in the Cooked and Served texts
   const setSearch = (q) => js(`(() => { const s = document.querySelector('#search'); s.value = ${JSON.stringify(q)}; s.dispatchEvent(new Event('input')); })()`);

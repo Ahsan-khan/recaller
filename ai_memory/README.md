@@ -2,7 +2,7 @@
 
 This folder is the complete handoff for **Recaller**. It lets any person, AI agent or LLM continue development without the original conversation. Everything here is plain text, and every user flow is described in words.
 
-Status as of **2026-09-24**, third session: version **1.14.0** is the source version and its installer is built (`dist\Recaller Setup 1.14.0.exe`). **1.13.0 is installed** on the owner's PC and committed on `v1` as "1.13" (`0f7ceea`); they install and commit new versions themselves. Every automated test suite passes (12 + 21 + 121, plus 9 on a copy of the real data). The 1.14.0 changes (screenshots shown and copyable in Cooked and Served) are **uncommitted** on branch `v1` (see "Where things are").
+Status as of **2026-09-26**, fourth session: version **1.15.0** is the source version and its installer is built (`dist\Recaller Setup 1.15.0.exe`). **1.14.0 is installed** on the owner's PC and committed on `v1` as "1.14" (`8776a32`); they install and commit new versions themselves. Every automated test suite passes (12 + 21 + 130, plus 9 on a copy of the real data). The 1.15.0 changes (a trash button on each Cooked/Served Notes row, and in the whole-text editor) are **uncommitted** on branch `v1` (see "Where things are").
 
 ## What Recaller is
 
@@ -16,7 +16,7 @@ Recaller is a Windows desktop app (Electron 44, vanilla JavaScript, no bundler) 
   2. **Cooked** (Combined in 1.6–1.7, Augmented before): the prompts moved down, joined automatically into one note.
   3. **Served** (Final in 1.6–1.7, Used before): the final text. Moving the Cooked note down adds its text to the end of Served.
 - **Visual style:** a deep forest-green "monstera" nature theme with a slim, dense, calm layout: every column the same light surface under its own coloured header, white prompt cards, a light blue Cooked section (colour pickable) and a light sage Served section. Columns can be resized by dragging their edge; a top-bar button resets them. A top-bar **?** opens a one-page guide.
-- **Everyday use in one breath:** type or dictate a prompt (New prompt | Dictate), click a card to copy it, hover it and click **↓ Cooked** to gather it, move the Cooked note to Served, click Served to copy the finished text, and right-click anything to edit it.
+- **Everyday use in one breath:** type or dictate a prompt (New prompt | Dictate), click a card to copy it, hover it and click **↓ Cooked** to gather it, move the Cooked note to Served, click Served to copy the finished text, and right-click anything to edit it. Swipe a card left to delete it; inside Cooked or Served, open **Notes** and use a row's trash.
 
 ## Reading order
 
@@ -29,7 +29,7 @@ Recaller is a Windows desktop app (Electron 44, vanilla JavaScript, no bundler) 
 | `05_design_system.md` | Colours, themes, fonts, sizes, stage colours, palettes and design rules learned from user feedback |
 | `06_build_test_release.md` | How to run, build, test and release. What the end-to-end suites check and how they work |
 | `07_gotchas_and_lessons.md` | Every pitfall hit so far: symptom, cause and fix |
-| `08_changelog.md` | Versions 1.0.0 to 1.14.0 and what changed in each |
+| `08_changelog.md` | Versions 1.0.0 to 1.15.0 and what changed in each |
 | `09_backlog_and_open_questions.md` | The roadmap for making Recaller usable by everyone, known issues, untested areas, ideas the user may want, technical debt and suggested next steps |
 | `10_user_messages_verbatim.md` | Every message the owner sent, word for word, with notes on how each was interpreted |
 | `11_decision_log.md` | Why each major choice was made (Electron, vanilla JS, voice design, undo, storage, fonts, …) and when to revisit it |
@@ -69,8 +69,8 @@ AI agents should read `13` first, then continue with the order above.
 
 - **Project root:** `C:\Users\User\Documents\recaller\` (moved out of `Documents\iresine\recaller` on 2026-09-24). It is its own git repo with remote `origin` = https://github.com/Ahsan-khan/recaller.
   - `main` holds the 1.5.0 commit (`3876950`).
-  - `v1` is the working branch. The owner commits each version there with a short message ("1.8", "1.9", … "1.12" = `290c74d`, "1.13" = `0f7ceea`) and pushes.
-  - The 1.14.0 work (pictures in Cooked and Served) is uncommitted in the working tree.
+  - `v1` is the working branch. The owner commits each version there with a short message ("1.8", "1.9", … "1.12" = `290c74d`, "1.13" = `0f7ceea`, "1.14" = `8776a32`) and pushes.
+  - The 1.15.0 work (deleting inside Cooked and Served) is uncommitted in the working tree.
 - **Source:** `C:\Users\User\Documents\recaller\src\`.
 - **Tests:** `C:\Users\User\Documents\recaller\tests\e2e\`. Run them with `npm test`.
 - **Installer output:** `C:\Users\User\Documents\recaller\dist\Recaller Setup <version>.exe`.

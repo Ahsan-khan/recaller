@@ -56,6 +56,7 @@
   // → Cooked/Served). The data names were kept so existing notes load exactly as before.
   const LISTS = ['notes', 'used', 'combined'];
   const STAGE_NAME = { notes: 'Cooking', used: 'Cooked', combined: 'Served' };
+  const STAGE_WHOLE = { used: 'Cooked note', combined: 'Served text' };
   const TITLE_FONTS = ['instrument', 'jakarta', 'onest', 'sora', 'space', 'inter', 'manrope', 'geist', 'caps'];
   const DEFAULT_TITLE_FONT = 'instrument';
   const titleFont = () => (TITLE_FONTS.includes(data.prefs.titleFont) ? data.prefs.titleFont : DEFAULT_TITLE_FONT);
@@ -676,7 +677,7 @@
   const hitsAll = (text, query) => query.terms.length > 0 && query.terms.every((t) => text.toLowerCase().includes(t));
 
   // The Notes list under the Cooked note and the Served text: one row per part,
-  // with buttons to reorder it, edit it on its own, or send it back up a stage.
+  // with buttons to reorder it, edit it on its own, send it back up a stage, or delete it.
   function partsHtml(notes, query, back) {
     return notes.map((note, i) => `
       <div class="final-part" data-id="${note.id}">
@@ -687,6 +688,7 @@
           <button class="fp-down" title="Move down" aria-label="Move down"${i === notes.length - 1 ? ' disabled' : ''}>${I.arrowDown}</button>
           <button class="fp-edit" title="Edit this note" aria-label="Edit this note">${I.edit}</button>
           <button class="${back.cls}" title="${back.title}" aria-label="${back.title}">${I.restore}</button>
+          <button class="fp-del" title="Delete this note" aria-label="Delete this note">${I.trash}</button>
         </span>
       </div>`).join('');
   }
@@ -785,7 +787,7 @@
       col.augStats.textContent = `${nAug} prompt${nAug === 1 ? '' : 's'} · ${words.toLocaleString()} words`;
       col.augParts.hidden = !col.augPartsOpen;
       col.augPartsBtn.setAttribute('aria-pressed', String(col.augPartsOpen));
-      col.augPartsBtn.title = col.augPartsOpen ? 'Hide the separate notes' : 'Show the separate notes: reorder, edit or send one back';
+      col.augPartsBtn.title = col.augPartsOpen ? 'Hide the separate notes' : 'Show the separate notes: reorder, edit, send back or delete one';
       col.augParts.innerHTML = partsHtml(project.used, query, { cls: 'ap-back fp-back', title: 'Send back to Cooking' });
       augToMeasure.add(col);
     }
@@ -808,7 +810,7 @@
       col.finalStats.textContent = `${n} note${n === 1 ? '' : 's'} · ${words.toLocaleString()} words`;
       col.finalParts.hidden = !col.partsOpen;
       col.finalPartsBtn.setAttribute('aria-pressed', String(col.partsOpen));
-      col.finalPartsBtn.title = col.partsOpen ? 'Hide the separate notes' : 'Show the separate notes: reorder, edit or send one back';
+      col.finalPartsBtn.title = col.partsOpen ? 'Hide the separate notes' : 'Show the separate notes: reorder, edit, send back or delete one';
       col.finalParts.innerHTML = partsHtml(project.combined, query, { cls: 'fp-back', title: 'Send back to Cooked' });
       augToMeasure.add(col);
     }
@@ -1323,7 +1325,8 @@
       images: part ? part.images : project[list].flatMap((n) => n.images),
       placeholder: part ? 'Edit this note…' : `Edit the ${name.toLowerCase()} text…`,
       closeLabel: 'Cancel',
-      allowDelete: Boolean(part),
+      allowDelete: true,
+      deleteLabel: part ? 'Delete this note' : `Delete the whole ${STAGE_WHOLE[list].toLowerCase()}`,
       onSave: (text, images) => {
         saveStageEdit(projectId, list, partId, text, images, openedIds);
         closeStageEditor(col);
@@ -1331,7 +1334,8 @@
       onCancel: () => closeStageEditor(col),
       onDelete: () => {
         closeStageEditor(col);
-        deletePart(projectId, list, partId);
+        if (partId) deletePart(projectId, list, partId);
+        else deleteStageText(projectId, list, openedIds);
       },
     });
     col.stageEditor = { list, partId, composer };
@@ -1365,15 +1369,31 @@
     persist();
   }
 
+  // One part of the Cooked note or the Served text: the trash on its Notes row, or in its editor.
   function deletePart(projectId, list, partId) {
     const p = findProject(projectId);
     const index = p ? p[list].findIndex((n) => n.id === partId) : -1;
     if (index < 0) return;
+    const col = columns.get(projectId);
+    if (col?.stageEditor?.list === list) closeStageEditor(col);
     checkpoint('Delete note');
     p[list].splice(index, 1);
     persist();
     render();
     toast('Note deleted', { action: 'Undo', onAction: undo, duration: 7000, history: true });
+  }
+
+  // The trash in the whole-text editor deletes the whole Cooked note (or Served text).
+  // Anything that arrived while the editor was open wasn't in it, so it stays.
+  function deleteStageText(projectId, list, openedIds) {
+    const p = findProject(projectId);
+    if (!p || !p[list].some((n) => openedIds.has(n.id))) return;
+    const what = STAGE_WHOLE[list];
+    checkpoint(`Delete ${what}`);
+    p[list] = p[list].filter((n) => !openedIds.has(n.id));
+    persist();
+    render();
+    toast(`${what} deleted`, { action: 'Undo', onAction: undo, duration: 7000, history: true });
   }
 
   // ↑ / ↓ on a row in the Notes list: reorder the parts of the Cooked note or the Served text.
@@ -1567,7 +1587,7 @@
 
   // ================================================================ composer
 
-  function createComposer({ text = '', images: initialImages = [], placeholder, closeLabel = 'Close', allowDelete = false, onSave, onCancel, onDraft, onDelete }) {
+  function createComposer({ text = '', images: initialImages = [], placeholder, closeLabel = 'Close', allowDelete = false, deleteLabel = 'Delete note', onSave, onCancel, onDraft, onDelete }) {
     const root = el('div', 'composer');
     root.innerHTML = `
       <textarea rows="2" spellcheck="true"></textarea>
@@ -1582,7 +1602,7 @@
         <button type="button" class="icon-btn shot-btn" title="Add a screenshot (Ctrl+Shift+S) — or paste an image" aria-label="Add a screenshot">${I.camera}</button>
         <span class="composer-status"></span>
         <span class="spacer"></span>
-        ${allowDelete ? `<button type="button" class="icon-btn danger comp-delete" title="Delete note" aria-label="Delete note">${I.trash}</button>` : ''}
+        ${allowDelete ? `<button type="button" class="icon-btn danger comp-delete" title="${deleteLabel}" aria-label="${deleteLabel}">${I.trash}</button>` : ''}
         <button type="button" class="icon-btn comp-cancel" title="${closeLabel} (Esc)" aria-label="${closeLabel}">${I.close}</button>
         <button type="button" class="btn btn-primary comp-save" title="Save (Ctrl+Enter)">Save</button>
       </div>`;
@@ -2930,6 +2950,7 @@
       if (e.target.closest('.fp-edit')) return editStage(col.id, part.closest('.aug-parts') ? 'used' : 'combined', id);
       if (e.target.closest('.ap-back')) return moveBetween(id, 'notes');
       if (e.target.closest('.fp-back')) return sendBackFromFinal(id);
+      if (e.target.closest('.fp-del')) return deletePart(col.id, part.closest('.aug-parts') ? 'used' : 'combined', id);
       return;
     }
     // A picture under the Served text copies just that picture (the Cooked note's strip

@@ -1,6 +1,6 @@
 # 08: Changelog
 
-Dates are 2026-09-23 and 2026-09-24. Versions 1.0.0 to 1.5.0 were built in one long session; 1.6.0 in a second session on 2026-09-24. Versions refer to `package.json` and the installer `dist/Recaller Setup <version>.exe`.
+Dates are 2026-09-23 to 2026-09-26. Versions 1.0.0 to 1.5.0 were built in one long session; 1.6.0–1.13.0 in a second session on 2026-09-24; 1.14.0 in a third; 1.15.0 in a fourth on 2026-09-26. Versions refer to `package.json` and the installer `dist/Recaller Setup <version>.exe`.
 
 ## 1.0.0 (first build)
 
@@ -83,7 +83,18 @@ Dates are 2026-09-23 and 2026-09-24. Versions 1.0.0 to 1.5.0 were built in one l
 - **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
 - **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
 
-## 1.14.0 (current)
+## 1.15.0 (current)
+
+- **Delete inside Cooked:** the owner asked to be able to delete something in Cooked. Before, the only ways were ⋯ → Clear Cooked (everything) or Notes → ✎ → the editor's trash (one part, two steps deep).
+  - Every row in the **Notes** list now has a **trash** button after ↑ ↓ ✎ ↩. It deletes just that note ("Note deleted · Undo"); the combined text updates at once. The button sits a little apart and turns red only on hover.
+  - The **whole-text editor** (right-click the Cooked note, or its pencil) now has a trash button too, like the card editor. It deletes the whole Cooked note ("Cooked note deleted · Undo"); a prompt that arrived while the editor was open stays.
+  - **Served** got the same two (row trash; "Served text deleted · Undo" from its editor), since the Notes rows and editors are shared.
+  - All of it is undoable (Ctrl+Z, or Undo on the toast). Nothing asks for confirmation.
+- Help panel ("Delete" and "Edit anything") and README explain it. The Notes button tooltip says "reorder, edit, send back or delete one".
+- **Tests:** features 130 checks (new: every Cooked row has a trash; a row fits its five buttons with room for text at slim width; the row trash deletes one note and Ctrl+Z puts it back in place; the Cooked editor's trash deletes the whole note, leaves Served alone and Ctrl+Z restores it with its parts; the Served row trash deletes one note and undoes).
+- Verified: features 130/130 on source; 12 + 21 + 130 on the packaged build (the installer build needed one retry after the usual exit 127), 9/9 on a copy of the real data.
+
+## 1.14.0
 
 - **Screenshots in Cooked and Served:** the owner found that pasting the copied Cooked text didn't bring the screenshot they had attached in Cooking. The images always moved with their prompts but were never shown or copied. Both stages now show every picture as a strip of small tiles under the text. Click a tile to copy that picture; the expand icon opens the lightbox.
 - **The text is still copied on its own**, and its chip now says "Text copied" when the stage has pictures. Copying text and picture together was tested and rejected: the Claude Code VS Code chat box (and very likely claude.ai and ChatGPT) keeps only the picture and drops the text (`07` #54). A Cooked note with pictures but no text copies its first picture.

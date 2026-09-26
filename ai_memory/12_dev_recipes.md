@@ -43,7 +43,7 @@ Function and variable names below are real; search for them in the files. Line n
 
 - **Markup:** in `createColumn()`, in the `section.used` (Cooked) or `section.final` (Served) template. Keep a reference in the column view object.
 - **Rendering:** in `updateColumn()`, in the "Cooked" and "Served" blocks. If a new state affects the markup, add it to `augSig` or `finalSig`.
-- **Notes-list row buttons:** add them in `partsHtml()` (shared by both stages) and handle them in the board `click` listener's `.final-part` branch, which already routes `.fp-up`, `.fp-down`, `.fp-edit`, `.ap-back` (Cooked → prompts) and `.fp-back` (Served → Cooked). Tell the stages apart with `part.closest('.aug-parts')`.
+- **Notes-list row buttons:** add them in `partsHtml()` (shared by both stages) and handle them in the board `click` listener's `.final-part` branch, which already routes `.fp-up`, `.fp-down`, `.fp-edit`, `.ap-back` (Cooked → prompts), `.fp-back` (Served → Cooked) and `.fp-del` (delete, 1.15). Tell the stages apart with `part.closest('.aug-parts')`. Each button costs 22px of the row's text room on hover; with five, a slim-width row keeps ~60px (the features suite checks at least 40px), so a sixth button needs a smaller size or a menu.
 - **Clicks:** the board `click` listener also handles `.aug-move`, `.aug-edit`, `.final-edit`, `.aug-parts-btn`, `.final-parts-btn`, `.aug-more`, `.final-more` and clicks on `.final-text` (copy).
 - **Editing:** reuse `editStage(projectId, list, partId?)`; don't create another composer host.
 - **Remember:** data `used` is Cooked and `combined` is Served (`STAGE_NAME` maps them). Cooked texts come from `augmentedText(project)` and `finalText(project)` (or `stageText(project, list)`), all using `joiner()`.

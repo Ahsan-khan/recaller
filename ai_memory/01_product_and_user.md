@@ -152,12 +152,26 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
     - What was built: Cooked became a light section like Served (no dark band), Ocean blue by default; the picker now offers Ocean, Teal, Midnight and Graphite (browns removed). See `08` (1.13.0) and `10` (message 19).
 19. **"Brain dump everything" (again).** This folder was audited and brought up to date for 1.13.0 before the session ended.
 
+Third session (2026-09-24):
+
+20. **Round 17 → v1.14.0.**
+    - The request: pasting what was copied from Cooked didn't bring the screenshot taken in Cooking.
+    - What was built: Cooked and Served show their prompts' pictures as tiles under the text; a tile click copies that picture. Text and picture stay two separate copies, because chat boxes drop the text when both are pasted at once. See `08` (1.14.0) and `11` #45.
+
+Fourth session (2026-09-26); 1.14.0 was installed and committed as "1.14" by then:
+
+21. **"Read everything here and learn every file", then Round 18 → v1.15.0.**
+    - The request: "I should be able to delete something in cooked."
+    - What was built: a trash button on every row of the Cooked (and Served) **Notes** list that deletes that one note, and a trash in the whole-text editor (right-click or pencil) that deletes the whole Cooked note (or Served text). Both undoable, no confirmation. See `08` (1.15.0) and `11` #46.
+    - "then update files again and goodbye": this folder was brought up to date for 1.15.0 at the end of the session.
+
 ## Things the owner has not decided or confirmed
 
 - **Separator:** whether they want a blank line or a single new line between joined notes. The default stays blank line; the setting exists.
 - **Archiving Served:** whether a cleared Served text should be archived. ⋯ → Clear Served empties it (undoable until restart).
 - **Cooked counter:** round 9 removed only the counter next to Final (now Served). Whether they want the "· n" next to Cooked gone too is unknown.
-- **Cooked colour:** whether Ocean (1.13) finally pleases them. It hasn't been seen by the owner yet (1.12.0 was installed at the end of the session).
+- **Cooked colour:** whether Ocean (1.13) finally pleases them. They have had it installed since the third session and haven't complained, but never said so.
+- **Deleting in Cooked (1.15):** whether "something" meant one prompt (the row trash) or the whole Cooked note (the editor's trash); both were built. Whether the row trash is easy enough to find behind the **Notes** toggle is unconfirmed.
 - **Title font:** Instrument Sans is the new default; whether it finally satisfies "sharp, clean, modern" is unconfirmed.
 - **"All the colors are girly":** whether that included the project palette (pink Blossom, Orchid, Fuchsia), not just the Cooked (then Combined) colours.
 - **Going public:** whether they want to pursue the everyday-user roadmap in `09`, and in what order.

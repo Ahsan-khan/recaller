@@ -198,5 +198,6 @@ Unknown keys are preserved. The whole object (defaults included) is rewritten on
 - **1.9.0–1.11.0** added no fields (look and interaction only).
 - **1.12.0** added `prefs.cookedColor` (only when picked).
 - **1.13.0** changed the allowed `cookedColor` values to ocean/teal/midnight/graphite. Stored 1.12 values are not rewritten; they draw as ocean.
+- **1.14.0–1.15.0** added no fields. 1.14 shows the images already stored on `used` / `combined` notes; 1.15 deletes notes from those lists (the same splice as deleting a card).
 
 `DATA_VERSION` has been 2 since 1.1.0. Every change since then was additive or display-only, so no migration code exists beyond the one-time v1 → v2 rewrite.

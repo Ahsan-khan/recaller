@@ -4,7 +4,7 @@ These suites drive the real Recaller app with synthetic mouse and keyboard input
 
 | Command | Suite | Checks |
 | --- | --- | --- |
-| `npm run test:features` | `features.e2e.js`: layout, copy, swipe, drag, stages, editing and reordering parts, clearing, highlight, Ctrl+click, live dictation, images, scrolling, settings, column widths, snip, persistence | 114 |
+| `npm run test:features` | `features.e2e.js`: layout, copy, swipe, drag, stages, editing, reordering and deleting parts, clearing, pictures in Cooked and Served, highlight, Ctrl+click, live dictation, images, scrolling, settings, column widths, snip, persistence | 130 |
 | `npm run test:update` | `update-safety.e2e.js`: a new version must leave the user's data byte-for-byte unchanged, back it up and restore it | 21 (9 with `MODE=real`) |
 | `npm run test:multicopy` | `multi-copy.e2e.js`: Ctrl+click as a real person does it | 12 |
 | `npm test` | all three, in the order above | |

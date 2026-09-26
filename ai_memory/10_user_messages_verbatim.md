@@ -245,3 +245,21 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 > When I paste. The copied thing. Like from cooked it. It doesn't paste the image. That I initially. Took as a screenshot in cooking.
 
 [Built as v1.14.0. Cooked and Served never showed or copied their prompts' images. Text + image in one clipboard write was tested, but the Claude Code VS Code chat box drops the text when an image comes with it, so the pictures now show as tiles under the Cooked/Served text and copy with a click, separately from the text.]
+
+---
+
+Fourth session (2026-09-26). 1.14.0 was installed and committed as "1.14" by then.
+
+## Message 22 (the whole request, in one message)
+
+> C:\Users\User\Documents\recaller\ai_memory
+>
+> read everything here and learn every file
+>
+> then implement this:
+>
+> "I should be able to delete something in cooked."
+>
+> then update files again and goodbye
+
+[Built as v1.15.0. "Something in cooked" was read as "one prompt inside the Cooked note", since the only ways before were ⋯ → Clear Cooked (all of it) or Notes → ✎ → the editor's trash (two steps deep). Every Notes row got a trash button; the whole-text editor (right-click the note) got a trash for the whole Cooked note, matching the card editor. Served got the same because the rows and editors are shared. "Update files again and goodbye" = bring this folder up to date and end the session; no questions were asked.]

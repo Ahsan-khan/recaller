@@ -116,7 +116,7 @@ Terms used below:
 1. Press a card and move left (more horizontal than vertical by 1.2×, at least 7px). The card follows the pointer, and a red "trash" backdrop fades in behind it.
 2. Release past 36% of the card's width, or flick fast (more than 0.8 px/ms and more than 50px): the card slides out, the gap collapses, it is deleted, and a "Note deleted · Undo" toast appears for 7s.
 3. A shorter release springs the card back.
-4. Other ways to delete: Delete or Backspace on a focused card, or the trash button in the card editor.
+4. Other ways to delete: Delete or Backspace on a focused card, or the trash button in the card editor. (Deleting inside Cooked and Served works differently: see §9, "The Notes list".)
 
 ## 8. Dragging cards
 
@@ -142,7 +142,8 @@ Terms used below:
 - **Click:** copies the combined text. When the stage holds pictures, the chip says "Text copied" (the pictures are not included; see "Pictures in Cooked and Served" below). A Cooked note with pictures but no text copies its first picture.
 - **Pictures (1.14):** every screenshot of the prompts in Cooked shows as a small 72×52 tile in a strip under the text. Click a tile to copy that picture ("Copied" on the tile, "Image copied" chip); the expand icon opens the lightbox. Swiping or dragging from a tile still moves the whole note.
 - **Notes:** a toggle (looks pressed while open) that lists each part: number, first line, and on hover four buttons (see "The Notes list" below).
-- **Pencil (edit):** opens a composer in place of the note, holding the combined text and all the prompts' images. Saving a changed text replaces Cooked with ONE note containing it (undo label "Edit Cooked"). Saving it unchanged does nothing, so the parts stay separate. Cancel (× or Esc) leaves it untouched.
+- **Pencil (edit):** opens a composer in place of the note, holding the combined text and all the prompts' images. Saving a changed text replaces Cooked with ONE note containing it (undo label "Edit Cooked"). Saving it unchanged does nothing, so the parts stay separate. Cancel (× or Esc) leaves it untouched. Right-clicking the note opens the same editor.
+- **Deleting (1.15):** the editor's **trash** button (tooltip "Delete the whole cooked note") deletes the whole Cooked note: every prompt that was in it when the editor opened ("Cooked note deleted · Undo"; undo label "Delete Cooked note"). A prompt that landed in Cooked while the editor was open stays. To delete one prompt only, use the trash on its row in **Notes** (below). ⋯ → Clear Cooked still empties everything.
 - **Show more / Show less** (the slim bar under the text, 1.7): the note starts 6 lines tall. Show more opens it to at most min(56vh, 480px), and a longer text scrolls inside. Not remembered: it always starts small (older versions saved this as `usedExpanded`, which is no longer read).
 
 ### Cooked → Served
@@ -160,16 +161,17 @@ All three **append every Cooked prompt to the end of Served**, in order, and emp
 - **Click the text** to copy it all ("Text copied" when it has pictures).
 - **Pictures (1.14):** the same strip of tiles as Cooked, under the text; click one to copy it.
 - **Fixed size (1.7):** like Cooked, it starts 6 lines tall with a fade. **Show more** opens it to a capped, scrolling view for the session. The owner asked for this because a 24-note Served (with "Show all" saved on) filled the whole column. `augExpanded` is no longer read.
-- **Pencil (edit):** like Cooked's: the whole Served text in a composer (placed under the Served header, the text box hidden meanwhile). A changed text is saved as ONE note ("Edit Served"); unchanged does nothing.
-- **Notes** lists the parts, with the same row buttons; ↩ sends one back to the end of Cooked ("Sent back to Cooked · Undo").
+- **Pencil (edit):** like Cooked's: the whole Served text in a composer (placed under the Served header, the text box hidden meanwhile). A changed text is saved as ONE note ("Edit Served"); unchanged does nothing. Its trash (1.15) deletes the whole Served text ("Served text deleted · Undo").
+- **Notes** lists the parts, with the same row buttons; ↩ sends one back to the end of Cooked ("Sent back to Cooked · Undo"), and the trash deletes one.
 - **Clearing:** ⋯ → Clear Served (undoable).
 
 ### The Notes list (Cooked and Served)
 
-Each row shows the part's number and first line. The list is capped at 220px and scrolls. Hovering (or focusing inside) a row shows:
+Each row shows the part's number and first line. The list is capped at 220px and scrolls. The **Notes** toggle is closed at start (session-only, per column). Hovering (or focusing inside) a row shows five buttons:
 - **↑ / ↓**: move the part up or down (disabled at the ends). The combined text follows the new order. Undoable ("Reorder").
 - **✎**: edit just this part. The composer opens in the stage's editor spot with only that part's text and images; saving changes only that note (undo label "Edit note"), so the others stay separate. The composer's trash button deletes the part ("Note deleted · Undo").
 - **↩**: in Cooked, send the prompt back to the bottom of Cooking ("Moved back to Cooking"); in Served, send it back to the end of Cooked ("Sent back to Cooked").
+- **Trash** (1.15, last, a little apart, red on hover): delete just this note from the stage ("Note deleted · Undo"; undo label "Delete note"). The combined text and the picture strip update at once. There is no confirmation; Ctrl+Z or the toast's Undo puts it back in its place.
 
 Only one editor is open at a time anywhere: opening a stage editor closes the new-prompt composer and any card editor, and vice versa. Undo and redo close an open stage editor.
 
@@ -266,7 +268,7 @@ Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New lin
 - **Undo:** Ctrl+Z (when not typing in a text field), the ↶ button, or **Undo** on a toast. **Redo:** Ctrl+Y or Ctrl+Shift+Z, the ↷ button, or **Redo** on the "Undone: …" toast.
 - **Undoable actions:**
   - notes: new note, edit note, delete note, reorder;
-  - moving between projects, stages and parts: move to another project, Add to Cooked, Move to Cooked (selection), Move back to prompts, Add to Served (card dropped on Served), Move to Served (Cooked → Served), Send back to Cooked, Reorder (parts), Edit note (a part), Edit Cooked, Edit Served, Delete note (a part);
+  - moving between projects, stages and parts: move to another project, Add to Cooked, Move to Cooked (selection), Move back to prompts, Add to Served (card dropped on Served), Move to Served (Cooked → Served), Send back to Cooked, Reorder (parts), Edit note (a part), Edit Cooked, Edit Served, Delete note (a part, from its row trash or its editor), Delete Cooked note / Delete Served text (the whole-text editor's trash, 1.15);
   - highlights: highlight, remove highlight;
   - projects: new, rename, delete, reorder, move left/right, change colour, Clear Cooked, Clear Served.
 - **Not undoable through history, by design:** copies (and copy counts), collapsing and expanding, drafts, settings, theme and density changes, scrolling, column widths. (The "Column widths reset" toast has its own Undo.)
@@ -363,6 +365,7 @@ The footer holds **Open data folder** and **Done**.
 - "Moved n to Cooked · Undo"
 - "Deleted “Name” · Undo"
 - "Cleared Cooked · Undo" / "Cleared Served · Undo"
+- "Cooked note deleted · Undo" / "Served text deleted · Undo" (1.15, the whole-text editor's trash)
 - "Column widths reset to default · Undo"
 - "Prompts sorted oldest first · Undo"
 - "Undone: X · Redo" / "Redone: X · Undo"
@@ -398,7 +401,7 @@ At most three toasts show at once. Hovering a toast pauses its timer.
 The **?** in the top bar, `F1`, or `?` (when not typing) opens a dialog, "How Recaller works":
 - one line of intro;
 - the three stages as cards (Cooking, Cooked, Served), each with a colour dot and one sentence (Cooked: "Hover a prompt and click ↓ Cooked (or drag it down)…");
-- "Handy moves": Ctrl+click, swipe to delete + Ctrl+Z, "Edit anything" (right-click a prompt, the Cooked note or the Served text; right-click a Notes row for one part), folding a stage by clicking its name, highlight, resize, screenshots;
+- "Handy moves": Ctrl+click, "Delete" (swipe a card; in Cooked or Served the trash on a Notes row, or the editor's trash for the whole text; Ctrl+Z), "Edit anything" (right-click a prompt, the Cooked note or the Served text; right-click a Notes row for one part), folding a stage by clicking its name, highlight, resize, screenshots;
 - "Shortcuts": a two-column list. The show/hide row shows the user's own global key, or "Off" with a pointer to Settings.
 
 Esc, ×, or **Got it** closes it. While it's open, the app's own shortcuts are ignored.
@@ -411,5 +414,5 @@ Esc, ×, or **Got it** closes it. While it's open, the app's own shortcuts are i
 4. When a prompt is worth keeping in the working set, hover it and click **↓ Cooked**. Cooked shows every such prompt joined into one note; clicking it copies the whole combined text.
 5. When that combined text is done, click **↓ Move to Served** (or swipe the Cooked note left). Its text is added to the end of **Served**, and Cooked empties for the next batch.
 6. Click the Served text to copy the finished whole. **Show more** opens a long Served text for reading.
-7. Anything wrong? Right-click the prompt, the Cooked note, the Served text or a single Notes row to edit it. Ctrl+Z undoes any step.
+7. Anything wrong? Right-click the prompt, the Cooked note, the Served text or a single Notes row to edit it. A prompt that shouldn't be in Cooked: open **Notes** and click its trash (or ↩ to send it back to Cooking). Ctrl+Z undoes any step.
 8. Press Ctrl+Alt+R again to hide Recaller. Everything is saved as it happens; backups are made daily and before every update.
