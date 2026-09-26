@@ -1,6 +1,6 @@
 # 08: Changelog
 
-Dates are 2026-09-23 to 2026-09-26. Versions 1.0.0 to 1.5.0 were built in one long session; 1.6.0–1.13.0 in a second session on 2026-09-24; 1.14.0 in a third; 1.15.0 in a fourth on 2026-09-26. Versions refer to `package.json` and the installer `dist/Recaller Setup <version>.exe`.
+Dates are 2026-09-23 to 2026-09-26. Versions 1.0.0 to 1.5.0 were built in one long session; 1.6.0–1.13.0 in a second session on 2026-09-24; 1.14.0 in a third; 1.15.0 in a fourth on 2026-09-26; 1.16.0 in a fifth, the same day. Versions refer to `package.json` and the installer `dist/Recaller Setup <version>.exe`.
 
 ## 1.0.0 (first build)
 
@@ -83,7 +83,18 @@ Dates are 2026-09-23 to 2026-09-26. Versions 1.0.0 to 1.5.0 were built in one lo
 - **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
 - **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
 
-## 1.15.0 (current)
+## 1.16.0 (current)
+
+- **The board sits in a frame:** the owner asked for "a slight border … to organize everything … very sleek, very modern … aesthetic", and then clarified they meant the whole board space ("the board frame"), not the arrow. The board is now a rounded panel (radius 14px) inset from the window: 2px under the top bar and 12px from the left, right and bottom. The margin around it is the top bar's colour (`body` background = `--topbar`), so the top bar and the margin read as one dark shell holding the board. The frame edge is a 1px gradient: bright mint at the top-left corner (a soft sheen), settling to an even emerald all the way round (`--frame-edge`), plus a faint 3px emerald glow outside and a hairline highlight inside the top edge. The top bar's own bottom border and shadow were removed; the frame draws that edge now. In Soft theme the same frame is a deep-green hairline on a white shell. The board's scrollbar track is inset 12px so the thumb clears the rounded corners.
+  - Eight edge styles were rendered side by side on a real board first (a plain hairline, a gradient sheen, a recessed vignette, a wider emerald hairline, then a mint hairline, an emerald glow, a stronger sheen and a double frame). The first four were too faint to read as a border at 100% scale; the shipped edge combines the even emerald of the glow with the sheen's bright corner.
+  - The first build of 1.16.0 (never installed) had only the arrow changes below; the installer was rebuilt with the frame under the same version.
+- **The ‹ › board arrows keep out of the way:** the owner found the › arrow "kind of annoying" because it was always there (on a wide board there is nearly always more to the right). Each arrow now stays hidden until the pointer comes within 96px of its edge of the board, then fades and slides in (0.2s). It hides again when the pointer moves away or leaves the board, and while dragging a card or panning the canvas. Keyboard focus (Tab) still shows it. The old rule still applies on top: no arrow when there's nothing more to scroll that way.
+- **A matching ring on the arrows** (built first, when "a slight border to it" was read as the arrow's border; kept because it matches the frame): a solid white disc (a subtle white-to-mint gradient) with a slim deep-emerald ring (1.5px, drawn 1px at 100% scale), a faint white outer halo and a soft drop shadow, 38px (was 36px with a pale border that didn't show). On hover the ring turns bright emerald and the chevron deep emerald. A see-through frosted disc was tried and dropped: it turned muddy grey over the dark canvas.
+- README's "Scroll sideways" row explains the arrows.
+- **Tests:** features 134 checks (new: the board has a rounded frame with a gradient edge, inset from the window in a shell the colour of the top bar; the right arrow is out of sight mid-board; it appears near the right edge with a visible coloured ring; the left arrow appears only near the left edge while the right one leaves).
+- Verified (with the frame): 12 + 21 + 134 on source and on the packaged build, 9/9 on a copy of the real data.
+
+## 1.15.0
 
 - **Delete inside Cooked:** the owner asked to be able to delete something in Cooked. Before, the only ways were ⋯ → Clear Cooked (everything) or Notes → ✎ → the editor's trash (one part, two steps deep).
   - Every row in the **Notes** list now has a **trash** button after ↑ ↓ ✎ ↩. It deletes just that note ("Note deleted · Undo"); the combined text updates at once. The button sits a little apart and turns red only on hover.

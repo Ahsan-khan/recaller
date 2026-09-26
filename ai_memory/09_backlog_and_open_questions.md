@@ -41,6 +41,7 @@ The owner asked what it would take for everyday users, not just them. The answer
 6. **`cardTarget()` has an unused `project` variable.** Trivial.
 7. **The row trash hides behind the Notes toggle (1.15).** Deleting one prompt from Cooked takes Notes → hover → trash. The Notes list is closed at start and isn't remembered. If the owner doesn't find it, options: open the list by default when Cooked has 2+ notes, remember `augPartsOpen` per column, or make Delete work on a focused row. A hovered row at slim width keeps only ~60px of its text for the five buttons.
 8. **Deleting a note from Cooked/Served isn't animated.** The row and the text just update (like ↑ / ↓). Cards animate out; stage parts don't.
+9. **The board arrows are less discoverable (1.16).** They show only within 96px of the board's edge, so someone who never moves there won't see them. The wheel, drag-to-pan and the scrollbar still work, and README explains it. If the owner misses them, options: a faint edge hint (a thin gradient or a small notch) while the board overflows, or a wider zone.
 
 ## Untested in real conditions
 
@@ -92,11 +93,12 @@ These were covered only by simulations: a fake microphone, a mock OpenAI server,
 10. Which Cooked colour do they like? (Ocean is the default since 1.13; Teal, Midnight and Graphite are in Settings. Brown is out.)
 11. Does the 1.15 delete match what they meant by "delete something in cooked": one prompt (Notes → trash) or the whole note (right-click → trash)? Is the row trash easy enough to find?
 12. Does the 1.14 picture flow (copy the text, then click the picture and copy again) work where they paste?
+13. The 1.16 board frame (answered: "a border to organize everything" meant the board frame, not the arrow): is the frame's edge right (strength, the bright top-left sheen, the 12px margin)? Should the arrows keep their emerald ring now that the frame exists? Is showing the arrows only near the edge (96px) right?
 
 ## Suggested next steps for whoever continues
 
 1. Read `README.md` → `03` → `04` in this folder.
-2. Run `npm install`, then `npm test` and confirm everything is green: 12 + 21 + 130 checks.
-3. Check which version the owner has installed (see `13`). In the fourth session **1.14.0 was installed and 1.15.0 was built but not yet seen by the owner**. Ask whether the new trash buttons in Cooked do what they wanted (open question 11), and whether the picture tiles work for them (question 12).
-4. Check git: the 1.15.0 work is uncommitted on branch `v1`. The owner commits versions themselves ("1.8" … "1.14"); don't commit unless asked.
+2. Run `npm install`, then `npm test` and confirm everything is green: 12 + 21 + 134 checks.
+3. Check which version the owner has installed (see `13`). In the fifth session **1.15.0 was installed and 1.16.0 was built but not yet seen by the owner**. Ask whether the board frame is the border they meant and whether the arrows now behave as they wanted (open question 13). Questions 11 and 12 (the 1.15 trash, the 1.14 picture tiles) were never answered either.
+4. Check git: the 1.16.0 work is uncommitted on branch `v1`. The owner commits versions themselves ("1.8" … "1.15"); don't commit unless asked.
 5. Ask the owner the open questions above before building bigger features. The everyday-user roadmap at the top of this file is the biggest next step if they want to share Recaller.

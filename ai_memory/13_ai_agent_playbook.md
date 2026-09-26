@@ -3,10 +3,10 @@
 ## Session start (about 5 minutes)
 
 1. Read `README.md`, then `03_data_model.md`, then `04_features_and_flows.md` in this folder. Skim `09` for open issues and `10` for how the owner phrases things.
-2. **Installed version:** from the repo root, `node -e "const a=require('@electron/asar');console.log(JSON.parse(a.extractFile(process.env.LOCALAPPDATA+'/Programs/recaller/resources/app.asar','package.json')).version)"` (writes nothing; `npx @electron/asar` failed in the fourth session, see `07` #55). In the fourth session 1.14.0 was installed and 1.15.0 was built (not yet installed or seen by the owner); the owner installs new versions themselves.
-3. **Git state:** `git -C C:\Users\User\Documents\recaller status -sb` and `git log --oneline -5`. The owner commits each version on branch `v1` ("1.8" … "1.14"); `main` has 1.5.0. In the fourth session the 1.15.0 work was uncommitted. Don't commit or push unless asked.
-4. **Tests:** `npm install` if needed, then `npm test`. Expect 12 + 21 + 130 passing (about 5 minutes; run it in the background and grep the log). A single failure that passes on re-run is usually timing or the owner's mouse (see `06`).
-5. **Ask first about the last change.** The owner hadn't seen 1.15.0 when the session ended: a trash on every row of the Cooked/Served **Notes** list, and a trash in the whole-text editor (right-click the Cooked note). Ask whether that's the delete they meant and whether they found it (`09` questions 11–12). They also never said whether the 1.14 picture tiles (copied separately from the text) work where they paste (`11` #45).
+2. **Installed version:** from the repo root, `node -e "const a=require('@electron/asar');console.log(JSON.parse(a.extractFile(process.env.LOCALAPPDATA+'/Programs/recaller/resources/app.asar','package.json')).version)"` (writes nothing; `npx @electron/asar` failed in the fourth session, see `07` #55). In the fifth session 1.15.0 was installed and 1.16.0 was built (not yet installed or seen by the owner); the owner installs new versions themselves.
+3. **Git state:** `git -C C:\Users\User\Documents\recaller status -sb` and `git log --oneline -5`. The owner commits each version on branch `v1` ("1.8" … "1.15"); `main` has 1.5.0. In the fifth session the 1.16.0 work was uncommitted. Don't commit or push unless asked.
+4. **Tests:** `npm install` if needed, then `npm test`. Expect 12 + 21 + 134 passing (about 5 minutes; run it in the background and grep the log). A single failure that passes on re-run is usually timing or the owner's mouse (see `06`).
+5. **Ask first about the last change.** The owner hadn't seen 1.16.0 when the fifth session ended: the board now sits in a rounded frame with a slim emerald edge (the "border to organize everything" they asked for), and the ‹ › board arrows appear only when the pointer nears their edge. Ask whether the frame looks right and whether the arrows behave as they wanted (`09` question 13). Still unanswered from earlier: whether the 1.15 trash in Cooked's Notes rows is the delete they meant (question 11), and whether the 1.14 picture tiles work where they paste (question 12).
 
 ## The per-request workflow that worked
 
@@ -21,7 +21,7 @@
    - Run `node --check` on every edited JS file.
 4. **Look at it.**
    - `npm run capture`, or the `shot()` screenshots from the suites in `tests/e2e/.out/`, then view the PNGs.
-   - For wider boards or variants, copy `tests/e2e/capture-board.js` into the scratchpad and change the seed (many columns, hover a card with `sendInputEvent({ type: 'mouseMove' })`, toggle a body class per option). Use the same off-screen `show` override. In the copy, point `SCRATCH` and `APP_MAIN` at env vars (Windows paths via `pwd -W`) and run it with `env -u ELECTRON_RUN_AS_NODE npx electron <file>`. Hover things in the first column; the right edge is covered by the › arrow (`07` #56). For pure design comparisons, render a standalone HTML page in an offscreen-rendering window (see `07` #46) and combine crops into one sheet.
+   - For wider boards or variants, copy `tests/e2e/capture-board.js` into the scratchpad and change the seed (many columns, hover a card with `sendInputEvent({ type: 'mouseMove' })`, toggle a body class per option). Use the same off-screen `show` override. In the copy, point `SCRATCH` and `APP_MAIN` at env vars (Windows paths via `pwd -W`) and run it with `env -u ELECTRON_RUN_AS_NODE npx electron <file>`. Hover things in the first column; near the right edge the › arrow shows up and covers things (`07` #56). A scratch script must be copied into `tests/e2e/.out/` to run, since the scratchpad has no `node_modules` (`07` #60). For pure design comparisons, render a standalone HTML page in an offscreen-rendering window (see `07` #46) and combine crops into one sheet.
    - Fix overlaps, truncation and contrast before moving on.
    - Never open the screenshots from the real screen-snip test, which captures the owner's actual screen.
 5. **Test.**
@@ -62,13 +62,15 @@
 - They respond well to visual proof (screenshots) and clear "how to use it" steps.
 - On taste (fonts, colours), after two rejected attempts, show the options side by side and add a picker. Cooked's colour was rejected three times (violet, slate, brown). They swear when frustrated ("it literally looks like shit"); answer the actual question ("why brown?") honestly and briefly, own the mistake, fix it properly, and don't over-apologise.
 - They often paste dictated text as the whole message; treat it as their request.
-- Sessions often have the shape "read ai_memory, build X, update the files, goodbye" (fourth session). Then there's no one to answer questions: pick the most coherent reading, build it with a sensible companion (e.g. the same control on Served), test and release it, record the interpretation as an open question in `09`, and bring every affected file here up to date before ending.
-- Their visual taste in one line: dark green canvas, calm and light UI furniture, clear distinct stages, one obvious main action, no brown/violet/pink, nothing bright or heavy, nothing overlapping.
+- Sessions often have the shape "read ai_memory, build X, update the files, goodbye" (fourth and fifth sessions). Then there's no one to answer questions: pick the most coherent reading, build it with a sensible companion (e.g. the same control on Served), test and release it, record the interpretation as an open question in `09`, and bring every affected file here up to date before ending.
+- Their visual taste in one line: dark green canvas, calm and light UI furniture, clear distinct stages, one obvious main action, no brown/violet/pink, nothing bright or heavy, nothing overlapping, helpers that show only when needed (1.16 arrows), a framed board with a crisp, slim edge (1.16), crisp slim edges rather than blurry ones.
 - They care most about speed of reuse (copying), the stage workflow, and never losing data.
 
 ## Glossary
 
 - **Board:** the horizontally scrolling area holding the columns.
+- **Board frame / stage:** the rounded, emerald-edged panel (`.stage`) holding the board, inset in the dark shell (1.16).
+- **Board arrows / pan buttons:** the round ‹ › buttons at the board's left and right edges (`#pan-left` / `#pan-right`); since 1.16 they appear only when the pointer is near that edge.
 - **Column / project:** one project, holding the three stages.
 - **Card / prompt / note:** one item in the top stage.
 - **Stage:** one of the three sections of a column: **Cooking** (data `notes`, the prompt cards), **Cooked** (data `used`, one combined note; "Combined" in 1.6–1.7, "Augmented" before), **Served** (data `combined`, the final text; "Final" in 1.6–1.7, "Used" before).

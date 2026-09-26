@@ -2748,6 +2748,25 @@
     panRight.hidden = max <= 2 || board.scrollLeft >= max - 2;
   }
 
+  // The arrows stay out of sight until the pointer comes near their edge of the board
+  // (1.16: an always-on › over the last column was a distraction on a wide board).
+  const stageEl = board.parentElement;
+  const PAN_ZONE = 96; // px from the stage's left / right edge
+  let panNear = 0; // -1 left edge, 1 right edge, 0 neither
+
+  function setPanNear(near) {
+    if (near === panNear) return;
+    panNear = near;
+    panLeft.classList.toggle('is-near', near === -1);
+    panRight.classList.toggle('is-near', near === 1);
+  }
+
+  stageEl.addEventListener('pointermove', (e) => {
+    const r = stageEl.getBoundingClientRect();
+    setPanNear(e.clientX - r.left < PAN_ZONE ? -1 : r.right - e.clientX < PAN_ZONE ? 1 : 0);
+  }, { passive: true });
+  stageEl.addEventListener('pointerleave', () => setPanNear(0));
+
   function columnStep() {
     const col = board.querySelector('.column');
     const gap = parseFloat(getComputedStyle(board).columnGap) || 12;

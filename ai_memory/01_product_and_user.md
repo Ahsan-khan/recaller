@@ -36,6 +36,8 @@ Recaller keeps prompts and notes that the owner reuses when working with AI tool
 - **The main action gets the emphasis (round 14):** "Move to Cooked" is ~90% of their clicks on a card, so it's the one filled, labelled button.
 - **Save closes the editor (round 13):** after saving a prompt they want the buttons back, not an empty editor waiting.
 - **Calm with many columns (round 12):** they find a wide board of columns "cluttered" and want it "open" without using more space. Keep per-column furniture (labels, buttons, empty stages) light and uniform; let the header colour and the content carry the weight.
+- **Helpers stay out of the way (1.16):** the always-visible › scroll arrow was "kind of annoying". The ‹ › arrows now appear only when the pointer nears their edge of the board. Don't bring back always-on floating controls over the columns.
+- **A framed board (1.16):** they wanted "a border to organize everything … very sleek, very modern … aesthetic" around the whole board space. The board is a rounded panel with a slim gradient emerald edge in a dark shell the colour of the top bar. Slim and crisp, not heavy.
 - **Data safety is paramount.** Every update must keep everything identical: notes, drafts, images, colours, layout, scroll positions, window position and settings.
 
 ## Every request, in order, and what was built
@@ -165,6 +167,14 @@ Fourth session (2026-09-26); 1.14.0 was installed and committed as "1.14" by the
     - What was built: a trash button on every row of the Cooked (and Served) **Notes** list that deletes that one note, and a trash in the whole-text editor (right-click or pencil) that deletes the whole Cooked note (or Served text). Both undoable, no confirmation. See `08` (1.15.0) and `11` #46.
     - "then update files again and goodbye": this folder was brought up to date for 1.15.0 at the end of the session.
 
+Fifth session (2026-09-26, later the same day); 1.15.0 was installed and committed as "1.15" by then:
+
+22. **"Read everything in ai_memory and learn every file", then Round 19 → v1.16.0.**
+    - The request (dictated): the right arrow for scrolling right "should not always be present. It's kind of annoying." And "add like a slight border to it … it kind of needs a border to organize everything … very sleek, very modern … aesthetic border."
+    - What was built first: both ‹ › arrows stay hidden until the pointer comes within 96px of their edge of the board, then fade and slide in; they also hide while dragging or panning. "A slight border to it" was read as the arrow's border: a solid white disc with a slim deep-emerald ring. See `11` #47.
+    - The owner then replied: "yes i meant the whole space not the arror i mean the board frame". So the board became a framed panel: rounded, inset 12px in a dark shell the colour of the top bar, with a 1px gradient emerald edge (bright at the top-left) and a faint glow. Eight edge styles were compared side by side first. The arrow ring was kept because it matches the frame. See `08` (1.16.0) and `11` #48.
+    - "and update files … goodbye": this folder was brought up to date for 1.16.0 at the end of the session.
+
 ## Things the owner has not decided or confirmed
 
 - **Separator:** whether they want a blank line or a single new line between joined notes. The default stays blank line; the setting exists.
@@ -172,6 +182,7 @@ Fourth session (2026-09-26); 1.14.0 was installed and committed as "1.14" by the
 - **Cooked counter:** round 9 removed only the counter next to Final (now Served). Whether they want the "· n" next to Cooked gone too is unknown.
 - **Cooked colour:** whether Ocean (1.13) finally pleases them. They have had it installed since the third session and haven't complained, but never said so.
 - **Deleting in Cooked (1.15):** whether "something" meant one prompt (the row trash) or the whole Cooked note (the editor's trash); both were built. Whether the row trash is easy enough to find behind the **Notes** toggle is unconfirmed.
+- **Board frame and arrows (1.16):** whether the frame's edge is the "sleek, modern, aesthetic" border they pictured (strength, the sheen, the 12px margin), whether they want the emerald ring on the arrows now that the frame exists, and whether the 96px arrow reveal zone feels right.
 - **Title font:** Instrument Sans is the new default; whether it finally satisfies "sharp, clean, modern" is unconfirmed.
 - **"All the colors are girly":** whether that included the project palette (pink Blossom, Orchid, Fuchsia), not just the Cooked (then Combined) colours.
 - **Going public:** whether they want to pursue the everyday-user roadmap in `09`, and in what order.

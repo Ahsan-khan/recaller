@@ -20,7 +20,7 @@ Terms used below:
    - the settings gear.
 
    The green **+ Project** button was removed in 1.6; new projects come from the "+ New project" tile or Ctrl+Shift+N.
-2. **Stage**: a dotted canvas (dark forest green in Deep theme) with faint monstera leaves. The **board** holds the columns side by side, plus a dashed "+ New project" tile at the end. Round ‹ › scroll buttons appear at the left and right edges when there is more to scroll.
+2. **Stage**: a dotted canvas (dark forest green in Deep theme) with faint monstera leaves, framed since 1.16: a rounded panel with a slim emerald edge (brighter at the top-left) and a faint glow, inset 12px from the window's sides and bottom in a dark margin the colour of the top bar. The **board** holds the columns side by side, plus a dashed "+ New project" tile at the end. Round ‹ › scroll buttons sit at the left and right edges (1.16: only while the pointer is near that edge, and only when there is more to scroll that way; see §16).
 3. **Each column**, from top to bottom (its right edge is a resize handle, see §22):
    - **Header**, a solid colour in Deep theme. It holds a small leaf icon, the project name (wraps to two lines, then "…") and a ⋯ menu button. (The prompt count moved to the Cooking header in 1.8.)
    - **Cooking header** (1.8; a plain label since 1.9): "⌄ 🔥 COOKING · n" in the column's colour, no box (n = prompts; "m/n" while searching). Click it to fold the prompt cards away and back; that's saved as `project.notesCollapsed` (written only while folded). A search, a new prompt, a prompt sent back or a prompt dropped in all unfold it.
@@ -285,6 +285,8 @@ Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New lin
 ## 16. Moving around the board horizontally
 
 - ‹ › edge buttons: a click scrolls one column width smoothly; holding (more than 320ms) glides continuously.
+  - **When they show (1.16):** an arrow appears only while the pointer is within 96px of its edge of the board (it fades and slides in), and only if there is more to scroll that way. Moving the pointer away, leaving the board, dragging a card or panning the canvas hides it again. Tabbing to it with the keyboard also shows it. Before 1.16 the › was always on screen whenever the board overflowed, which the owner found annoying.
+  - **Look (1.16):** a 38px white disc with a slim deep-emerald ring and a faint outer halo; on hover the ring and chevron turn bright emerald and it grows slightly.
 - The mouse wheel over anything that can't scroll vertically (headers, gaps, short columns) scrolls the board sideways. Over something that scrolls itself (a column, an opened-up Cooked/Served text, a long Notes list, a textarea), the wheel scrolls that. Shift+wheel always scrolls sideways (Chromium's default).
 - Dragging empty canvas pans the board. A press on empty canvas without moving clears any Ctrl+click selection.
 - Holding the middle mouse button and dragging anywhere pans.

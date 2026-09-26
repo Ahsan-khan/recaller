@@ -74,6 +74,14 @@ Function and variable names below are real; search for them in the files. Line n
 4. Add the row to the IPC table in `ai_memory/02_architecture.md`.
 5. Network calls belong in main only; the page's CSP blocks them.
 
+## Show a floating control only when the pointer comes near (like the 1.16 board arrows)
+
+1. Keep the element in the DOM; CSS hides it with `opacity: 0; pointer-events: none` and shows it under a state class (`.is-near`) and `:focus-visible`, so keyboard users can still reach it.
+2. In `app.js`, listen for `pointermove` on the containing area (for the arrows, `.stage`), work out the zone from its `getBoundingClientRect()`, and toggle the class only when the zone changes (`setPanNear()`); clear it on `pointerleave`.
+3. Hide it during gestures with `body.is-dragging` / `body.is-panning` rules.
+4. Animate with the separate `translate` / `scale` properties, not `transform`, if hover also scales it (`07` #59).
+5. In tests, check the class and computed `pointer-events` after a `mouseMove`, not `opacity` (`07` #61).
+
 ## Add a keyboard shortcut
 
 - **Global in-app shortcuts:** the `document.addEventListener('keydown', …)` in the "global keys" section. Use `isTyping(e.target)` to avoid stealing keys from text fields.
@@ -89,6 +97,7 @@ Function and variable names below are real; search for them in the files. Line n
 - **Project palette:** `PALETTE` in `app.js`. **Never change existing ids;** users' files store them. Append new entries at the end. The array order is the order new projects take. The ⋯ menu grid is 9 columns (`.menu-swatches`); with more than 27 colours, add a row or widen it.
 - **Highlight colours:** `HIGHLIGHTS` in `app.js` (id, name, color, bg). The ids are stored in notes, so never rename them.
 - **Stage colours:** the `--aug-*` tokens and the `.final` rules.
+- **Board frame (1.16):** `--frame-edge` (a gradient), `--frame-glow` and `--frame-hi` in `:root` (Soft) and `body.theme-deep`. The geometry (margin, radius) is on `.stage`. If a rule changes `.stage`'s `background`, keep `var(--frame-edge) border-box` as its last layer and the other layers `padding-box`, or the edge disappears.
 
 ## Add a column-title font
 

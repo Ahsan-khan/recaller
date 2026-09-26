@@ -15,7 +15,7 @@ npm install
 npm run dist
 ```
 
-This builds `dist/Recaller Setup 1.15.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
+This builds `dist/Recaller Setup 1.16.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
 
@@ -56,7 +56,7 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | View an image | Hover the thumbnail and click the expand icon |
 | Edit | Right-click a prompt, the Cooked note or the Served text (or focus a prompt and press `E`). Right-click a row under **Notes** to edit just that part |
 | Rename a project | Double-click its title |
-| Scroll sideways | Mouse wheel over a header or empty space, the ‹ › buttons, or drag the empty background |
+| Scroll sideways | Mouse wheel over a header or empty space, drag the empty background, or move the pointer to the left or right edge of the board and click the ‹ › button that appears there (hold it to glide) |
 | Resize a column | Drag its right edge. Double-click the edge (or **⋯ → Reset width**) for the default width again |
 | Reset all column widths | The ↔ button in the top bar puts every column back to the default width. **Undo** on the toast brings your widths back |
 | Default column width | **Settings → Column width**: Compact, Slim or Roomy |

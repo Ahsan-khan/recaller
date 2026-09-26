@@ -42,6 +42,8 @@ The renderer swaps these classes in `render()` and `applyTheme()`.
 | `--aug-bar` / `--aug-bar-hover` / `--aug-band` | #3f4a62 / #2f384c / gradient #47526b → #384259 | Cooked accent bar, Move to Served bar, and the slate-navy header band |
 | `--final-card` / `--final-card-edge` | #f3f8f5 / #cfe3d6 | the pale mint Served text box (data `combined`) |
 | `--stage-lines` | 6 | how many lines the Cooked note and Served text show before "Show more" |
+| `--frame-edge` | `linear-gradient(150deg, rgba(5,122,85,.55) 0%, rgba(12,42,29,.2) 30%, rgba(12,42,29,.17) 100%)` | the board frame's 1px edge (1.16), a gradient painted under a transparent border |
+| `--frame-glow` / `--frame-hi` | rgba(16,168,116,.06) / rgba(255,255,255,.7) | the frame's faint 3px outer glow and its inner top highlight |
 
 **Per-column accent tokens** are set inline on each `.column` as `--accent: <project colour>`. The derived shades are redeclared on `:root, .column, .drag-ghost`, because custom properties resolve where they are declared:
 
@@ -53,7 +55,8 @@ The renderer swaps these classes in `render()` and `applyTheme()`.
 ### Deep theme (`body.theme-deep`, the default)
 
 - **Canvas:** `linear-gradient(165deg, #145640, #0e3a2b 45%, #06231a)` with white 7% dots. The monstera leaves are drawn in #6ee7b7 at 5–7% opacity.
-- **Top bar:** #082a1f, with white text. The search box is white 9% and turns white on focus. The Windows title-bar overlay matches: #082a1f with #e7f7ee symbols.
+- **Board frame (1.16):** `--frame-edge` is `linear-gradient(150deg, rgba(167,243,208,.72) 0%, rgba(52,211,153,.4) 28%, rgba(52,211,153,.32) 100%)` (a bright mint sheen at the top-left settling to an even emerald), `--frame-glow` rgba(52,211,153,.07), `--frame-hi` rgba(255,255,255,.06). The margin around the frame is `body`'s background, #082a1f like the top bar.
+- **Top bar:** #082a1f, with white text. Since 1.16 it has no bottom border or shadow; the board frame below it draws that edge. The search box is white 9% and turns white on focus. The Windows title-bar overlay matches: #082a1f with #e7f7ee symbols.
 - **Columns:** a light body (`color-mix(accent 7%, #f3f7f4)`) with a strong drop shadow.
 - **Column header:** a solid gradient from `mix(accent 90%, black)` to `--accent-deep`, with a white title (no shadow), a white-22% count pill, and white header buttons.
 - **Primary:** #10a874.
@@ -137,6 +140,7 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
 ## Sizes and layout
 
 - **Window:** default 1280×820, minimum 480×400. Top bar 48px.
+- **Board frame (1.16):** `.stage` has margin 2px 12px 12px, radius 14px, `overflow: hidden`, a transparent 1px border with `--frame-edge` painted as a `border-box` background layer under it (the canvas layers are `padding-box`), and `box-shadow: 0 0 0 3px var(--frame-glow), inset 0 1px 0 var(--frame-hi)`. `body` uses `--topbar` as its background, so the shell around the frame matches the top bar in both themes. The board's scrollbar track has a 12px margin at each end so the thumb clears the round corners. Why a gradient on a background layer: `border-image` ignores `border-radius`.
 - **Densities** (the default column width; a resized column uses its own width, 200–900px):
 
   | Setting | Column width | Card padding | Card text | Line clamp | Card gap | Column gap |
@@ -163,7 +167,7 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
   - an attachment row, and a message row for errors with action links;
   - the bottom bar holds the mic (a 30px circle, or a red pill with timer and bars while recording), the camera, a status line, then (edit mode) delete, close (×) and Save.
 - **Menus** radius 12px, **toasts** 12px, **settings dialog** 18px.
-- **Scroll arrows:** 36px circles on the board edges.
+- **Scroll arrows (`.pan-btn`, restyled in 1.16):** 38px circles, 10px in from the board edges at 45% height. A solid white-to-mint gradient disc (`#fff` → `#f3f8f5`), a 1.5px ring (Chromium draws it 1px at 100% scale) in `color-mix(--primary 60%, #0c2a1d)` (deep emerald), a faint 3px white halo (16%) and a soft drop shadow; the chevron is `--ink-2`, 18px, stroke 2.2. Hover: ring `--primary`, chevron `--primary-deep`, `scale: 1.06`. Hidden at rest (`opacity: 0`, nudged 6px outward with `translate`); `.is-near` (pointer within 96px of that edge) or `:focus-visible` fades and slides it in over about 0.2s. They use the separate `translate` / `scale` properties so the slide and the hover grow don't fight over `transform`. A see-through frosted disc was tried and dropped: over the dark canvas it read as muddy grey.
 
 ## Icons (`src/renderer/icons.js`, 24px stroke, 1.8 width)
 

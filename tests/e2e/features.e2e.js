@@ -347,6 +347,9 @@ async function run() {
   const headRgb = await js(`(() => { const c = document.createElement('canvas').getContext('2d'); c.fillStyle = getComputedStyle(document.querySelector('.column[data-id="p1"] .col-head')).backgroundImage.match(/(color\\([^)]*\\)|rgba?\\([^)]*\\))/g).pop(); return c.fillStyle; })()`);
   const hg = headRgb.startsWith('#') ? parseInt(headRgb.slice(3, 5), 16) / 255 : Number((headRgb.match(/srgb\s+[\d.]+\s+([\d.]+)/) || [])[1]);
   check('column headers are solid deep colour', hg > 0 && hg < 0.6, headRgb);
+  // 1.16: the board sits in a rounded frame, inset from the window edges, with a gradient edge
+  const frame = await js(`(() => { const st = document.querySelector('.stage'); const cs = getComputedStyle(st); const r = st.getBoundingClientRect(); const tb = document.querySelector('.topbar').getBoundingClientRect(); return { radius: parseFloat(cs.borderTopLeftRadius), bw: parseFloat(cs.borderTopWidth), left: r.left, right: innerWidth - r.right, bottom: innerHeight - r.bottom, gapTop: r.top - tb.bottom, edge: (cs.backgroundImage.match(/linear-gradient/g) || []).length >= 2 && cs.backgroundClip.split(',').pop().trim() === 'border-box', shell: getComputedStyle(document.body).backgroundColor === getComputedStyle(document.querySelector('.topbar')).backgroundColor }; })()`);
+  check('the board has a rounded frame with a gradient edge, inset in a shell the colour of the top bar', frame.radius >= 10 && frame.bw >= 1 && frame.left >= 8 && frame.right >= 8 && frame.bottom >= 8 && frame.gapTop >= 0 && frame.edge && frame.shell, JSON.stringify(frame));
 
   // ---------------------------------------------------------------- stages: prompts → Cooked (one note) → Served (one text)
   // (data names: Cooked is `used`, Served is `combined`)
@@ -844,10 +847,30 @@ async function run() {
   // ---------------------------------------------------------------- horizontal scrolling
   const sl0 = await js('document.querySelector("#board").scrollLeft');
   check('right scroll arrow visible when columns overflow', !(await js(`document.querySelector('#pan-right').hidden`)));
+  // 1.16: the arrows keep out of sight until the pointer nears their edge, and have a visible ring
+  const panState = (sel) => js(`(() => { const b = document.querySelector('${sel}'); const cs = getComputedStyle(b); return { near: b.classList.contains('is-near'), pe: cs.pointerEvents, bw: parseFloat(cs.borderTopWidth), bc: cs.borderTopColor }; })()`);
+  mouse('mouseMove', 600, 420, { modifiers: [] });
+  await sleep(150);
+  const ps0 = await panState('#pan-right');
+  check('the right arrow stays out of sight while the pointer is mid-board', !ps0.near && ps0.pe === 'none', JSON.stringify(ps0));
+  const winW = await js('innerWidth');
+  const pr0 = await rect('#pan-right');
+  mouse('mouseMove', winW - 70, pr0.cy - 90, { modifiers: [] });
+  await sleep(150);
+  const ps1 = await panState('#pan-right');
+  check('it appears near the right edge, with a slim coloured ring', ps1.near && ps1.pe === 'auto' && ps1.bw >= 1 && !/255, 255, 255|, 0\)$/.test(ps1.bc), JSON.stringify(ps1));
   await clickSel('#pan-right');
   await sleep(600);
   const sl1 = await js('document.querySelector("#board").scrollLeft');
   check('arrow scrolls by about one column', sl1 - sl0 > 200, `${sl0} → ${sl1}`);
+  const pl0 = await panState('#pan-left');
+  const pl0Hidden = await js(`document.querySelector('#pan-left').hidden`);
+  const pl0r = await rect('#pan-left');
+  mouse('mouseMove', 40, pl0r.cy - 90, { modifiers: [] });
+  await sleep(150);
+  const pl1 = await panState('#pan-left');
+  const pr1 = await panState('#pan-right');
+  check('the left arrow appears only near the left edge (and the right one leaves)', !pl0Hidden && !pl0.near && pl1.near && !pr1.near, JSON.stringify({ pl0, pl1, pr1 }));
   const hd = await rect('.column[data-id="p2"] .col-name');
   wc.sendInputEvent({ type: 'mouseWheel', x: Math.round(hd.cx), y: Math.round(hd.cy), deltaX: 0, deltaY: -240, canScroll: true });
   await sleep(300);

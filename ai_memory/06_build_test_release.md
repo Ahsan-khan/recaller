@@ -48,7 +48,7 @@ The owner's VS Code / Claude Code terminal sets `ELECTRON_RUN_AS_NODE=1`, which 
 
 1. Give them `dist\Recaller Setup X.Y.Z.exe`. They double-click it; it installs over the previous version (closing the running app if needed) and relaunches.
 2. Their data in `%APPDATA%\Recaller` is untouched, and the new version makes an `upgrade` backup on first start.
-3. **Currently installed:** 1.14.0 in the fourth session (2026-09-26). The 1.15.0 installer (`dist\Recaller Setup 1.15.0.exe`) was built and tested but not yet installed. Installers for 1.5.0–1.15.0 sit in `dist\` (1.10.0's was deleted after a mislabelled rebuild; see `07` #52); only `dist/win-unpacked*` is cleaned before a build. Always check the installed version at session start (see `13`).
+3. **Currently installed:** 1.15.0 in the fifth session (2026-09-26). The 1.16.0 installer (`dist\Recaller Setup 1.16.0.exe`) was built and tested but not yet installed. Installers for 1.5.0–1.16.0 sit in `dist\` (1.10.0's was deleted after a mislabelled rebuild; see `07` #52); only `dist/win-unpacked*` is cleaned before a build. Always check the installed version at session start (see `13`).
 
 ## End-to-end test suites (`tests/e2e/`)
 
@@ -70,7 +70,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **Check syntax first:** run `node --check` on a suite before launching it. A syntax error makes Electron show an "App threw an error" dialog on the owner's screen until it times out.
 - **Real captures are deleted:** the features suite's real screen-snip test captures the owner's actual screen once. The suite deletes the images afterwards. Never view or keep those files.
 
-### `features.e2e.js` (130 checks, about 4 minutes)
+### `features.e2e.js` (134 checks, about 4 minutes)
 
 **Setup:**
 - **Seed data:** seven projects in the old v1 format, which also exercises loading old data.
@@ -92,7 +92,8 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
   - long names wrap to two lines, clear of ⋯;
   - neighbouring column headers and sections have different colours;
   - Deep is the default theme;
-  - headers are dark and solid.
+  - headers are dark and solid;
+  - (1.16) the board has a rounded frame (radius ≥ 10px, a ≥1px border, a gradient edge layer clipped to `border-box`), inset at least 8px from the window's sides and bottom, and `body` has the top bar's background colour.
 - **Copy, swipe and undo:**
   - click copies;
   - swipe deletes;
@@ -155,7 +156,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
   - clicking the thumbnail copies an image;
   - clicking the text copies text;
   - the lightbox opens.
-- **Scrolling:** the arrow is visible and scrolls one column; the wheel over a header scrolls sideways; dragging empty canvas pans.
+- **Scrolling:** the right arrow is unhidden when the board overflows; (1.16) it is out of sight (no `.is-near`, `pointer-events: none`) with the pointer mid-board, and appears near the right edge with a visible, non-white ring of at least 1px; it scrolls one column; after that the left arrow appears only near the left edge while the right one leaves; the wheel over a header scrolls sideways; dragging empty canvas pans.
 - **Settings:** the Compact density narrows columns; the Soft theme can be picked and is saved.
 - **Column widths:** the ↔ button starts disabled; dragging two column edges resizes them (+90px, −40px) and saves `prefs.colWidths`; the button enables; it resets every column and removes the key; Undo on its toast restores; double-clicking an edge resets one column.
 - **Columns:** reorder, then undo.
@@ -247,7 +248,7 @@ Every suite checks that `APP_MAIN` exists and otherwise prints `HARNESS FAIL: no
 ## Git status (important)
 
 - **Repository:** since 2026-09-24 Recaller is its own repo at `C:\Users\User\Documents\recaller` (moved out of `Documents\iresine\recaller`), remote `origin` = https://github.com/Ahsan-khan/recaller.
-- **Branches:** `main` has the 1.5.0 commit (`3876950`). `v1` is the working branch: the owner commits each version there with a short message ("initial commits" = 1.6, `ee2572a` "v1" = 1.7, then "1.8", "1.9", "1.10", "1.11", "1.12" = `290c74d`, "1.13" = `0f7ceea`, "1.14" = `8776a32`) and pushes. In the fourth session the 1.15.0 work was uncommitted in the working tree.
+- **Branches:** `main` has the 1.5.0 commit (`3876950`). `v1` is the working branch: the owner commits each version there with a short message ("initial commits" = 1.6, `ee2572a` "v1" = 1.7, then "1.8", "1.9", "1.10", "1.11", "1.12" = `290c74d`, "1.13" = `0f7ceea`, "1.14" = `8776a32`, "1.15" = `7f101e6`) and pushes. In the fifth session the 1.16.0 work was uncommitted in the working tree.
 - **Line endings:** `app.js`, `styles.css`, the suites and the Markdown files are LF in the working tree; `index.html` is CRLF. Git warns "LF will be replaced by CRLF" on diff; that is harmless. Keep each file's existing endings when patching.
 - **When committing is requested:** follow the owner's pattern (commit on `v1` with the version as the message) unless told otherwise, and add the attribution the environment requires. Push only when asked.
 - **Ignored:** `.gitignore` ignores `node_modules/`, `dist/` and `tests/e2e/.out/`.

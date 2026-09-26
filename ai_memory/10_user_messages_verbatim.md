@@ -263,3 +263,29 @@ Fourth session (2026-09-26). 1.14.0 was installed and committed as "1.14" by the
 > then update files again and goodbye
 
 [Built as v1.15.0. "Something in cooked" was read as "one prompt inside the Cooked note", since the only ways before were ⋯ → Clear Cooked (all of it) or Notes → ✎ → the editor's trash (two steps deep). Every Notes row got a trash button; the whole-text editor (right-click the note) got a trash for the whole Cooked note, matching the card editor. Served got the same because the rows and editors are shared. "Update files again and goodbye" = bring this folder up to date and end the session; no questions were asked.]
+
+---
+
+Fifth session (2026-09-26, later the same day). 1.15.0 was installed and committed as "1.15" by then.
+
+## Message 23 (the whole request, in one message)
+
+> read everything in C:\Users\User\Documents\recaller\ai_memory and learn every file
+>
+> then implement this:
+>
+> "The right arrow. For scrolling to the right. Should not always be present. It's kind of annoying.
+>
+> Add like a slight border to it because. It kind of needs a border to organize everything. So make it a very sleek, very... Very modern, very, very. Aesthetic border."
+>
+> and update files
+>
+> goodbye
+
+[Built as v1.16.0. "The right arrow for scrolling to the right" = the round › button on the board's right edge, which showed whenever the board overflowed (almost always on their board). "Should not always be present" became: both arrows appear only while the pointer is within 96px of their edge, and hide during drags and pans. "A slight border to it" was read as a border on the arrow button itself: a slim deep-emerald ring with a faint halo on a solid white disc (three styles were compared first; a frosted see-through one went grey on the dark canvas). The other reading, a border framing the board or columns, was not built at first. "Update files … goodbye" = bring this folder up to date and end the session; no questions were asked.]
+
+## Message 24 (reply to the report)
+
+> yes i meant the whole space not the arror i mean the board frame
+
+["arror" = arrow. The border was meant for the whole board space. Built into 1.16.0 (not yet installed, so the version stayed): the board became a rounded panel inset 12px in a dark shell the colour of the top bar, with a 1px gradient emerald edge (bright mint at the top-left, even emerald elsewhere) and a faint glow. Eight edge styles were compared side by side first. The arrow's emerald ring was kept since it matches the frame; the owner can ask for it back to plain.]
