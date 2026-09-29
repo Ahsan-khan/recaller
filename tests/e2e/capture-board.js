@@ -1,5 +1,5 @@
 'use strict';
-// Renders a fixed sample board for visual review: the stages (prompts, Combined, Final),
+// Renders a fixed sample board for visual review: the stages (prompts, Cooked, Served),
 // highlights, a long two-line name, a resized column, the top bar, Settings and the colour menu.
 const path = require('node:path');
 const fs = require('node:fs');
@@ -19,7 +19,8 @@ const hl = (n, h) => ({ ...n, highlight: h });
 fs.writeFileSync(path.join(DATA_DIR, 'recaller-data.json'), JSON.stringify({ version: 2, prefs: { density: 'slim', colWidths: { c: 330 } }, projects: [
   { ...proj('a', 'Wildfire RL', 'monstera'), notes: [note('a1', 'Review the fire spread model — wind should bias ignition probability.'), hl(note('a2', 'Benchmark heuristic_ai vs PPO over 50 seeded maps.'), 'amber'), note('a3', 'Summarize the websocket protocol in 10 bullets.')],
     used: [note('u1', 'Write the stage two memory doc'), hl(note('u2', 'Refactor agents.py with typed dataclasses'), 'rose')],
-    combined: [note('c1', 'You are an expert RL engineer.'), note('c2', 'Here is the current reward function:\n\nreward = -burned_cells')] },
+    combined: [note('c1', 'You are an expert RL engineer.'), note('c2', 'Here is the current reward function:\n\nreward = -burned_cells'),
+      ...['Profile the rollout loop and report the slowest three calls.', 'Add a seed argument to every environment constructor.', 'Plot containment time against wind speed.', 'Write a README section on reproducing the benchmark.', 'List every magic number in agents.py with a suggested name.'].map((t, i) => note(`c${i + 3}`, t))] },
   { ...proj('b', 'Computer Vision and Robotics Research Notes', 'moss'), used: [note('u3', 'Label studio setup steps')] },
   proj('c', 'Website', 'sun'),
   proj('d', 'Ideas', 'orchid'),
@@ -45,7 +46,7 @@ app.whenReady().then(async () => {
   await sleep(2200);
   const wc = BrowserWindow.getAllWindows()[0].webContents;
   const js = (code) => wc.executeJavaScript(code);
-  // open the Notes list under the Combined note and the Final text of the first column
+  // open the Notes list under the Cooked note and the Served text of the first column
   await js("document.querySelector('.column[data-id=\"a\"] .aug-parts-btn').click(); document.querySelector('.column[data-id=\"a\"] .final-parts-btn').click()");
   await sleep(300);
   const img = await wc.capturePage({ x: 0, y: 0, width: 1360, height: 780 });
@@ -60,8 +61,12 @@ app.whenReady().then(async () => {
   await sleep(200);
   await js("document.querySelector('#open-settings').click()");
   await sleep(700);
-  const r = await js("(() => { const b = document.querySelector('.modal-card').getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), width: Math.round(b.width), height: 400 }; })()");
+  const r = await js("(() => { const b = document.querySelector('#settings .modal-card').getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), width: Math.round(b.width), height: 400 }; })()");
   fs.writeFileSync(path.join(SCRATCH, `${OUT}-settings.png`), (await wc.capturePage(r)).toPNG());
+  await js("document.querySelector('#settings').close(); document.querySelector('#open-help').click()");
+  await sleep(700);
+  const h = await js("(() => { const b = document.querySelector('#help .modal-card').getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), width: Math.round(b.width), height: Math.round(Math.min(b.height, 780)) }; })()");
+  fs.writeFileSync(path.join(SCRATCH, `${OUT}-help.png`), (await wc.capturePage(h)).toPNG());
   console.log('captured');
   app.exit(0);
 });

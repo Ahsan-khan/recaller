@@ -39,14 +39,14 @@ Function and variable names below are real; search for them in the files. Line n
 5. `yourAction(id)`: `const loc = locate(id)`, then `checkpoint('Label')` BEFORE changing anything, then mutate, then `persist()`, then `render()`. Show a toast with Undo if the change is visible: `toast('Done', { action: 'Undo', onAction: undo, history: true })`.
 6. Buttons inside cards are skipped by the card gesture engine (its `closest('button, …')` check), so they won't trigger copy or drag.
 
-## Add an action on the Combined note or the Final text
+## Add an action on the Cooked note or the Served text
 
-- **Markup:** in `createColumn()`, in the `section.used` (Combined) or `section.final` (Final) template. Keep a reference in the column view object.
-- **Rendering:** in `updateColumn()`, in the "Combined" and "Final" blocks. If a new state affects the markup, add it to `augSig` or `finalSig`.
-- **Notes-list row buttons:** add them in `partsHtml()` (shared by both stages) and handle them in the board `click` listener's `.final-part` branch, which already routes `.fp-up`, `.fp-down`, `.fp-edit`, `.ap-back` (Combined → prompts) and `.fp-back` (Final → Combined). Tell the stages apart with `part.closest('.aug-parts')`.
+- **Markup:** in `createColumn()`, in the `section.used` (Cooked) or `section.final` (Served) template. Keep a reference in the column view object.
+- **Rendering:** in `updateColumn()`, in the "Cooked" and "Served" blocks. If a new state affects the markup, add it to `augSig` or `finalSig`.
+- **Notes-list row buttons:** add them in `partsHtml()` (shared by both stages) and handle them in the board `click` listener's `.final-part` branch, which already routes `.fp-up`, `.fp-down`, `.fp-edit`, `.ap-back` (Cooked → prompts), `.fp-back` (Served → Cooked) and `.fp-del` (delete, 1.15). Tell the stages apart with `part.closest('.aug-parts')`. Each button costs 22px of the row's text room on hover; with five, a slim-width row keeps ~60px (the features suite checks at least 40px), so a sixth button needs a smaller size or a menu.
 - **Clicks:** the board `click` listener also handles `.aug-move`, `.aug-edit`, `.final-edit`, `.aug-parts-btn`, `.final-parts-btn`, `.aug-more`, `.final-more` and clicks on `.final-text` (copy).
 - **Editing:** reuse `editStage(projectId, list, partId?)`; don't create another composer host.
-- **Remember:** data `used` is Combined and `combined` is Final (`STAGE_NAME` maps them). Combined texts come from `augmentedText(project)` and `finalText(project)` (or `stageText(project, list)`), all using `joiner()`.
+- **Remember:** data `used` is Cooked and `combined` is Served (`STAGE_NAME` maps them). Cooked texts come from `augmentedText(project)` and `finalText(project)` (or `stageText(project, list)`), all using `joiner()`.
 
 ## Add or change a data field
 
@@ -74,6 +74,14 @@ Function and variable names below are real; search for them in the files. Line n
 4. Add the row to the IPC table in `ai_memory/02_architecture.md`.
 5. Network calls belong in main only; the page's CSP blocks them.
 
+## Show a floating control only when the pointer comes near (like the 1.16 board arrows)
+
+1. Keep the element in the DOM; CSS hides it with `opacity: 0; pointer-events: none` and shows it under a state class (`.is-near`) and `:focus-visible`, so keyboard users can still reach it.
+2. In `app.js`, listen for `pointermove` on the containing area (for the arrows, `.stage`), work out the zone from its `getBoundingClientRect()`, and toggle the class only when the zone changes (`setPanNear()`); clear it on `pointerleave`.
+3. Hide it during gestures with `body.is-dragging` / `body.is-panning` rules.
+4. Animate with the separate `translate` / `scale` properties, not `transform`, if hover also scales it (`07` #59).
+5. In tests, check the class and computed `pointer-events` after a `mouseMove`, not `opacity` (`07` #61).
+
 ## Add a keyboard shortcut
 
 - **Global in-app shortcuts:** the `document.addEventListener('keydown', …)` in the "global keys" section. Use `isTyping(e.target)` to avoid stealing keys from text fields.
@@ -85,9 +93,11 @@ Function and variable names below are real; search for them in the files. Line n
 
 - **Theme tokens:** the `:root` block and `body.theme-deep` in `styles.css`.
 - **Title-bar colours:** `THEMES` in `main.js`. Keep them identical to `--topbar`.
+- **Cooked palette (Settings › Cooked colour):** add a `body.cooked-x, .co-x { --aug-bar; --aug-bar-hover; --aug-ink; --aug-bg; --aug-edge; --aug-card; --aug-card-edge }` block in `styles.css` (next to the others), add `'x'` to `COOKED_COLORS` in `app.js`, and add a tile `<button type="button" class="cooked-opt co-x" data-value="x" role="radio"><span class="co-band">COOKED</span><small>Name</small></button>` inside `#set-cooked` in `index.html`. The picker is a 4-column grid. To change the default, edit `cookedColor()`'s fallback, the `cooked-…` class on `<body>` in `index.html`, and the `:root` `--aug-*` fallback values. Update the picker check in `features.e2e.js` (option count, default). Keep palettes light; never brown or violet (see `05`).
 - **Project palette:** `PALETTE` in `app.js`. **Never change existing ids;** users' files store them. Append new entries at the end. The array order is the order new projects take. The ⋯ menu grid is 9 columns (`.menu-swatches`); with more than 27 colours, add a row or widen it.
 - **Highlight colours:** `HIGHLIGHTS` in `app.js` (id, name, color, bg). The ids are stored in notes, so never rename them.
 - **Stage colours:** the `--aug-*` tokens and the `.final` rules.
+- **Board frame (1.16):** `--frame-edge` (a gradient), `--frame-glow` and `--frame-hi` in `:root` (Soft) and `body.theme-deep`. The geometry (margin, radius) is on `.stage`. If a rule changes `.stage`'s `background`, keep `var(--frame-edge) border-box` as its last layer and the other layers `padding-box`, or the edge disappears.
 
 ## Add a column-title font
 

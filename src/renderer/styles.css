@@ -86,21 +86,30 @@
   --canvas-dot: rgba(12, 42, 29, 0.07);
   --topbar: #fbfdfc;
   --col-edge: #cddfd4;
+  /* board frame (1.16) */
+  --frame-edge: linear-gradient(150deg, rgba(5, 122, 85, 0.55) 0%, rgba(12, 42, 29, 0.2) 30%, rgba(12, 42, 29, 0.17) 100%);
+  --frame-glow: rgba(16, 168, 116, 0.06);
+  --frame-hi: rgba(255, 255, 255, 0.7);
   --card: #ffffff;
   --card-edge: #dfe9e3;
   --used-bg: #e9efeb;
   --used-edge: #cbd8d0;
-  /* stage colours: new prompts are white cards; Combined (data "used") is an indigo
-     block with a lavender note; Final (data "combined") is a deep-green block with a mint text box */
-  --aug-bg: #e0e4fc;
-  --aug-edge: #aeb8ef;
-  --aug-ink: #3730a3;
-  --aug-card: #f6f6ff;
-  --aug-card-edge: #cbd1f6;
-  --aug-bar: #4f46e5;
-  --aug-band: linear-gradient(180deg, #5b56ee 0%, #4840d8 100%);
-  --final-card: #eefcf4;
-  --final-card-edge: #b9ebcf;
+  /* stage colours: new prompts are white cards; Cooked (data "used") is a muted
+     slate block with a slate-navy header band; Served (data "combined") is a deep-green
+     block. Kept low in saturation on purpose: the owner found bright violet "too much". */
+  --aug-bg: #e9f1fb;
+  --aug-edge: #c9dbf1;
+  --aug-ink: #1d4f8c;
+  --aug-card: #fdfeff;
+  --aug-card-edge: #d8e5f6;
+  --aug-bar: #3a6fb5;
+  --aug-bar-hover: #2d5b98;
+  --final-card: #fbfdfb;
+  --final-card-edge: #d3e6da;
+  --final-bg: #e4eee8;   /* Served (1.10): a light sage section, not a deep block; it's the calm end of the line */
+  --final-edge: #c6dccd;
+  --final-ink: #0b5a3f;
+  --stage-lines: 6; /* Cooked note and Served text start at this many lines; "Show more" opens them up */
 
   --ink: #0c2a1d;
   --ink-2: #3c5a4b;
@@ -139,6 +148,28 @@
   --accent-deep: color-mix(in srgb, var(--accent) 80%, #000000);
 }
 
+/* Cooked colour: set on <body> from Settings › Cooked colour (default ocean). The .co-*
+   classes style the preview tiles. Since 1.13 Cooked is a light section like Served (no dark
+   header band): a pale block, a coloured label, a white note, and one filled accent for the
+   Move to Served bar and the card's "↓ Cooked" button. Browns were dropped after the owner
+   rejected them ("looks like shit"); violet and the dark slate band were rejected before that. */
+body.cooked-ocean, .co-ocean {
+  --aug-bar: #3a6fb5; --aug-bar-hover: #2d5b98; --aug-ink: #1d4f8c;
+  --aug-bg: #e9f1fb; --aug-edge: #c9dbf1; --aug-card: #fdfeff; --aug-card-edge: #d8e5f6;
+}
+body.cooked-teal, .co-teal {
+  --aug-bar: #20807a; --aug-bar-hover: #196862; --aug-ink: #145f59;
+  --aug-bg: #e4f3f1; --aug-edge: #c2e0dc; --aug-card: #fcfefe; --aug-card-edge: #d3eae7;
+}
+body.cooked-midnight, .co-midnight {
+  --aug-bar: #2c3b63; --aug-bar-hover: #222f50; --aug-ink: #1f2c4d;
+  --aug-bg: #e8ebf3; --aug-edge: #cdd3e3; --aug-card: #fcfcfe; --aug-card-edge: #dbe0ec;
+}
+body.cooked-graphite, .co-graphite {
+  --aug-bar: #4a5059; --aug-bar-hover: #3a3f47; --aug-ink: #2f343b;
+  --aug-bg: #eceef1; --aug-edge: #d4d8de; --aug-card: #fdfdfd; --aug-card-edge: #e1e4e8;
+}
+
 /* column title font: set on <body> from Settings › Column title font (default: Instrument Sans).
    The same classes style the preview tiles in Settings. */
 :root, body.title-instrument, .t-instrument { --title-font: "Instrument Sans", var(--font-head); --title-size: 16px; --title-weight: 650; --title-track: 0em; --title-case: none; }
@@ -166,7 +197,7 @@ body {
   font-family: var(--font-ui);
   font-size: 14px;
   color: var(--ink);
-  background: var(--canvas);
+  background: var(--topbar);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -208,8 +239,7 @@ button:disabled { cursor: default; }
   padding: 0 14px;
   padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 12px);
   background: var(--topbar);
-  border-bottom: 1px solid var(--col-edge);
-  box-shadow: 0 1px 3px rgba(12, 42, 29, 0.05);
+  border-bottom: 1px solid transparent; /* 1.16: the board frame draws the edge now */
   -webkit-app-region: drag;
   user-select: none;
 }
@@ -307,14 +337,24 @@ kbd {
 
 /* ------------------------------------------------------------------ stage & board */
 
+/* 1.16: the board is a framed panel inset in the window, with a thin margin in the top bar's
+   colour around it (body background), so the top bar and that margin read as one shell. The
+   frame is a 1px gradient edge (the last background layer, painted under the transparent
+   border), brighter at the top-left, plus a faint outer glow. */
 .stage {
   position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
+  margin: 2px 12px 12px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 0 0 3px var(--frame-glow), inset 0 1px 0 var(--frame-hi);
   background:
-    radial-gradient(var(--canvas-dot) 1px, transparent 1.2px) 0 0 / 20px 20px,
-    linear-gradient(165deg, #e4efe8 0%, var(--canvas) 45%, var(--canvas-2) 100%);
+    radial-gradient(var(--canvas-dot) 1px, transparent 1.2px) 0 0 / 20px 20px padding-box,
+    linear-gradient(165deg, #e4efe8 0%, var(--canvas) 45%, var(--canvas-2) 100%) padding-box,
+    var(--frame-edge) border-box;
 }
 
 .backdrop { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
@@ -341,7 +381,7 @@ kbd {
 body.is-ready .board { opacity: 1; }
 
 .board::-webkit-scrollbar { height: 14px; }
-.board::-webkit-scrollbar-track { background: transparent; }
+.board::-webkit-scrollbar-track { background: transparent; margin: 0 12px; } /* clear of the frame's round corners */
 .board::-webkit-scrollbar-thumb {
   background: rgba(12, 42, 29, 0.22);
   border-radius: 999px;
@@ -349,33 +389,44 @@ body.is-ready .board { opacity: 1; }
   background-clip: content-box;
 }
 .board::-webkit-scrollbar-thumb:hover { background-color: rgba(12, 42, 29, 0.38); border-width: 3px; }
-.col-scroll::-webkit-scrollbar, .composer textarea::-webkit-scrollbar { width: 8px; }
-.col-scroll::-webkit-scrollbar-thumb, .composer textarea::-webkit-scrollbar-thumb {
+.col-scroll::-webkit-scrollbar, .composer textarea::-webkit-scrollbar,
+.aug-text::-webkit-scrollbar, .final-text::-webkit-scrollbar, .aug-parts::-webkit-scrollbar, .final-parts::-webkit-scrollbar { width: 8px; }
+.col-scroll::-webkit-scrollbar-thumb, .composer textarea::-webkit-scrollbar-thumb,
+.aug-text::-webkit-scrollbar-thumb, .final-text::-webkit-scrollbar-thumb, .aug-parts::-webkit-scrollbar-thumb, .final-parts::-webkit-scrollbar-thumb {
   background: rgba(12, 42, 29, 0.16);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
+/* ‹ › board arrows (1.16): out of sight until the pointer nears their edge (.is-near, set in
+   app.js), then they slide in. A solid white disc (a see-through one turns grey on the dark
+   canvas) with a slim deep-emerald ring and a faint outer halo. */
 .pan-btn {
   position: absolute;
   z-index: 4;
   top: 45%;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid var(--col-edge);
-  box-shadow: var(--shadow-md);
+  background: linear-gradient(180deg, #fff 0%, #f3f8f5 100%);
+  border: 1.5px solid color-mix(in srgb, var(--primary) 60%, #0c2a1d);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16), 0 8px 20px -6px rgba(4, 20, 13, 0.35);
   color: var(--ink-2);
-  transition: transform 0.15s var(--spring), color 0.15s, background 0.15s;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s var(--ease), translate 0.22s var(--ease), scale 0.15s var(--spring),
+    color 0.15s, background 0.15s, border-color 0.15s;
 }
-.pan-btn:hover { color: var(--primary-deep); background: #fff; transform: scale(1.08); }
-.pan-btn:active { transform: scale(0.95); }
-.pan-left { left: 6px; }
-.pan-right { right: 6px; }
+.pan-btn .icon { width: 18px; height: 18px; stroke-width: 2.2; }
+.pan-left { left: 10px; translate: -6px 0; }
+.pan-right { right: 10px; translate: 6px 0; }
+.pan-btn.is-near, .pan-btn:focus-visible { opacity: 1; translate: 0 0; pointer-events: auto; }
+.pan-btn:hover { color: var(--primary-deep); background: #fff; border-color: var(--primary); scale: 1.06; }
+.pan-btn:active { scale: 0.95; }
+body.is-dragging .pan-btn, body.is-panning .pan-btn { opacity: 0; pointer-events: none; }
 
 /* ------------------------------------------------------------------ column */
 
@@ -387,7 +438,9 @@ body.is-ready .board { opacity: 1; }
   display: flex;
   flex-direction: column;
   border-radius: 16px;
-  background: var(--accent-wash);
+  /* one calm surface for every column (1.9): the colour lives in the header and card bars,
+     so many columns side by side don't turn into a patchwork of tints */
+  background: #f6f8f7;
   border: 1px solid var(--col-edge);
   box-shadow: 0 1px 2px rgba(12, 42, 29, 0.06), 0 10px 24px -14px rgba(12, 42, 29, 0.28);
 }
@@ -472,20 +525,6 @@ body.is-dragging .col-resize { display: none; }
   color: var(--ink);
   cursor: text;
 }
-.col-count {
-  flex: none;
-  min-width: 20px;
-  height: 18px;
-  padding: 0 6px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  background: rgba(255, 255, 255, 0.75);
-  color: var(--accent-ink);
-}
 .col-menu { flex: none; }
 .head-btn {
   position: relative;
@@ -512,63 +551,90 @@ body.is-dragging .col-resize { display: none; }
   box-shadow: 0 0 0 2px var(--accent-tint);
 }
 
-.col-new { flex: none; display: flex; gap: 6px; padding: 8px 8px 2px; }
+/* Cooking: the first stage's header. A plain section label (no box) in the column's own
+   colour, so a board with many columns stays calm. The prompt count lives here. */
+.cook-headrow { flex: none; padding: 8px 8px 0; }
+.cook-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px 0 5px;
+  border-radius: 9px;
+  background: none;
+  border: 0;
+  color: var(--accent-ink);
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  transition: background 0.15s;
+}
+.cook-head:hover { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.cook-head .icon { width: 14px; height: 14px; }
+.cook-head .chev { display: inline-flex; transition: transform 0.2s var(--ease); }
+.column.cooking-collapsed .cook-head .chev { transform: rotate(-90deg); }
+.cook-count { font-variant-numeric: tabular-nums; }
+.column.cooking-collapsed .active-list, .column.cooking-collapsed .active-empty { display: none; }
+
+/* New prompt | Dictate: two equal halves (the owner starts about half their prompts by voice) */
+.col-new { flex: none; display: flex; gap: 6px; padding: 6px 8px 2px; container-type: inline-size; }
 .new-prompt {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   height: 36px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 8px 0 7px;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 6px;
   border-radius: 10px;
+  /* soft white pills: no outline or coloured square at rest, so many columns don't
+     repeat heavy boxes; they firm up on hover */
   background: #fff;
-  border: 1.5px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  box-shadow: var(--shadow-sm);
+  border: 1.5px solid transparent;
+  box-shadow: 0 1px 2px rgba(12, 42, 29, 0.05);
   color: var(--accent-ink);
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 650;
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
 }
-.new-prompt:hover { background: var(--accent-tint); border-color: var(--accent); box-shadow: var(--shadow-md); }
-.new-prompt:active, .new-voice:active { transform: scale(0.98); }
-.np-plus {
-  width: 22px;
+.new-prompt:hover { background: #fff; border-color: color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: var(--shadow-md); }
+.new-prompt:active { transform: scale(0.98); }
+.np-icon {
+  position: relative;
+  width: 18px;
   height: 22px;
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 7px;
-  background: var(--accent-deep);
-  color: #fff;
+  color: var(--accent-deep);
 }
-.np-plus .icon { width: 15px; height: 15px; stroke-width: 2.4; }
-.np-label { white-space: nowrap; }
-.np-draft {
-  display: none;
-  margin-left: auto;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--accent-deep);
-  color: #fff;
-  font-size: 10.5px;
-  font-weight: 700;
+.np-icon .icon { width: 17px; height: 17px; stroke-width: 2.3; }
+.new-voice .np-icon .icon { width: 16px; height: 16px; stroke-width: 2.1; }
+.np-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lbl-short, .lbl-draft { display: none; }
+/* an unsaved draft: the button says "Draft" and its + gets a dot */
+.new-prompt.has-draft .lbl-long, .new-prompt.has-draft .lbl-short { display: none !important; }
+.new-prompt.has-draft .lbl-draft { display: inline; }
+.new-prompt.has-draft .np-icon::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px #fff;
 }
-.new-prompt.has-draft .np-draft { display: inline; }
-.new-voice {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: #fff;
-  border: 1.5px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  box-shadow: var(--shadow-sm);
-  color: var(--accent-ink);
-  transition: background 0.15s, border-color 0.15s;
+/* narrow columns: "New" instead of "New prompt" */
+@container (max-width: 244px) {
+  .col-add .lbl-long { display: none; }
+  .col-add .lbl-short { display: inline; }
 }
-.new-voice:hover { background: var(--accent-tint); border-color: var(--accent); }
 .col-compose { flex: none; padding: 8px 8px 0; }
 .col-compose:empty { display: none; }
 
@@ -608,7 +674,7 @@ body.is-dragging .col-resize { display: none; }
 .empty-new .icon { width: 15px; height: 15px; }
 .empty-new:hover { background: #fff; border-style: solid; }
 
-/* ------------------------------------------------------------------ Combined (data name "used") */
+/* ------------------------------------------------------------------ Cooked (data name "used") */
 
 .used {
   margin-top: 10px;
@@ -616,8 +682,18 @@ body.is-dragging .col-resize { display: none; }
   border-radius: 12px;
   background: var(--aug-bg);
   border: 1px solid var(--aug-edge);
-  box-shadow: 0 8px 18px -12px rgba(55, 48, 163, 0.6);
+  box-shadow: 0 6px 14px -12px color-mix(in srgb, var(--aug-bar) 45%, transparent);
 }
+/* Empty stages stay quiet: a dashed outline instead of a solid block, so a column
+   with nothing combined yet isn't dominated by it. They light up while dragging. */
+/* At rest an empty Cooked is just its faint name (no box, no helper sentence), so a board
+   of many columns isn't a grid of empty frames. While dragging it becomes a clear drop zone. */
+.used.is-empty { background: transparent; border: 1.5px dashed transparent; box-shadow: none; padding-bottom: 0; }
+.used.is-empty .used-headrow { background: none; margin-bottom: 0; }
+.used.is-empty .used-head { color: var(--aug-ink); opacity: 0.6; }
+.used.is-empty .used-head:hover { background: color-mix(in srgb, var(--aug-bar) 8%, transparent); opacity: 0.9; }
+body.is-dragging .used.is-empty { background: var(--aug-bg); border-color: var(--aug-bar); padding-bottom: 5px; }
+body.is-dragging .used.is-empty .used-head { opacity: 1; }
 .used-headrow {
   display: flex;
   align-items: center;
@@ -625,7 +701,7 @@ body.is-dragging .col-resize { display: none; }
   margin: 0 -5px 5px;
   padding: 4px 5px;
   border-radius: 11px 11px 0 0;
-  background: var(--aug-band);
+  background: none;
 }
 .used.is-collapsed { padding-bottom: 0; }
 .used.is-collapsed .used-headrow { margin-bottom: 0; border-radius: 11px; }
@@ -639,7 +715,7 @@ body.is-dragging .col-resize { display: none; }
   padding: 0 5px;
   border-radius: 8px;
   border: 1.5px solid transparent;
-  color: #fff;
+  color: var(--aug-ink);
   font-family: var(--font-ui);
   font-size: 11.5px;
   font-weight: 700;
@@ -647,7 +723,7 @@ body.is-dragging .col-resize { display: none; }
   text-transform: uppercase;
   transition: background 0.15s, border-color 0.15s;
 }
-.used-head:hover { background: rgba(255, 255, 255, 0.14); }
+.used-head:hover { background: color-mix(in srgb, var(--aug-bar) 9%, transparent); }
 .used-head .icon { width: 14px; height: 14px; }
 .used-head .chev { display: inline-flex; transition: transform 0.2s var(--ease); }
 .used.is-collapsed .used-head .chev { transform: rotate(-90deg); }
@@ -672,7 +748,7 @@ body.is-dragging .col-resize { display: none; }
   transition: background 0.15s, transform 0.1s;
 }
 .aug-move .icon { width: 13px; height: 13px; stroke-width: 2.4; }
-.aug-move:hover { background: #4338ca; }
+.aug-move:hover { background: var(--aug-bar-hover); }
 .aug-move:active { transform: scale(0.96); }
 .used.is-drop-target { outline: 2px dashed var(--aug-bar); outline-offset: 2px; }
 
@@ -717,7 +793,7 @@ body.is-dragging .col-resize { display: none; }
   border-radius: 0 3px 3px 0;
   background: var(--aug-bar);
 }
-.aug-note:hover { box-shadow: var(--shadow-md); border-color: #a5b0ee; }
+.aug-note:hover { box-shadow: var(--shadow-md); border-color: color-mix(in srgb, var(--aug-bar) 35%, var(--aug-card-edge)); }
 .aug-note.is-drag-source { opacity: 0.35; }
 .aug-note .copied-chip { top: 7px; bottom: auto; }
 .aug-text {
@@ -725,12 +801,16 @@ body.is-dragging .col-resize { display: none; }
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  max-height: calc(1.45em * 8);
+  max-height: calc(1.45em * var(--stage-lines));
   overflow: hidden;
   -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent);
 }
-.used.is-expanded .aug-text, .aug-text.fits { max-height: none; -webkit-mask-image: none; }
-.aug-foot { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; color: var(--ink-3); }
+/* `fits` only drops the fade. The height limit stays on, so a text that grows later is
+   still held to its lines even before (or without) the next measurement. */
+.aug-text.fits { -webkit-mask-image: none; }
+/* opened up: taller, but still capped, and it scrolls inside */
+.used.is-expanded .aug-text { max-height: min(56vh, 480px); overflow-y: auto; -webkit-mask-image: none; }
+.aug-foot { display: flex; align-items: center; gap: 4px; margin-top: 5px; font-size: 11px; color: var(--ink-3); }
 .aug-foot .spacer { flex: 1; }
 .aug-stats { font-family: var(--font-mono); letter-spacing: -0.01em; }
 .aug-more, .aug-parts-btn { flex: none; font-size: 11px; font-weight: 600; color: var(--aug-ink); padding: 1px 6px; border-radius: 5px; }
@@ -739,23 +819,23 @@ body.is-dragging .col-resize { display: none; }
 .aug-edit .icon, .final-edit .icon { width: 14px; height: 14px; }
 .aug-edit:hover { background: var(--aug-bg); color: var(--aug-ink); }
 .final-edit:hover { background: rgba(4, 120, 87, 0.1); color: #047857; }
-.aug-parts { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+.aug-parts { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); max-height: 220px; overflow-y: auto; }
 .aug-empty { display: none; padding: 8px 8px 7px; text-align: center; font-size: 11.5px; color: var(--aug-ink); opacity: 0.8; }
 .used.is-empty .aug-wrap { display: none; }
-.used.is-empty .aug-empty { display: block; }
+body.is-dragging .used.is-empty .aug-empty { display: block; }
 .used.is-collapsed .aug-wrap, .used.is-collapsed .aug-empty, .used.is-collapsed .aug-move { display: none; }
 .aug-stats, .final-stats { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .used.is-editing .aug-note, .used.is-editing .aug-under { display: none; }
 body.is-dragging .aug-empty { opacity: 1; }
 
-/* ------------------------------------------------------------------ Final (data name "combined") */
+/* ------------------------------------------------------------------ Served (data name "combined") */
 
 .final {
   margin-top: 10px;
   border-radius: 12px;
-  background: linear-gradient(180deg, #11523c 0%, #0b3a2a 100%);
-  border: 1px solid #0a2f22;
-  box-shadow: 0 8px 18px -10px rgba(6, 40, 28, 0.7);
+  background: var(--final-bg);
+  border: 1px solid var(--final-edge);
+  box-shadow: 0 6px 14px -12px rgba(6, 40, 28, 0.35);
   overflow: hidden;
 }
 .final-head { display: flex; align-items: center; gap: 6px; padding: 4px 5px 4px 0; }
@@ -767,7 +847,7 @@ body.is-dragging .aug-empty { opacity: 1; }
   gap: 6px;
   height: 28px;
   padding: 0 10px;
-  color: #d1fae5;
+  color: var(--final-ink);
   font-family: var(--font-ui);
   font-size: 11.5px;
   font-weight: 700;
@@ -791,6 +871,13 @@ body.is-dragging .aug-empty { opacity: 1; }
 .final:not(.is-empty) .final-body:hover { box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.55); }
 .final-body .copied-chip { top: 7px; bottom: auto; }
 .final.is-collapsed .final-body, .final.is-editing .final-body { display: none; }
+/* Same for an empty Served: its faint name at rest, a drop zone while dragging */
+.final.is-empty, body.theme-deep .final.is-empty { background: transparent; border: 1.5px dashed transparent; box-shadow: none; }
+.final.is-empty .final-toggle { color: #0b5a3f; opacity: 0.6; }
+.final.is-empty .final-body { display: none; }
+body.is-dragging .final.is-empty { background: rgba(16, 168, 116, 0.08); border-color: #10a874; }
+body.is-dragging .final.is-empty .final-toggle { opacity: 1; }
+body.is-dragging .final.is-empty .final-body { display: block; background: transparent; border: 0; padding-top: 0; }
 .final-edit-host { margin: 0 5px 5px; }
 .final-edit-host:empty, .final.is-collapsed .final-edit-host { display: none; }
 .final-text {
@@ -799,20 +886,22 @@ body.is-dragging .aug-empty { opacity: 1; }
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  max-height: calc(1.45em * 8);
+  max-height: calc(1.45em * var(--stage-lines));
   overflow: hidden;
   -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent);
 }
-.final.is-expanded .final-text, .final-text.fits { max-height: none; -webkit-mask-image: none; }
+.final-text.fits { -webkit-mask-image: none; }
+/* opened up: taller, but still capped, and it scrolls inside, so a long Served never swamps the column */
+.final.is-expanded .final-text { max-height: min(56vh, 480px); overflow-y: auto; -webkit-mask-image: none; }
 .final.is-empty .final-text, .final.is-empty .final-foot { display: none; }
 .final-empty { display: none; padding: 4px 2px; font-size: 12px; line-height: 1.4; color: var(--ink-3); text-align: center; }
 .final.is-empty .final-empty { display: block; }
-.final-foot { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; color: var(--ink-3); }
+.final-foot { display: flex; align-items: center; gap: 4px; margin-top: 5px; font-size: 11px; color: var(--ink-3); }
 .final-foot .spacer { flex: 1; }
 .final-more, .final-parts-btn { flex: none; font-size: 11px; font-weight: 600; color: #047857; padding: 1px 6px; border-radius: 5px; }
 .final-more:hover, .final-parts-btn:hover, .final-parts-btn[aria-pressed="true"] { background: rgba(4, 120, 87, 0.12); }
-.final-parts { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
-/* one row per part in the Notes lists of Combined and Final; its buttons show on hover */
+.final-parts { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); max-height: 220px; overflow-y: auto; }
+/* one row per part in the Notes lists of Cooked and Served; its buttons show on hover */
 .final-part { display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 2px 3px 0; border-radius: 6px; font-size: 12px; }
 .final-part:hover { background: rgba(12, 42, 29, 0.05); }
 .fp-num { flex: none; width: 16px; text-align: right; font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
@@ -825,7 +914,32 @@ body.is-dragging .aug-empty { opacity: 1; }
 .fp-acts button:disabled { opacity: 0.3; }
 .aug-parts .fp-acts button:hover:not(:disabled) { background: var(--aug-bg); color: var(--aug-ink); }
 .final-parts .fp-acts button:hover:not(:disabled) { background: rgba(4, 120, 87, 0.12); color: #047857; }
+/* the row's trash sits a little apart and turns red only on hover */
+.fp-acts .fp-del { margin-left: 3px; }
+.final-part .fp-acts .fp-del:hover:not(:disabled) { background: rgba(220, 79, 58, 0.1); color: var(--danger); }
 .aug-text mark, .final-text mark { background: var(--highlight); color: inherit; border-radius: 3px; padding: 0 1px; }
+/* "Show more / Show less": a slim full-width bar right under the Cooked note and the Served text */
+.stage-more {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+  margin-top: 3px;
+  padding: 0;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 650;
+  transition: background 0.15s;
+}
+.stage-more .icon { width: 13px; height: 13px; stroke-width: 2.2; transition: transform 0.2s var(--ease); }
+.stage-more.is-open .icon { transform: rotate(180deg); }
+.aug-more.stage-more { color: var(--aug-ink); background: color-mix(in srgb, var(--aug-bar) 7%, transparent); }
+.aug-more.stage-more:hover { background: color-mix(in srgb, var(--aug-bar) 14%, transparent); }
+.final-more.stage-more { color: #047857; background: rgba(4, 120, 87, 0.07); }
+.final-more.stage-more:hover { background: rgba(4, 120, 87, 0.14); }
+.final.is-empty .final-more { display: none; }
 .final.is-drop-target { outline: 2px dashed #34d399; outline-offset: 2px; }
 .final.is-flash { animation: final-flash 0.7s ease-out; }
 @keyframes final-flash { 0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.75); } 100% { box-shadow: 0 0 0 12px rgba(52, 211, 153, 0); } }
@@ -1005,6 +1119,13 @@ body.has-selection .toasts { bottom: 74px; }
 }
 @keyframes fade-out { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
 
+/* The pictures of Cooked and Served: small tiles under the text; click one to copy it */
+.stage-images { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.stage-images .card-img { flex: none; width: 72px; height: 52px; aspect-ratio: auto; cursor: pointer; }
+.stage-images .card-img .img-expand { top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 5px; }
+.stage-images .card-img .img-expand .icon { width: 11px; height: 11px; }
+.stage-images .card-img.is-copied::after { content: "Copied"; font-size: 11px; }
+
 .card-meta {
   display: flex;
   align-items: center;
@@ -1046,6 +1167,22 @@ body.is-dragging .card-actions { opacity: 0 !important; }
 .card-act { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 7px; color: var(--ink-2); }
 .card-act .icon { width: 15px; height: 15px; }
 .card-act:hover { background: var(--accent-tint); color: var(--accent-ink); }
+/* "↓ Cooked": the action used ~90% of the time, so it's the one filled button, in the
+   Cooked stage's slate. (Editing moved to right-click / E in 1.11.) */
+.card-act.act-primary {
+  width: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 9px 0 7px;
+  background: var(--aug-bar);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.card-act.act-primary .icon { width: 13px; height: 13px; stroke-width: 2.4; }
+.card-act.act-primary:hover { background: var(--aug-bar-hover); color: #fff; }
 
 /* highlight ("check again" etc.) wins over the stage look */
 .card-wrap.is-hl .card { background: var(--hl-bg); border-color: color-mix(in srgb, var(--hl) 55%, transparent); }
@@ -1455,6 +1592,36 @@ body.is-dragging .card-actions { opacity: 0 !important; }
   gap: 15px;
 }
 .modal-head { display: flex; align-items: center; justify-content: space-between; }
+/* section headings in Settings and Help */
+.modal-section {
+  margin: 4px 0 -5px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.modal-head + .modal-section { margin-top: -4px; padding-top: 0; border-top: 0; }
+
+/* help */
+.help-card { width: min(540px, calc(100vw - 32px)); gap: 13px; }
+.help-lead { margin: -4px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.help-stages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.help-stages li { display: flex; gap: 11px; align-items: flex-start; padding: 9px 11px; border-radius: 11px; background: #fff; border: 1px solid var(--card-edge); }
+.help-stages li div { display: flex; flex-direction: column; gap: 2px; font-size: 13px; line-height: 1.4; }
+.help-stages li b { font-size: 13.5px; }
+.help-stages li span { color: var(--ink-2); }
+.hs-dot { flex: none; width: 12px; height: 12px; margin-top: 3px; border-radius: 4px; }
+.hs-prompts { background: #fff; box-shadow: inset 0 0 0 1.5px var(--primary); }
+.hs-combined { background: var(--aug-bar); }
+.hs-final { background: #9cc9ae; }
+.help-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; font-size: 13px; line-height: 1.45; color: var(--ink); }
+.help-list b { font-weight: 650; }
+.help-keys { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; align-items: center; font-size: 13px; }
+.help-keys kbd { justify-self: start; font-size: 11.5px; }
+.help-card kbd, body.theme-deep .help-card kbd { background: #fff; border-color: var(--line-strong); color: var(--ink-2); }
 .modal-head h2 { margin: 0; font-family: var(--font-head); font-weight: 650; font-size: 18px; letter-spacing: -0.025em; }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -1499,23 +1666,26 @@ body.is-dragging .card-actions { opacity: 0 !important; }
 body.theme-deep {
   --canvas: #0e3a2b;
   --canvas-2: #06231a;
-  --canvas-dot: rgba(255, 255, 255, 0.07);
+  --canvas-dot: rgba(255, 255, 255, 0.035);
   --topbar: #082a1f;
   --col-edge: rgba(0, 0, 0, 0.25);
+  --frame-edge: linear-gradient(150deg, rgba(167, 243, 208, 0.72) 0%, rgba(52, 211, 153, 0.4) 28%, rgba(52, 211, 153, 0.32) 100%);
+  --frame-glow: rgba(52, 211, 153, 0.07);
+  --frame-hi: rgba(255, 255, 255, 0.06);
   --used-bg: #e1e9e4;
   --used-edge: #c6d4cb;
   --primary: #10a874;
 }
 body.theme-deep .stage {
   background:
-    radial-gradient(var(--canvas-dot) 1px, transparent 1.2px) 0 0 / 20px 20px,
-    linear-gradient(165deg, #145640 0%, var(--canvas) 45%, var(--canvas-2) 100%);
+    radial-gradient(var(--canvas-dot) 1px, transparent 1.2px) 0 0 / 20px 20px padding-box,
+    linear-gradient(165deg, #145640 0%, var(--canvas) 45%, var(--canvas-2) 100%) padding-box,
+    var(--frame-edge) border-box;
 }
 body.theme-deep .leaf { color: #6ee7b7; }
 body.theme-deep .leaf-a { opacity: 0.07; }
 body.theme-deep .leaf-b { opacity: 0.05; }
 
-body.theme-deep .topbar { border-bottom-color: rgba(255, 255, 255, 0.08); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); }
 body.theme-deep .brand-name { color: #ecfdf5; }
 body.theme-deep .search { background: rgba(255, 255, 255, 0.09); color: rgba(236, 253, 245, 0.6); }
 body.theme-deep .search input { color: #ecfdf5; }
@@ -1528,7 +1698,7 @@ body.theme-deep .topbar .icon-btn:hover:not(:disabled) { background: rgba(255, 2
 body.theme-deep .history { border-right-color: rgba(255, 255, 255, 0.14); }
 
 body.theme-deep .column {
-  background: color-mix(in srgb, var(--accent) 7%, #f3f7f4);
+  background: #eef2f0;
   border-color: rgba(0, 0, 0, 0.2);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18), 0 16px 32px -14px rgba(0, 0, 0, 0.55);
 }
@@ -1539,15 +1709,14 @@ body.theme-deep .col-head {
 }
 body.theme-deep .col-name { color: #fff; }
 body.theme-deep .col-leaf { color: rgba(255, 255, 255, 0.92); --rib: var(--accent-deep); }
-body.theme-deep .col-count { background: rgba(255, 255, 255, 0.22); color: #fff; }
 body.theme-deep .head-btn { color: rgba(255, 255, 255, 0.92); }
 body.theme-deep .head-btn:hover, body.theme-deep .head-btn.is-open { background: rgba(255, 255, 255, 0.18); }
 body.theme-deep .head-btn.has-draft::after { background: #fff; box-shadow: 0 0 0 2px var(--accent-deep); }
-body.theme-deep .card { border-color: rgba(12, 42, 29, 0.08); }
+body.theme-deep .card { border-color: transparent; box-shadow: 0 1px 2px rgba(12, 42, 29, 0.07), 0 1px 1px rgba(12, 42, 29, 0.04); }
 body.theme-deep .card::before { background: var(--accent-deep); }
 body.theme-deep .card-wrap.is-hl .card::before { background: var(--hl); }
 body.theme-deep .col-resize::after { background: rgba(236, 253, 245, 0.6); }
-body.theme-deep .final { border-color: rgba(0, 0, 0, 0.35); }
+body.theme-deep .final { border-color: var(--final-edge); }
 
 body.theme-deep .add-column { border-color: rgba(236, 253, 245, 0.3); background: rgba(255, 255, 255, 0.05); color: #d1fae5; }
 body.theme-deep .add-column:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(236, 253, 245, 0.55); }
@@ -1576,11 +1745,31 @@ body.theme-deep .sel-hint { color: var(--ink-3); }
 
 .card-meta, .final-stats, .rec-time { font-family: var(--font-mono); }
 .card-meta, .final-stats { font-size: 11px; letter-spacing: -0.01em; }
-.col-count { font-size: 11.5px; font-weight: 700; }
 .card-text, .final-text { letter-spacing: -0.006em; }
 .btn, .menu-item, .toast, .selection-bar, .search input { letter-spacing: -0.01em; }
 
 /* ------------------------------------------------------------------ column title font picker */
+
+/* Settings › Cooked colour: six preview tiles, each a mini Cooked header band */
+.cooked-picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.cooked-opt {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 8px 7px;
+  border-radius: 11px;
+  background: var(--aug-bg);
+  border: 1px solid var(--aug-edge);
+  text-align: left;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: outline-color 0.15s, transform 0.1s;
+}
+.cooked-opt:hover { transform: translateY(-1px); }
+.cooked-opt .co-band { height: 22px; border-radius: 6px; background: var(--aug-card); border: 1px solid var(--aug-card-edge); box-shadow: inset 3px 0 0 var(--aug-bar); display: flex; align-items: center; padding: 0 8px; color: var(--aug-ink); font-size: 10px; font-weight: 700; letter-spacing: 0.05em; }
+.cooked-opt small { font-size: 11.5px; font-weight: 650; color: var(--aug-ink); }
+.cooked-opt[aria-checked="true"] { outline-color: var(--primary); }
+.cooked-opt[aria-checked="true"] small::after { content: " ✓"; }
 
 .title-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .title-opt {

@@ -1,6 +1,6 @@
 # 08: Changelog
 
-Dates are 2026-09-23 and 2026-09-24. Versions 1.0.0 to 1.5.0 were built in one long session; 1.6.0 in a second session on 2026-09-24. Versions refer to `package.json` and the installer `dist/Recaller Setup <version>.exe`.
+Dates are 2026-09-23 to 2026-09-26. Versions 1.0.0 to 1.5.0 were built in one long session; 1.6.0–1.13.0 in a second session on 2026-09-24; 1.14.0 in a third; 1.15.0 in a fourth on 2026-09-26; 1.16.0 in a fifth, the same day. Versions refer to `package.json` and the installer `dist/Recaller Setup <version>.exe`.
 
 ## 1.0.0 (first build)
 
@@ -83,7 +83,96 @@ Dates are 2026-09-23 and 2026-09-24. Versions 1.0.0 to 1.5.0 were built in one l
 - **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
 - **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
 
-## 1.6.0 (current)
+## 1.16.0 (current)
+
+- **The board sits in a frame:** the owner asked for "a slight border … to organize everything … very sleek, very modern … aesthetic", and then clarified they meant the whole board space ("the board frame"), not the arrow. The board is now a rounded panel (radius 14px) inset from the window: 2px under the top bar and 12px from the left, right and bottom. The margin around it is the top bar's colour (`body` background = `--topbar`), so the top bar and the margin read as one dark shell holding the board. The frame edge is a 1px gradient: bright mint at the top-left corner (a soft sheen), settling to an even emerald all the way round (`--frame-edge`), plus a faint 3px emerald glow outside and a hairline highlight inside the top edge. The top bar's own bottom border and shadow were removed; the frame draws that edge now. In Soft theme the same frame is a deep-green hairline on a white shell. The board's scrollbar track is inset 12px so the thumb clears the rounded corners.
+  - Eight edge styles were rendered side by side on a real board first (a plain hairline, a gradient sheen, a recessed vignette, a wider emerald hairline, then a mint hairline, an emerald glow, a stronger sheen and a double frame). The first four were too faint to read as a border at 100% scale; the shipped edge combines the even emerald of the glow with the sheen's bright corner.
+  - The first build of 1.16.0 (never installed) had only the arrow changes below; the installer was rebuilt with the frame under the same version.
+- **The ‹ › board arrows keep out of the way:** the owner found the › arrow "kind of annoying" because it was always there (on a wide board there is nearly always more to the right). Each arrow now stays hidden until the pointer comes within 96px of its edge of the board, then fades and slides in (0.2s). It hides again when the pointer moves away or leaves the board, and while dragging a card or panning the canvas. Keyboard focus (Tab) still shows it. The old rule still applies on top: no arrow when there's nothing more to scroll that way.
+- **A matching ring on the arrows** (built first, when "a slight border to it" was read as the arrow's border; kept because it matches the frame): a solid white disc (a subtle white-to-mint gradient) with a slim deep-emerald ring (1.5px, drawn 1px at 100% scale), a faint white outer halo and a soft drop shadow, 38px (was 36px with a pale border that didn't show). On hover the ring turns bright emerald and the chevron deep emerald. A see-through frosted disc was tried and dropped: it turned muddy grey over the dark canvas.
+- README's "Scroll sideways" row explains the arrows.
+- **Tests:** features 134 checks (new: the board has a rounded frame with a gradient edge, inset from the window in a shell the colour of the top bar; the right arrow is out of sight mid-board; it appears near the right edge with a visible coloured ring; the left arrow appears only near the left edge while the right one leaves).
+- Verified (with the frame): 12 + 21 + 134 on source and on the packaged build, 9/9 on a copy of the real data.
+
+## 1.15.0
+
+- **Delete inside Cooked:** the owner asked to be able to delete something in Cooked. Before, the only ways were ⋯ → Clear Cooked (everything) or Notes → ✎ → the editor's trash (one part, two steps deep).
+  - Every row in the **Notes** list now has a **trash** button after ↑ ↓ ✎ ↩. It deletes just that note ("Note deleted · Undo"); the combined text updates at once. The button sits a little apart and turns red only on hover.
+  - The **whole-text editor** (right-click the Cooked note, or its pencil) now has a trash button too, like the card editor. It deletes the whole Cooked note ("Cooked note deleted · Undo"); a prompt that arrived while the editor was open stays.
+  - **Served** got the same two (row trash; "Served text deleted · Undo" from its editor), since the Notes rows and editors are shared.
+  - All of it is undoable (Ctrl+Z, or Undo on the toast). Nothing asks for confirmation.
+- Help panel ("Delete" and "Edit anything") and README explain it. The Notes button tooltip says "reorder, edit, send back or delete one".
+- **Tests:** features 130 checks (new: every Cooked row has a trash; a row fits its five buttons with room for text at slim width; the row trash deletes one note and Ctrl+Z puts it back in place; the Cooked editor's trash deletes the whole note, leaves Served alone and Ctrl+Z restores it with its parts; the Served row trash deletes one note and undoes).
+- Verified: features 130/130 on source; 12 + 21 + 130 on the packaged build (the installer build needed one retry after the usual exit 127), 9/9 on a copy of the real data.
+
+## 1.14.0
+
+- **Screenshots in Cooked and Served:** the owner found that pasting the copied Cooked text didn't bring the screenshot they had attached in Cooking. The images always moved with their prompts but were never shown or copied. Both stages now show every picture as a strip of small tiles under the text. Click a tile to copy that picture; the expand icon opens the lightbox.
+- **The text is still copied on its own**, and its chip now says "Text copied" when the stage has pictures. Copying text and picture together was tested and rejected: the Claude Code VS Code chat box (and very likely claude.ai and ChatGPT) keeps only the picture and drops the text (`07` #54). A Cooked note with pictures but no text copies its first picture.
+- Help panel and README explain it: click the text and paste, then click the picture and paste.
+- **Tests:** features 121 checks (new: the Cooked strip shows the picture, the Cooked text copies without it, a tile copies the picture, the picture moves to Served, the Served tile and text copy separately, and undo puts it all back).
+
+## 1.13.0
+
+- **Cooked recoloured again, and restyled:** the owner said the caramel (brown) default "looks like shit". Cooked is now a **light section like Served**: a pale block, a coloured "COOKED" label with no dark header band, a white note, and one filled accent. The default is **Ocean** (#3a6fb5 on #e9f1fb).
+- **Settings › Cooked colour** now offers Ocean, Teal, Midnight and Graphite. The browns (Caramel, Espresso, Terracotta) and the band palettes (Petrol, Slate) are gone. A stored old value (e.g. `caramel`) draws as Ocean; the stored value itself is left alone.
+- **Tests:** the Cooked checks now expect a light section with no band, a blue accent by default, and 4 picker options (114 checks). The picker check now waits for the colour change instead of a fixed pause (it flaked once on the packaged build). The stage-contrast check compares the Cooked and Served label colours instead of requiring a band.
+- Verified: 12 + 21 + 114 on source and on the packaged build, 9/9 on a copy of the real data.
+
+## 1.12.0
+
+- **Cooked colour picker:** the owner called the slate Cooked "too ugly" (after rejecting violet in 1.7). Six palettes were rendered side by side on a real board. **Caramel** (warm golden-brown, fitting "Cooked") is the new default, and **Settings › Cooked colour** offers Caramel, Espresso, Petrol, Graphite, Terracotta and Slate as live preview tiles. Stored in `prefs.cookedColor` only when picked.
+- Every Cooked colour (band, block, note, Move to Served bar, the card's ↓ Cooked button, the help dot) now derives from one palette. The hard-coded slate shadows and tints became `color-mix()` of `--aug-bar`.
+- **Tests:** features 114 checks (the band check is now "deep, muted, not violet"; new: the picker has 6 options, Caramel is the default, and a pick recolours and saves).
+
+## 1.11.0
+
+- **Card hover bar:** now just the highlighter and a filled slate **↓ Cooked** button (the owner moves prompts to Cooked ~90% of the time). The edit pencil was removed: right-click the card or press E / F2.
+- Help panel and guide say "hover a prompt and click ↓ Cooked" instead of "the stack icon".
+- **Tests:** features 113 checks (new: the hover bar has exactly the highlighter and a prominent ↓ Cooked).
+
+## 1.10.0
+
+- **Served is lighter:** a light sage section (#e4eee8, border #c6dccd) with a deep-green label and a near-white text box, instead of the solid deep-green block. The owner: "it will always be served", so it needs less emphasis. Cooked (slate band) is now the strongest stage.
+- **Right-click to edit:** right-clicking a prompt card opens its editor. On the Cooked note or the Served text it opens the whole-text editor; on a row of a Notes list it edits that part alone. If text is selected, the normal Copy menu shows instead.
+- **Saving a new prompt closes the editor** (typed or dictated, including Save during dictation) and the New prompt | Dictate buttons come back. Before, the editor stayed open and empty for the next prompt.
+- **Help panel:** "Edit anything" mentions right-click.
+- **Tests:** features 112 checks (new: save closes the editor; right-click edits all four targets; Esc after a right-click edit changes nothing; Served is light).
+
+## 1.9.0
+
+A calmer board with many columns, using no extra space (empty columns got shorter):
+
+- **One calm surface for every column:** #eef2f0 in Deep (#f6f8f7 in Soft) instead of each column tinted by its colour. Colour stays in the header and the thin card bars.
+- **Cooking is a plain label:** no box or border; it tints only on hover.
+- **New prompt | Dictate are soft white pills:** no outline and no solid colour square. The icon is drawn in the column colour, and the outline and shadow appear on hover.
+- **Empty Cooked and Served show only their faint name** (60% opacity): no dashed frame and no helper sentence at rest. While dragging they turn into a clear drop zone with the sentence.
+- **Cards have no outline in Deep,** just a soft shadow. The canvas dot grid is half as strong.
+- **Tests:** features 108 checks (new: one shared column background; empty Cooked shows no helper sentence at rest).
+
+## 1.8.0
+
+- **Kitchen stage names:** the three stages are now **Cooking** (new prompts) → **Cooked** (was Combined) → **Served** (was Final), in every label, tooltip, toast, menu item, undo label, the help panel, Settings and the welcome tips. The data names are unchanged (`notes`, `used`, `combined`).
+- **Cooking header:** the prompts get a stage header like the other two: "⌄ 🔥 COOKING · n", light in the column's colour. Clicking it folds the prompt cards away (saved as `project.notesCollapsed`, only while folded). A search, a new prompt, a prompt sent back or a prompt dropped in unfold it. The prompt count moved here from the pill in the column title, which gives long names more room.
+- **New prompt | Dictate:** the bar is split into two equal halves, **(+) New prompt** and **(🎙) Dictate**, instead of a wide button plus a small mic square, because the owner starts about half their prompts by voice. A draft shows as **Draft** with an amber dot. Narrow columns read **New**.
+- **Tests:** features 107 checks (new: equal halves and full labels, the Cooking header and moved count, folding Cooking, a new prompt unfolding it; the stage-name checks now expect Cooked/Served).
+
+## 1.7.0
+
+- **Combined looks grown-up:** the bright violet band, lavender note and violet buttons became a muted slate-navy band (#47526b → #384259), a pale cool-grey block (#e6e9ef) and a near-white note. The owner called the violet "weird" and "girly"; the dark green canvas stays.
+- **Quiet empty stages:** an empty Combined (and an empty Final) is now a dashed outline with its label, not a solid block. It fills in while you drag.
+- **New prompts go to the bottom** of the prompt list (and a prompt sent back from Combined lands at the bottom too), so a column reads oldest → newest and flows down into Combined. Saving scrolls the new card into view. Existing columns keep their order; **⋯ → Sort prompts oldest first** lines them up (undoable).
+- **Fixed-size Combined and Final:** both start at 6 lines with a fade. A slim full-width **Show more / Show less** bar under the text opens them to at most min(56vh, 480px), scrolling inside. The opened state is no longer saved, so they always start small (the old `usedExpanded` / `augExpanded` flags stay in the file but aren't read). The Notes lists are capped at 220px and scroll.
+- **Friendlier:**
+  - A **?** button in the top bar (also `F1`, or `?` when not typing) opens "How Recaller works": the three stages, handy moves and shortcuts (it shows the user's own show/hide key).
+  - Settings is split into sections: Appearance, Voice, Shortcuts & behaviour, Your data.
+  - The empty prompt list says "No prompts yet. Click New prompt to add one."
+  - The Combined/Final footers have room for their word counts again.
+- **Fixed a growing-text bug (present since 1.2):** once a Combined or Final text had fitted, its `fits` class lifted the height limit for good. So as notes were added it grew without limit, until the page was reloaded and re-measured. `fits` now only drops the fade.
+- **Fixes:** the mouse wheel over an opened-up Combined/Final text (or a long Notes list) scrolls that text instead of the board; grabbing one of their scrollbars no longer starts a drag or a copy.
+- **Tests:** features 103 checks (new: bottom insertion, fixed-size Final, quiet empty Combined, muted band, help panel, sorting).
+
+## 1.6.0
 
 - **Stages renamed on screen:** Augmented → **Combined**, Used → **Final**. The data names did not change (`used` = Combined, `combined` = Final). Every label, tooltip, toast, menu item and undo label follows.
 - **Final:** the counter next to its title and the **Copy all** button were removed. Clicking the Final text still copies all of it, with a "Copied" chip.

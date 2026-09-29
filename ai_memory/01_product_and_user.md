@@ -2,7 +2,7 @@
 
 ## The product in one paragraph
 
-Recaller keeps prompts and notes that the owner reuses when working with AI tools such as Claude, ChatGPT and Claude Code. Speed of reuse matters most: one click copies a prompt, Ctrl+click copies several at once, and a global shortcut shows or hides the app from anywhere. Prompts are organised per project, with each project as a column on a single board. Inside each column a prompt moves through three stages: new → **Combined** (joined into one note; called Augmented before 1.6) → **Final** (the final text that everything is added to; called Used before 1.6). The owner can dictate prompts by voice (OpenAI speech-to-text), attach screenshots, highlight prompts to revisit, and undo anything.
+Recaller keeps prompts and notes that the owner reuses when working with AI tools such as Claude, ChatGPT and Claude Code. Speed of reuse matters most: one click copies a prompt, Ctrl+click copies several at once, and a global shortcut shows or hides the app from anywhere. Prompts are organised per project, with each project as a column on a single board. Inside each column a prompt moves through three stages, named like a kitchen since 1.8: **Cooking** (new prompts) → **Cooked** (joined into one note; Combined in 1.6–1.7, Augmented before) → **Served** (the final text that everything is added to; Final in 1.6–1.7, Used before). The owner can dictate prompts by voice (OpenAI speech-to-text), attach screenshots, highlight prompts to revisit, and undo anything.
 
 ## The owner
 
@@ -18,14 +18,26 @@ Recaller keeps prompts and notes that the owner reuses when working with AI tool
 
 - **Theme:** deep green is the default look: a dark forest canvas with solid, deep-coloured column headers. The owner explicitly said they liked it when they thought it had changed. The light "Soft" theme remains optional in Settings.
 - **Density:** slim and compact, with about 268px columns and actions placed in headers or bars rather than extra rows. They complained that 340px columns wasted space. Since 1.6 they can resize individual columns, and a slim top-bar ↔ button puts them all back to this default.
-- **Distinctness:** neighbouring columns get clearly different hues (emerald, sky, sun, orchid, lime, blossom, teal, bark, then ten more since 1.6). The stages look different too: new prompts are white cards, Combined is an indigo block with a solid header band and a lavender note, and Final is a deep-green block with a mint text box. They asked for more stage contrast twice (rounds 7 and 9), so don't make the stages more alike.
+- **Distinctness:** neighbouring columns get clearly different hues (emerald, sky, sun, orchid, lime, blossom, teal, bark, then ten more since 1.6). The stages look different too: Cooking is white cards on the column's neutral surface, Cooked is a light blue section (1.13; pickable), and Served is a light sage section (1.10). They asked for more stage contrast twice (rounds 7 and 9), so don't make the stages alike, but keep them light (rounds 10–16).
+- **Muted, "adult" colour, not bright:** in round 10 they rejected the bright violet Combined as "weird", "girly" and "too much brightness", and asked for "modern and adult". They like the dark green background. Keep stage and UI accents low in saturation; the only saturated colour is the column headers they picked.
 - **Typography:** sharp and modern. The UI uses Geist, and numbers and labels use Geist Mono.
   - Column titles use Instrument Sans by default (since 1.6; Sora before), with a live picker offering Instrument Sans, Plus Jakarta Sans, Onest, Sora, Space Grotesk, Inter Display, Manrope, Geist and Sora Caps. They have asked for a sharper, cleaner title font three times, so title-font taste isn't settled yet.
   - They rejected tight negative letter-spacing, small grey labels, and a text-shadow on white titles; all looked "not clear".
   - Headings stay at 15px or larger and bold.
 - **Layout:** nothing may overlap. They reported a "Copy all" button overlapping text, and a long column name hidden behind header buttons.
-- **The New prompt button** must be clearly visible and easy to reach, and not sit next to the column name. It is now a full-width bar under the header.
+- **The New prompt button** must be clearly visible and easy to reach, and not sit next to the column name. Since 1.8 the bar under the Cooking header is split in equal halves, **New prompt | Dictate**, because the owner starts about half their prompts by voice.
+- **Stage names are the owner's own:** Cooking → Cooked → Served (round 11). They have renamed the stages three times, so treat names as theirs to choose and keep the data names fixed.
 - **Less chrome:** in round 9 they removed the Final counter, the Copy all button and the top-bar "+ Project" button. Clicking already copies, and the board's "+ New project" tile creates projects.
+- **Order:** new prompts go at the **bottom** of a column (round 10), so a column reads top to bottom and flows into Cooked.
+- **Size:** stage texts must start at a fixed, modest size and expand on demand (round 10); nothing should grow without limit by default.
+- **Served is quiet (round 13):** the final stage "will always be served", so it's light (sage), not a deep block. Emphasis goes to what still needs doing (Cooking, Cooked).
+- **Right-click is edit (round 13):** they expect right-click on any prompt or stage text to edit it. So the card hover bar needs no pencil (round 14).
+- **Cooked colour (rounds 15–16):** they rejected violet ("girly"), then slate ("too ugly"), then brown/caramel ("looks like shit"). **No brown, no heavy dark bands.** Since 1.13 Cooked is a light section like Served, Ocean blue by default, with a picker (Ocean, Teal, Midnight, Graphite). Don't change its look again without showing options side by side.
+- **The main action gets the emphasis (round 14):** "Move to Cooked" is ~90% of their clicks on a card, so it's the one filled, labelled button.
+- **Save closes the editor (round 13):** after saving a prompt they want the buttons back, not an empty editor waiting.
+- **Calm with many columns (round 12):** they find a wide board of columns "cluttered" and want it "open" without using more space. Keep per-column furniture (labels, buttons, empty stages) light and uniform; let the header colour and the content carry the weight.
+- **Helpers stay out of the way (1.16):** the always-visible › scroll arrow was "kind of annoying". The ‹ › arrows now appear only when the pointer nears their edge of the board. Don't bring back always-on floating controls over the columns.
+- **A framed board (1.16):** they wanted "a border to organize everything … very sleek, very modern … aesthetic" around the whole board space. The board is a rounded panel with a slim gradient emerald edge in a dark shell the colour of the top bar. Slim and crisp, not heavy.
 - **Data safety is paramount.** Every update must keep everything identical: notes, drafts, images, colours, layout, scroll positions, window position and settings.
 
 ## Every request, in order, and what was built
@@ -119,12 +131,60 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 11. **Round 9 → v1.6.0.**
     - The request: fix the known issues; remove the counter next to Used and its Copy all button; try a new sharper, cleaner column-title font; be able to edit the Augmented and Used notes, "all" of them; rename Used → **Final** and Augmented → **Combined**; slightly more visual difference between the three stages; remove the + Project button from the top bar; resizable columns plus a slim top-bar button that resets every width to today's default; more column colours.
     - What was built: all of it. See `08` (1.6.0) for details and `10` (message 12) for how each item was read.
+12. **Round 10 → v1.7.0.**
+    - The request: the Combined colour is "weird", "girly" and too bright, so make it modern and adult (they like the background); new prompts at the bottom; a friendlier, more modern, easier UI overall; Final limited in size, expandable, initially fixed; and "what would it take for everyday users?"
+    - What was built: slate Combined, quiet empty stages, bottom insertion plus a sort action, fixed-size Combined/Final with a Show more bar (and a fix for the bug that let them grow), a help panel, sectioned Settings. The everyday-user roadmap is in `09`. See `08` (1.7.0) and `10` (message 13).
+13. **Round 11 → v1.8.0.**
+    - The request: the mic should take half of the New prompt bar (they dictate about half their prompts); rename Final → Served and Combined → Cooked; add a section name for new prompts, "Cooking", like the other ones.
+    - What was built: New prompt | Dictate in equal halves; the kitchen names everywhere; a Cooking header (label, count, fold arrow) above the prompts, with the count moved out of the column title. See `08` (1.8.0) and `10` (message 14).
+14. **Round 12 → v1.9.0.**
+    - The request: many columns look cluttered; make it feel less cluttered and open without taking more space.
+    - What was built: one neutral surface for every column, a plain Cooking label, soft New prompt | Dictate pills, empty stages that show only their name, borderless cards, fainter dots. The column headers were deliberately left as they are. See `08` (1.9.0).
+15. **Round 13 → v1.10.0.**
+    - The request: tone Served down (lighter, not deep); right-click a prompt, the Cooked note or the Served note to edit it; after saving a typed or dictated note, close the text field and show the buttons again.
+    - What was built: all three. See `08` (1.10.0) and `10` (message 16).
+16. **Round 14 → v1.11.0.**
+    - The request: drop Edit from a card's hover options (right-click edits) and make "Move to Cooked" stand out, since it's ~90% of their clicks.
+    - What was built: the hover bar has only the highlighter and a filled "↓ Cooked" button. See `08` (1.11.0) and `10` (message 17).
+17. **Round 15 → v1.12.0.**
+    - The request: "Change cooked colors to something nicer. Current one is too ugly." (the slate)
+    - What was built: six palettes compared side by side, Caramel made the default, and a Settings › Cooked colour picker. See `08` (1.12.0).
+18. **Round 16 → v1.13.0.**
+    - The request: "The cooked color is still too ugly. It looks like shit… Why did you pick brown?"
+    - What was built: Cooked became a light section like Served (no dark band), Ocean blue by default; the picker now offers Ocean, Teal, Midnight and Graphite (browns removed). See `08` (1.13.0) and `10` (message 19).
+19. **"Brain dump everything" (again).** This folder was audited and brought up to date for 1.13.0 before the session ended.
+
+Third session (2026-09-24):
+
+20. **Round 17 → v1.14.0.**
+    - The request: pasting what was copied from Cooked didn't bring the screenshot taken in Cooking.
+    - What was built: Cooked and Served show their prompts' pictures as tiles under the text; a tile click copies that picture. Text and picture stay two separate copies, because chat boxes drop the text when both are pasted at once. See `08` (1.14.0) and `11` #45.
+
+Fourth session (2026-09-26); 1.14.0 was installed and committed as "1.14" by then:
+
+21. **"Read everything here and learn every file", then Round 18 → v1.15.0.**
+    - The request: "I should be able to delete something in cooked."
+    - What was built: a trash button on every row of the Cooked (and Served) **Notes** list that deletes that one note, and a trash in the whole-text editor (right-click or pencil) that deletes the whole Cooked note (or Served text). Both undoable, no confirmation. See `08` (1.15.0) and `11` #46.
+    - "then update files again and goodbye": this folder was brought up to date for 1.15.0 at the end of the session.
+
+Fifth session (2026-09-26, later the same day); 1.15.0 was installed and committed as "1.15" by then:
+
+22. **"Read everything in ai_memory and learn every file", then Round 19 → v1.16.0.**
+    - The request (dictated): the right arrow for scrolling right "should not always be present. It's kind of annoying." And "add like a slight border to it … it kind of needs a border to organize everything … very sleek, very modern … aesthetic border."
+    - What was built first: both ‹ › arrows stay hidden until the pointer comes within 96px of their edge of the board, then fade and slide in; they also hide while dragging or panning. "A slight border to it" was read as the arrow's border: a solid white disc with a slim deep-emerald ring. See `11` #47.
+    - The owner then replied: "yes i meant the whole space not the arror i mean the board frame". So the board became a framed panel: rounded, inset 12px in a dark shell the colour of the top bar, with a 1px gradient emerald edge (bright at the top-left) and a faint glow. Eight edge styles were compared side by side first. The arrow ring was kept because it matches the frame. See `08` (1.16.0) and `11` #48.
+    - "and update files … goodbye": this folder was brought up to date for 1.16.0 at the end of the session.
 
 ## Things the owner has not decided or confirmed
 
 - **Separator:** whether they want a blank line or a single new line between joined notes. The default stays blank line; the setting exists.
-- **Archiving Final:** whether a cleared Final text should be archived. Since 1.6, ⋯ → Clear Final empties it (undoable until restart).
-- **Combined counter:** round 9 removed only the counter next to Final (then "Used"). Whether they want the Combined count gone too is unknown.
+- **Archiving Served:** whether a cleared Served text should be archived. ⋯ → Clear Served empties it (undoable until restart).
+- **Cooked counter:** round 9 removed only the counter next to Final (now Served). Whether they want the "· n" next to Cooked gone too is unknown.
+- **Cooked colour:** whether Ocean (1.13) finally pleases them. They have had it installed since the third session and haven't complained, but never said so.
+- **Deleting in Cooked (1.15):** whether "something" meant one prompt (the row trash) or the whole Cooked note (the editor's trash); both were built. Whether the row trash is easy enough to find behind the **Notes** toggle is unconfirmed.
+- **Board frame and arrows (1.16):** whether the frame's edge is the "sleek, modern, aesthetic" border they pictured (strength, the sheen, the 12px margin), whether they want the emerald ring on the arrows now that the frame exists, and whether the 96px arrow reveal zone feels right.
 - **Title font:** Instrument Sans is the new default; whether it finally satisfies "sharp, clean, modern" is unconfirmed.
+- **"All the colors are girly":** whether that included the project palette (pink Blossom, Orchid, Fuchsia), not just the Cooked (then Combined) colours.
+- **Going public:** whether they want to pursue the everyday-user roadmap in `09`, and in what order.
 - **Importing prompt files:** whether to import `Dev Prompts.txt` and `Longterm Prompts.txt`.
 - **Signing and auto-update:** whether they want code signing or auto-update. Both are currently absent.

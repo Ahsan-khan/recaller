@@ -8,14 +8,40 @@
 4. **Search skipped the combined texts.** Terms are now highlighted inside the Combined note, the Final text and their Notes rows, and a text containing every term opens up to full length while searching. Those texts are still not *filtered*, and Enter still copies the top prompt card.
 5. **Mixed order inside Augmented.** Parts can now be reordered with ↑ / ↓ in the Notes list. The stored order of older notes was not changed automatically (update safety); the owner can reorder them.
 
+## Making Recaller work for everyone (asked in round 10, 2026-09-24)
+
+The owner asked what it would take for everyday users, not just them. The answer given, in priority order:
+
+**Must-have before handing it to anyone**
+1. **Signed installer.** Without it Windows SmartScreen shows "unknown publisher", and most people stop there. Options: an OV code-signing certificate, or Azure Trusted Signing (cheaper, monthly).
+2. **Auto-update** (electron-updater + GitHub Releases, since the repo is already there). People won't reinstall by hand, and fixes must reach them.
+3. **Voice without an OpenAI key.** Almost nobody has an API key. Options: on-device transcription (whisper.cpp or Windows speech) as the free, private default with OpenAI as an optional upgrade; or a hosted proxy with accounts and billing (which costs money and needs abuse protection).
+4. **Onboarding.** A short first-run tour on top of the Welcome project and the 1.7 help panel, and names/labels checked with 3–5 real users (Cooking/Cooked/Served are the owner's words).
+5. **Getting data in and out.** Import from text/Markdown/clipboard and export a column or the Served text to `.md`/`.txt`.
+6. **Feedback and crash reports** (opt-in), plus a privacy note. Anything paid also needs terms.
+
+**Should-have**
+7. **A macOS build**: an Apple Developer ID and notarization. Many AI-tool users are on Mac.
+8. **Accessibility:** keyboard alternatives for every drag and swipe (some exist: U, Delete), keyboard column resize, screen-reader labels, checked contrast.
+9. **Light theme polish and "follow system theme".** Advanced voice settings behind an "Advanced" toggle.
+10. **An in-app "What's new"** after updates.
+
+**Later / decisions for the owner**
+11. **Sync across devices / cloud backup:** big, and needs accounts.
+12. **Distribution:** a landing page, GitHub Releases, winget or the Microsoft Store.
+13. **Business model:** free or paid, who pays for transcription, and support.
+
 ## Known issues and rough edges
 
 1. **Internal names still say Augmented and used.** Functions `augmentedText()`, `copyAugmented()`, `moveAugmentedToFinal()`, `startAugGesture()`, CSS `.used*` / `.aug-*`, and flags like `usedCollapsed`. They're internal only; `STAGE_NAME` holds the screen names. Renaming CSS/JS is safe (not data), but it's churn; data field names must never change.
 2. **The resize handle has no keyboard equivalent.** Widths can only be changed with the mouse (reset works from the menu and the top bar).
 3. **`prefs.colWidths` keeps entries for deleted projects.** Deliberate: undoing a project delete brings its width back. The top-bar reset clears them all.
-4. **Whole-text edit merges parts.** Saving a *changed* whole Combined or Final text replaces its parts with one note (as in 1.5). Per-part editing (✎ in Notes) avoids that. Watch whether the owner expects the parts to survive a whole-text edit.
-5. **Empty Combined blocks are prominent.** Since 1.6 the Combined header is a solid indigo band even when empty. If the owner finds empty columns too loud, soften the band for `.used.is-empty`.
+4. **Whole-text edit merges parts.** Saving a *changed* whole Cooked or Served text replaces its parts with one note (as in 1.5). Per-part editing (✎ in Notes) avoids that. Watch whether the owner expects the parts to survive a whole-text edit.
+5. **Mixed prompt order in old columns.** Since 1.7 new prompts go to the bottom, but prompts saved earlier stay newest-first until the owner uses ⋯ → Sort prompts oldest first. It isn't done automatically (update safety; the owner may have ordered some by hand).
 6. **`cardTarget()` has an unused `project` variable.** Trivial.
+7. **The row trash hides behind the Notes toggle (1.15).** Deleting one prompt from Cooked takes Notes → hover → trash. The Notes list is closed at start and isn't remembered. If the owner doesn't find it, options: open the list by default when Cooked has 2+ notes, remember `augPartsOpen` per column, or make Delete work on a focused row. A hovered row at slim width keeps only ~60px of its text for the five buttons.
+8. **Deleting a note from Cooked/Served isn't animated.** The row and the text just update (like ↑ / ↓). Cards animate out; stage parts don't.
+9. **The board arrows are less discoverable (1.16).** They show only within 96px of the board's edge, so someone who never moves there won't see them. The wheel, drag-to-pan and the scrollbar still work, and README explains it. If the owner misses them, options: a faint edge hint (a thin gradient or a small notch) while the board overflows, or a wider zone.
 
 ## Untested in real conditions
 
@@ -35,9 +61,9 @@ These were covered only by simulations: a fake microphone, a mock OpenAI server,
 ## Ideas offered or likely wanted (not requested yet)
 
 - **Import prompt files:** import `Dev Prompts.txt` and `Longterm Prompts.txt` (they were next to the old `iresine\recaller` folder, in `C:\Users\User\Documents\iresine`) as projects. This was offered at the end of 1.0.0; the owner didn't respond.
-- **Export and share:** export a project or the Final text to `.md` or `.txt`.
+- **Export and share:** export a project or the Served text to `.md` or `.txt`.
 - **Drag to reorder parts** inside the Notes lists (1.6 has ↑ / ↓ buttons).
-- **Archive history:** keep a history of cleared Final texts ("sessions") instead of just clearing.
+- **Archive history:** keep a history of cleared Served texts ("sessions") instead of just clearing.
 - **Auto-update** with electron-updater and a GitHub release feed (the repo is now on GitHub). Currently the owner runs each new installer by hand.
 - **Code signing,** to remove the SmartScreen warning.
 - **Tray icon,** or start with Windows.
@@ -48,23 +74,31 @@ These were covered only by simulations: a fake microphone, a mock OpenAI server,
 
 ## Technical debt
 
-- **`src/renderer/app.js` is about 3,400 lines in one file.** It is organised by sections but monolithic. Splitting it into modules (views, gestures, composer, stages, settings) would help. Use classic scripts or a bundler; ES modules over `file://` were deliberately avoided.
-- **The data and UI names for the stages differ** (`used` = Combined, `combined` = Final). This is documented everywhere; a future migration could rename them, but only with a lossless, backed-up, tested migration, and only if the owner agrees.
+- **`src/renderer/app.js` is about 3,560 lines in one file.** It is organised by sections but monolithic. Splitting it into modules (views, gestures, composer, stages, settings) would help. Use classic scripts or a bundler; ES modules over `file://` were deliberately avoided.
+- **The data and UI names for the stages differ** (`notes` = Cooking, `used` = Cooked, `combined` = Served). This is documented everywhere; a future migration could rename them, but only with a lossless, backed-up, tested migration, and only if the owner agrees.
 - **No unit tests.** Only end-to-end suites exist. The e2e suites depend on timing, and the owner's real mouse moving over the test window can occasionally interfere; re-run before debugging.
 - **The Soft theme gets less attention** than Deep, which is the default and what the owner uses.
 
 ## Open questions for the owner
 
 1. Blank line or single new line between joined notes? (The default is blank line; the setting exists.)
-2. Should clearing Final archive the text somewhere instead of deleting it (it's only undoable until restart)?
+2. Should clearing Served archive the text somewhere instead of deleting it (it's only undoable until restart)?
 3. Import the two prompt `.txt` files?
 4. Do they want auto-update or code signing?
 5. Is Instrument Sans the right column-title font? (Default since 1.6; eight alternatives are in Settings.)
-6. Should the count next to "Combined" go too? (1.6 removed only the Final counter, as asked.)
+6. Should the count next to "Cooked" go too? (1.6 removed only the counter on the last stage, now Served, as asked.)
+7. "All the colors are girly": did that mean only the Combined colours (changed in 1.7), or also the project palette (Blossom pink, Orchid, Fuchsia)? If the palette, offer a muted set.
+8. Which everyday-user items (above) to start with? The suggested first three are signing, auto-update and key-free voice.
+9. Is the 1.9 calm board calm enough with many columns? If not, offer a "calm headers" option (dark neutral header with a coloured stripe) or a narrower Compact default. Ask; don't impose.
+10. Which Cooked colour do they like? (Ocean is the default since 1.13; Teal, Midnight and Graphite are in Settings. Brown is out.)
+11. Does the 1.15 delete match what they meant by "delete something in cooked": one prompt (Notes → trash) or the whole note (right-click → trash)? Is the row trash easy enough to find?
+12. Does the 1.14 picture flow (copy the text, then click the picture and copy again) work where they paste?
+13. The 1.16 board frame (answered: "a border to organize everything" meant the board frame, not the arrow): is the frame's edge right (strength, the bright top-left sheen, the 12px margin)? Should the arrows keep their emerald ring now that the frame exists? Is showing the arrows only near the edge (96px) right?
 
 ## Suggested next steps for whoever continues
 
 1. Read `README.md` → `03` → `04` in this folder.
-2. Run `npm install`, then `npm test` and confirm everything is green: 12 + 21 + 96 checks.
-3. Check which version the owner has installed (see `13`) and ask how 1.6.0 feels, especially the new stage colours, the title font and resizing.
-4. Ask the owner the open questions above before building bigger features.
+2. Run `npm install`, then `npm test` and confirm everything is green: 12 + 21 + 134 checks.
+3. Check which version the owner has installed (see `13`). In the fifth session **1.15.0 was installed and 1.16.0 was built but not yet seen by the owner**. Ask whether the board frame is the border they meant and whether the arrows now behave as they wanted (open question 13). Questions 11 and 12 (the 1.15 trash, the 1.14 picture tiles) were never answered either.
+4. Check git: the 1.16.0 work is uncommitted on branch `v1`. The owner commits versions themselves ("1.8" … "1.15"); don't commit unless asked.
+5. Ask the owner the open questions above before building bigger features. The everyday-user roadmap at the top of this file is the biggest next step if they want to share Recaller.

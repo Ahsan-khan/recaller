@@ -1,7 +1,7 @@
 {
   "name": "recaller",
   "productName": "Recaller",
-  "version": "1.6.0",
+  "version": "1.16.0",
   "description": "Your prompts and notes, one click away.",
   "main": "src/main.js",
   "author": "AKhan",

@@ -169,3 +169,123 @@ Second session (2026-09-24), after the project moved to `C:\Users\User\Documents
 - "project plus button in the very top bar": the green + Project button; the "+ New project" tile and Ctrl+Shift+N remain.
 - Resize: drag a column's edge; the top-bar ↔ button resets every column to the current default width ("in a slim way": a small icon button).
 - "more color options": 10 more colours, 18 in all.]
+
+## Message 13: second 1.x request (sent as pasted, dictated text only)
+
+> The combined color. The combined column section color is too weird. Make it more modern and adult, not this much brightness. Come on. All the colors are girly, but the background color is nice.
+>
+> Every time I add a new prompt, it should add it to the bottom of the list and not at the top.
+>
+> Make the UI, the user interface better, more friendlier. More modern. And easier to use. Just overall good.
+>
+> The final. Section in the column has to be. Limited in the size. It should be, like, expandable, and I can see more of it. But right now it's just too long. It's too big if everything is combined, right? Like. It should be. Initially fixed in size.
+>
+> What needs to happen so that an every day user can use it? Like, this is personally built for me, but what do we need to do so that everybody can use it?
+
+[Built as v1.7.0. How each item was read:
+
+- "combined ... too weird ... not this much brightness ... girly, but the background color is nice": the violet/lavender Combined block. It became muted slate-navy and pale grey; the dark green canvas was kept. "All the colors" was read as the Combined colours, not the project palette (unconfirmed).
+- "add it to the bottom": new prompts append; prompts sent back from Combined too. Old columns keep their order; a menu action sorts them.
+- "UI friendlier, more modern, easier": the help panel, sectioned Settings, quiet empty stages, the Show more bar, clearer empty text.
+- "final ... limited in size ... expandable ... initially fixed": the owner's real data had a Final of 24 notes (~100 lines) saved as "Show all", so it opened at full length every time. Final (and Combined) now start at 6 lines; Show more opens a capped, scrolling view; the state isn't saved.
+- "what needs to happen so an everyday user can use it": answered in chat, and kept as a roadmap in `09`.]
+
+## Message 14
+
+> Half the time I'm going to be triggering with a mic. A new prompt with the mic. So, the mic button should take half the space. of the new prompt button.
+>
+> Change column section name. Final to served. Combined to cooked. And then. Add a new prompt section name. Like the other ones, that's called cooking.
+
+[Built as v1.8.0. "The mic button should take half the space of the new prompt button" was read as: split the bar in two equal halves, New prompt | Dictate. The other possible reading, a mic half as wide as New prompt, was not taken. "Add a new prompt section name like the other ones" became a Cooking header with the same label, count and fold arrow as Cooked and Served. The count moved there from the column title.]
+
+## Message 15
+
+> When I have too many columns, it seems cluttered. Is there any way to Make it visually seem less cluttered and nice and open feeling without taking up more space.
+
+[Built as v1.9.0. The clutter came from furniture repeated in every column: tinted column bodies, a boxed Cooking strip, two outlined buttons with solid colour squares, and empty dashed Cooked/Served frames with helper sentences. All of it was made quiet or hidden at rest; column headers were left as they were (the owner likes them).]
+
+## Message 16 (sent as pasted, dictated text only)
+
+> You can highlight the served section less because. It will always be served, so maybe. Less deeper color or lighter color.
+>
+> By right-clicking on a prompt or cooked note or a served note, I should be able to edit it.
+>
+> After dictating or typing a new note, and when I press save, It should close the text field. And open up the buttons again.
+
+[Built as v1.10.0. Served became a light sage section. Right-click opens the matching editor: a card, the whole Cooked or Served text, or one part when clicked on a Notes row; with text selected the Copy menu is kept. Saving a new prompt now closes the composer.]
+
+## Message 17
+
+> When I hover over a prompt. So, I don't, I'm currently seeing three options: highlight, move to. Cooked and edit. I don't want edit anymore because I can. Right click to edit. And basically highlight the move to cooked option, because that's what I'm clicking 90% of the time.
+
+[Built as v1.11.0. "Highlight the move to cooked option" was read as "make it stand out", not the highlighter feature: it became a filled slate "↓ Cooked" button; the edit pencil was removed.]
+
+## Message 18
+
+> Change cooked colors to something nicer. Current one is too ugly.
+
+[Built as v1.12.0. It was the second rejection of the Cooked colour, so six palettes were rendered side by side (`tests/e2e/.out/cooked-colour-options.png`). Caramel became the default, and all six are in Settings › Cooked colour.]
+
+## Message 19
+
+> The cooked color is still too ugly. It looks like shit. It literally looks like shit. Why did you pick brown?
+
+[Built as v1.13.0. The answer given: brown was chosen as "cooked = golden-brown" and for contrast with the green; that was a bad call, and half the offered options were browns too. Cooked became a light section like Served (no dark band), Ocean blue by default. The browns were removed from the picker, which now has Ocean, Teal, Midnight and Graphite.]
+
+## Message 20: the second handoff request
+
+> okay we are leaving this conversation forever now. i need you to brain dump and update everything any human or ai or llm will need to proceed forward and develop from this convo. make it organized and make sure everything important and required is there. this will essentially be memory for everyone and everything to access. make sure everything is text and describe every flow in text as well.
+>
+> update the files in C:\Users\User\Documents\recaller\ai_memory
+
+[Done at the end of the second session. 1.13.0 was finished and tested, and every file in this folder was audited against the code: stale names, counts, git state and looks were corrected, the everyday loop was added to `04` §24, the release checklist in `06` was tightened, and the playbook in `13` gained this session's working lessons.]
+
+## Message 21 (third session)
+
+> When I paste. The copied thing. Like from cooked it. It doesn't paste the image. That I initially. Took as a screenshot in cooking.
+
+[Built as v1.14.0. Cooked and Served never showed or copied their prompts' images. Text + image in one clipboard write was tested, but the Claude Code VS Code chat box drops the text when an image comes with it, so the pictures now show as tiles under the Cooked/Served text and copy with a click, separately from the text.]
+
+---
+
+Fourth session (2026-09-26). 1.14.0 was installed and committed as "1.14" by then.
+
+## Message 22 (the whole request, in one message)
+
+> C:\Users\User\Documents\recaller\ai_memory
+>
+> read everything here and learn every file
+>
+> then implement this:
+>
+> "I should be able to delete something in cooked."
+>
+> then update files again and goodbye
+
+[Built as v1.15.0. "Something in cooked" was read as "one prompt inside the Cooked note", since the only ways before were ⋯ → Clear Cooked (all of it) or Notes → ✎ → the editor's trash (two steps deep). Every Notes row got a trash button; the whole-text editor (right-click the note) got a trash for the whole Cooked note, matching the card editor. Served got the same because the rows and editors are shared. "Update files again and goodbye" = bring this folder up to date and end the session; no questions were asked.]
+
+---
+
+Fifth session (2026-09-26, later the same day). 1.15.0 was installed and committed as "1.15" by then.
+
+## Message 23 (the whole request, in one message)
+
+> read everything in C:\Users\User\Documents\recaller\ai_memory and learn every file
+>
+> then implement this:
+>
+> "The right arrow. For scrolling to the right. Should not always be present. It's kind of annoying.
+>
+> Add like a slight border to it because. It kind of needs a border to organize everything. So make it a very sleek, very... Very modern, very, very. Aesthetic border."
+>
+> and update files
+>
+> goodbye
+
+[Built as v1.16.0. "The right arrow for scrolling to the right" = the round › button on the board's right edge, which showed whenever the board overflowed (almost always on their board). "Should not always be present" became: both arrows appear only while the pointer is within 96px of their edge, and hide during drags and pans. "A slight border to it" was read as a border on the arrow button itself: a slim deep-emerald ring with a faint halo on a solid white disc (three styles were compared first; a frosted see-through one went grey on the dark canvas). The other reading, a border framing the board or columns, was not built at first. "Update files … goodbye" = bring this folder up to date and end the session; no questions were asked.]
+
+## Message 24 (reply to the report)
+
+> yes i meant the whole space not the arror i mean the board frame
+
+["arror" = arrow. The border was meant for the whole board space. Built into 1.16.0 (not yet installed, so the version stayed): the board became a rounded panel inset 12px in a dark shell the colour of the top bar, with a 1px gradient emerald edge (bright mint at the top-left, even emerald elsewhere) and a faint glow. Eight edge styles were compared side by side first. The arrow's emerald ring was kept since it matches the frame; the owner can ask for it back to plain.]

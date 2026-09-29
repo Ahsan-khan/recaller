@@ -42,13 +42,13 @@ The owner's VS Code / Claude Code terminal sets `ELECTRON_RUN_AS_NODE=1`, which 
 - **Unsigned:** the build runs a signtool step, but there is no certificate, so the installer is unsigned and Windows SmartScreen may warn ("More info → Run anyway").
 - **First build downloads:** Electron zip, NSIS, 7zip and resources into electron-builder's cache. A build takes about 1 minute.
 - **Known flake:** the build sometimes exits with code 127 partway (while unpacking Electron or building NSIS), leaving `dist/win-unpacked.tmp` and `.tmp.lock`. Fix: `rm -rf dist/win-unpacked dist/win-unpacked.tmp dist/win-unpacked.tmp.lock`, then build again.
-- **Before each release:** clean the old output first with `rm -rf dist/win-unpacked dist/*.exe dist/*.blockmap`.
+- **Before each release:** clean the old unpacked output with `rm -rf dist/win-unpacked dist/win-unpacked.tmp dist/win-unpacked.tmp.lock`. Older installers have been kept in `dist\` so far (it's git-ignored); delete them only if the owner wants the space back.
 
 ## How the owner installs and updates
 
 1. Give them `dist\Recaller Setup X.Y.Z.exe`. They double-click it; it installs over the previous version (closing the running app if needed) and relaunches.
 2. Their data in `%APPDATA%\Recaller` is untouched, and the new version makes an `upgrade` backup on first start.
-3. **Currently installed:** 1.5.0 at the start of the 1.6.0 session (2026-09-24). The 1.6.0 installer was built and handed over; check the installed version at session start (see `13`).
+3. **Currently installed:** 1.15.0 in the fifth session (2026-09-26). The 1.16.0 installer (`dist\Recaller Setup 1.16.0.exe`) was built and tested but not yet installed. Installers for 1.5.0–1.16.0 sit in `dist\` (1.10.0's was deleted after a mislabelled rebuild; see `07` #52); only `dist/win-unpacked*` is cleaned before a build. Always check the installed version at session start (see `13`).
 
 ## End-to-end test suites (`tests/e2e/`)
 
@@ -70,7 +70,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **Check syntax first:** run `node --check` on a suite before launching it. A syntax error makes Electron show an "App threw an error" dialog on the owner's screen until it times out.
 - **Real captures are deleted:** the features suite's real screen-snip test captures the owner's actual screen once. The suite deletes the images afterwards. Never view or keep those files.
 
-### `features.e2e.js` (96 checks, about 4 minutes)
+### `features.e2e.js` (134 checks, about 4 minutes)
 
 **Setup:**
 - **Seed data:** seven projects in the old v1 format, which also exercises loading old data.
@@ -92,41 +92,52 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
   - long names wrap to two lines, clear of ⋯;
   - neighbouring column headers and sections have different colours;
   - Deep is the default theme;
-  - headers are dark and solid.
+  - headers are dark and solid;
+  - (1.16) the board has a rounded frame (radius ≥ 10px, a ≥1px border, a gradient edge layer clipped to `border-box`), inset at least 8px from the window's sides and bottom, and `body` has the top bar's background colour.
 - **Copy, swipe and undo:**
   - click copies;
   - swipe deletes;
   - undo via Ctrl+Z, the toolbar button and the toast;
   - redo with Ctrl+Y.
 - **Drag:**
-  - drag into Combined (joins into the note);
+  - drag into Cooked (joins into the note);
   - the move toast and its Undo;
-  - dropping on a collapsed Combined header;
+  - dropping on a collapsed Cooked header;
   - vertical reorder.
 - **Stages** (built in a spare column):
-  - the labels read Combined and Final; the old card move-back button is gone;
+  - the labels read Cooked and Served; the old card move-back button is gone;
   - three typed prompts;
-  - two moved to Combined join as "Gamma three\n\nBeta two";
+  - two moved to Cooked join as "Gamma three\n\nBeta two";
   - clicking copies the combined note;
-  - a left swipe moves it into Final;
-  - a second batch via the **Move to Final** button is appended with the separator;
-  - a third batch dragged onto Final;
-  - Final has no counter and no Copy all; clicking the Final text copies it with a "Copied" chip;
-  - the Final footer (stats, Notes, pencil) doesn't overlap;
-  - a prompt is sent back out of Combined;
+  - a left swipe moves it into Served;
+  - a second batch via the **Move to Served** button is appended with the separator;
+  - a third batch dragged onto Served;
+  - Served has no counter and no Copy all; clicking the Served text copies it with a "Copied" chip;
+  - the Served footer (stats, Notes, pencil) doesn't overlap;
+  - a prompt is sent back out of Cooked;
   - the three stages differ in block colour, header and inner note colour;
   - the "New line" separator setting works.
 - **Parts and editing** (same column):
-  - the Final Notes list shows ↑ ↓ ✎ ↩ per part; ↓ then ↑ reorders and restores;
-  - ✎ edits one Final part alone (the others stay separate);
-  - the Final pencil edits the whole text into one note; two Ctrl+Z undo both edits;
-  - a Combined part can be edited alone; the Combined pencil opens the whole note and Esc cancels;
-  - a prompt that lands in Combined while its editor is open survives the save.
-- **Clearing:** the menu lists "Clear Combined (1)" and "Clear Final (5)"; each empties only its own stage; Ctrl+Z restores.
-- **Search in combined texts:** terms are marked inside the Combined and Final texts.
+  - the Served Notes list shows ↑ ↓ ✎ ↩ per part; ↓ then ↑ reorders and restores;
+  - ✎ edits one Served part alone (the others stay separate);
+  - the Served pencil edits the whole text into one note; two Ctrl+Z undo both edits;
+  - a Cooked part can be edited alone; the Cooked pencil opens the whole note and Esc cancels;
+  - a prompt that lands in Cooked while its editor is open survives the save.
+- **Clearing:** the menu lists "Clear Cooked (1)" and "Clear Served (5)"; each empties only its own stage; Ctrl+Z restores.
+- **Deleting inside Cooked and Served (1.15):** every Cooked Notes row has a trash; a row laid out with its five buttons still leaves at least 40px of text at slim width; the row trash deletes one note ("Note deleted" toast) and Ctrl+Z puts it back in place; the Cooked editor (opened by right-click) has a trash titled "Delete the whole cooked note" that empties Cooked, leaves Served alone, and Ctrl+Z restores both parts; a Served row's trash deletes one note and undoes. Screenshot `shots2/03c-cooked-row-trash.png` (the hovered row sits under the board's › arrow there; a scratch copy of `capture-board.js` that hovers a row in the first column shows the buttons clearly, see `13`).
+- **Pictures in Cooked and Served (1.14):** the Cooked strip shows the picture, the Cooked text copies without it, a tile copies the picture, the picture moves to Served, the Served tile and text copy separately, and undo puts it all back.
+- **Search in combined texts:** terms are marked inside the Cooked and Served texts.
 - **Colours:** the menu has 18 swatches; picking Navy applies it (then undone).
+- **1.7 checks:**
+  - new prompts land at the bottom;
+  - the Served text is held to 6 lines, and Show more opens it without writing `augExpanded`;
+  - an empty Cooked is a transparent, dashed outline;
+  - the Cooked band is a muted slate (low-saturation check);
+  - the ? button and F1 open the help, and Esc closes it;
+  - ⋯ → Sort prompts oldest first sorts by `createdAt`, and Ctrl+Z restores the order.
+- **1.8 checks:** New prompt and Dictate are equal halves with full labels; prompts sit under "Cooking · n" and the column title has no count; clicking Cooking folds and unfolds it (saved as `notesCollapsed`, removed when unfolded); a new prompt unfolds a folded Cooking.
 - **Highlight:** the menu offers four colours and shows the "Check again" tag; Ctrl+Z removes it; H toggles it.
-- **Ctrl+click:** two notes in click order with a blank line between; badges 1 and 2 and the bar; Ctrl+click again removes; Esc clears; "Move to Combined" joins them in, and Ctrl+Z undoes it.
+- **Ctrl+click:** two notes in click order with a blank line between; badges 1 and 2 and the bar; Ctrl+click again removes; Esc clears; "Move to Cooked" joins them in, and Ctrl+Z undoes it.
 - **Live dictation:**
   - the mic starts from the column;
   - text appears while still recording;
@@ -145,7 +156,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
   - clicking the thumbnail copies an image;
   - clicking the text copies text;
   - the lightbox opens.
-- **Scrolling:** the arrow is visible and scrolls one column; the wheel over a header scrolls sideways; dragging empty canvas pans.
+- **Scrolling:** the right arrow is unhidden when the board overflows; (1.16) it is out of sight (no `.is-near`, `pointer-events: none`) with the pointer mid-board, and appears near the right edge with a visible, non-white ring of at least 1px; it scrolls one column; after that the left arrow appears only near the left edge while the right one leaves; the wheel over a header scrolls sideways; dragging empty canvas pans.
 - **Settings:** the Compact density narrows columns; the Soft theme can be picked and is saved.
 - **Column widths:** the ↔ button starts disabled; dragging two column edges resizes them (+90px, −40px) and saves `prefs.colWidths`; the button enables; it resets every column and removes the key; Undo on its toast restores; double-clicking an edge resets one column.
 - **Columns:** reorder, then undo.
@@ -200,7 +211,7 @@ It tests Ctrl+click as a real person would:
 
 ### `capture-board.js`
 
-It renders a fixed sample (stages with their Notes lists open, highlights, a long two-line column name, an empty Final, one resized column) and writes `tests/e2e/.out/<OUT>.png` (the whole window including the top bar), `<OUT>-zoom.png` (2× the left area), `<OUT>-menu.png` (the ⋯ menu with its swatches) and `<OUT>-settings.png`. Use it to check visual changes; set `OUT` to name the files.
+It renders a fixed sample (stages with their Notes lists open, highlights, a long two-line column name, an empty Served, one resized column) and writes `tests/e2e/.out/<OUT>.png` (the whole window including the top bar), `<OUT>-zoom.png` (2× the left area), `<OUT>-menu.png` (the ⋯ menu with its swatches) and `<OUT>-settings.png`. Use it to check visual changes; set `OUT` to name the files.
 
 ### Running the suites against the packaged build (do this before every release)
 
@@ -225,17 +236,20 @@ Every suite checks that `APP_MAIN` exists and otherwise prints `HARNESS FAIL: no
 
 1. Make the change. Keep the invariants in `03`.
 2. Run `node --check` on every edited JavaScript file.
-3. Run the relevant suites on source, and add checks for new behaviour to `features.e2e.js`.
-4. Bump `version` in `package.json`.
-5. Update the user guide in `README.md`, and `ai_memory/08_changelog.md`.
-6. Clean `dist`, then `npm run dist` (retry once if it exits with 127).
-7. Run all suites against `dist/win-unpacked/resources/app.asar/src/main.js`, including `MODE=real`.
-8. Hand the owner the installer path, and explain what changed and how to use it.
+3. Look at it: `npm run capture` (or a scratch render), and view the PNGs. For taste changes, render options side by side.
+4. Run the relevant suites on source, and add checks for new behaviour to `features.e2e.js`.
+5. Bump `version` in `package.json` **as its own step** (never chained behind `&&`), then confirm it with `grep '"version"' package.json` (see `07` #52).
+6. Update the user guide in `README.md` (the "This builds …" line and any changed rows), `ai_memory/08_changelog.md`, and every other affected `ai_memory` file (counts in `06`, `09`, `13` and `tests/e2e/README.md`; status line in `ai_memory/README.md`).
+7. Clean `dist/win-unpacked*`, then `npm run dist` (retry once if it exits with 127). Confirm the build log line `building target=nsis file=dist\Recaller Setup X.Y.Z.exe` shows the new version.
+8. Run all suites against the packaged app, including `MODE=real`, then delete `tests/e2e/.out/data-real`. Use `$(pwd -W)` for `APP_MAIN` in Git Bash. A single failure that passes on re-run is usually timing or the owner's mouse; re-run before debugging, and say so in the report.
+9. Hand the owner the installer path, and explain what changed and how to use it (short, one line per item they asked for).
+10. Don't commit; the owner commits each version themselves.
 
 ## Git status (important)
 
-- **Repository:** since 2026-09-24 Recaller is its own repo at `C:\Users\User\Documents\recaller` (moved out of `Documents\iresine\recaller`). Branch `main`, remote `origin` = https://github.com/Ahsan-khan/recaller. The first commit `3876950` ("Initial commit: Recaller desktop prompt board (v1.5.0)") is on GitHub.
-- **1.6.0 work:** left uncommitted in the working tree; the owner didn't ask for a commit.
-- **When committing is requested:** make a branch (unless told to use `main`), then commit with the attribution the environment requires. Push only when asked.
+- **Repository:** since 2026-09-24 Recaller is its own repo at `C:\Users\User\Documents\recaller` (moved out of `Documents\iresine\recaller`), remote `origin` = https://github.com/Ahsan-khan/recaller.
+- **Branches:** `main` has the 1.5.0 commit (`3876950`). `v1` is the working branch: the owner commits each version there with a short message ("initial commits" = 1.6, `ee2572a` "v1" = 1.7, then "1.8", "1.9", "1.10", "1.11", "1.12" = `290c74d`, "1.13" = `0f7ceea`, "1.14" = `8776a32`, "1.15" = `7f101e6`) and pushes. In the fifth session the 1.16.0 work was uncommitted in the working tree.
+- **Line endings:** `app.js`, `styles.css`, the suites and the Markdown files are LF in the working tree; `index.html` is CRLF. Git warns "LF will be replaced by CRLF" on diff; that is harmless. Keep each file's existing endings when patching.
+- **When committing is requested:** follow the owner's pattern (commit on `v1` with the version as the message) unless told otherwise, and add the attribution the environment requires. Push only when asked.
 - **Ignored:** `.gitignore` ignores `node_modules/`, `dist/` and `tests/e2e/.out/`.
 - **GitHub CLI:** `gh` isn't on PATH; use `C:\Program Files\GitHub CLI\gh.exe`.

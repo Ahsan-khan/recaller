@@ -37,10 +37,13 @@ The renderer swaps these classes in `render()` and `applyTheme()`.
 | `--highlight` | #b6f2cd | search match marks |
 | `--rec` | #e5484d | recording pill |
 | `--danger` | #dc4f3a | delete swipe, errors |
-| `--aug-bg` / `--aug-edge` / `--aug-ink` | #e0e4fc / #aeb8ef / #3730a3 | Combined block background, border, text (data `used`) |
-| `--aug-card` / `--aug-card-edge` | #f6f6ff / #cbd1f6 | the lavender Combined note |
-| `--aug-bar` / `--aug-band` | #4f46e5 / gradient #5b56ee → #4840d8 | Combined accent bar, Move to Final bar, and the solid header band |
-| `--final-card` / `--final-card-edge` | #eefcf4 / #b9ebcf | the mint Final text box (data `combined`) |
+| `--aug-bg` / `--aug-edge` / `--aug-ink` | #e6e9ef / #c9cfda / #334058 | Cooked block background, border, text (data `used`) |
+| `--aug-card` / `--aug-card-edge` | #f9fafc / #d6dbe4 | the near-white Cooked note |
+| `--aug-bar` / `--aug-bar-hover` / `--aug-band` | #3f4a62 / #2f384c / gradient #47526b → #384259 | Cooked accent bar, Move to Served bar, and the slate-navy header band |
+| `--final-card` / `--final-card-edge` | #f3f8f5 / #cfe3d6 | the pale mint Served text box (data `combined`) |
+| `--stage-lines` | 6 | how many lines the Cooked note and Served text show before "Show more" |
+| `--frame-edge` | `linear-gradient(150deg, rgba(5,122,85,.55) 0%, rgba(12,42,29,.2) 30%, rgba(12,42,29,.17) 100%)` | the board frame's 1px edge (1.16), a gradient painted under a transparent border |
+| `--frame-glow` / `--frame-hi` | rgba(16,168,116,.06) / rgba(255,255,255,.7) | the frame's faint 3px outer glow and its inner top highlight |
 
 **Per-column accent tokens** are set inline on each `.column` as `--accent: <project colour>`. The derived shades are redeclared on `:root, .column, .drag-ghost`, because custom properties resolve where they are declared:
 
@@ -52,7 +55,8 @@ The renderer swaps these classes in `render()` and `applyTheme()`.
 ### Deep theme (`body.theme-deep`, the default)
 
 - **Canvas:** `linear-gradient(165deg, #145640, #0e3a2b 45%, #06231a)` with white 7% dots. The monstera leaves are drawn in #6ee7b7 at 5–7% opacity.
-- **Top bar:** #082a1f, with white text. The search box is white 9% and turns white on focus. The Windows title-bar overlay matches: #082a1f with #e7f7ee symbols.
+- **Board frame (1.16):** `--frame-edge` is `linear-gradient(150deg, rgba(167,243,208,.72) 0%, rgba(52,211,153,.4) 28%, rgba(52,211,153,.32) 100%)` (a bright mint sheen at the top-left settling to an even emerald), `--frame-glow` rgba(52,211,153,.07), `--frame-hi` rgba(255,255,255,.06). The margin around the frame is `body`'s background, #082a1f like the top bar.
+- **Top bar:** #082a1f, with white text. Since 1.16 it has no bottom border or shadow; the board frame below it draws that edge. The search box is white 9% and turns white on focus. The Windows title-bar overlay matches: #082a1f with #e7f7ee symbols.
 - **Columns:** a light body (`color-mix(accent 7%, #f3f7f4)`) with a strong drop shadow.
 - **Column header:** a solid gradient from `mix(accent 90%, black)` to `--accent-deep`, with a white title (no shadow), a white-22% count pill, and white header buttons.
 - **Primary:** #10a874.
@@ -64,13 +68,28 @@ The canvas is a light green-grey gradient and the top bar is white. The column h
 
 ### Stage colours (the same in both themes)
 
-The owner asked twice for more difference between the stages. Since 1.6 each stage has its own frame *and* its own "paper": white cards, an indigo block with a lavender note, a deep-green block with a mint box.
+The owner asked twice for more difference between the stages, and then, round after round, for less weight and less brightness. Where it ended (1.13): **Cooking** is white cards on the column's neutral surface, **Cooked** is a light section in a clean accent (Ocean blue by default, pickable), and **Served** is a light sage section. Both stage sections are light; the difference is carried by hue and label colour, not by heavy bands. Rejected on the way: bright violet ("girly", 1.7), a slate header band ("too ugly", 1.12), brown/caramel ("looks like shit", 1.13), and a deep-green Served block ("highlight it less", 1.10).
 
 | Stage | Look |
 | --- | --- |
 | New prompts | White cards with a 3px project-accent bar on the left (`--accent-deep` in Deep theme) |
-| Combined (data `used`) | Indigo block (#e0e4fc, border #aeb8ef, soft indigo shadow) with a solid indigo header band (`--aug-band`) and white uppercase label "COMBINED · n". One lavender note (#f6f6ff, border #cbd1f6) with a 3px #4f46e5 bar. A full-width #4f46e5 "↓ Move to Final" bar (hover #4338ca). Collapsed, only the band shows |
-| Final (data `combined`) | A deep-green block with gradient #11523c → #0b3a2a (border #0a2f22), header label "FINAL" in #d1fae5 (no counter, no Copy all since 1.6), and a mint inner text box (#eefcf4, border #b9ebcf) that gets an emerald ring on hover and a "Copied" chip when clicked |
+| Cooked (data `used`) | 1.13: a light section in the Cooked palette (Ocean by default): pale block (#e9f1fb, border #c9dbf1), label "COOKED · n" in #1d4f8c (no band), a white note with a 3px #3a6fb5 edge, and a full-width #3a6fb5 "↓ Move to Served" bar (hover #2d5b98). Collapsed, only the label row shows. **Empty:** only its faint name; a drop zone while dragging |
+| Served (data `combined`) | 1.10: a light sage section (`--final-bg` #e4eee8, border `--final-edge` #c6dccd, faint shadow) with the header label "SERVED" in `--final-ink` #0b5a3f (no counter, no Copy all since 1.6). A near-white text box (#fbfdfb, border #d3e6da) gets an emerald ring on hover and a "Copied" chip when clicked. Before 1.10 it was a deep-green gradient block; the owner asked for less emphasis because "it will always be served". **Empty:** only its faint name; a drop zone while dragging |
+
+### Cooked palettes (1.12; light since 1.13)
+
+Cooked is a **light section like Served**: a pale block, the label in `--aug-ink` (no dark header band), a white note with a 3px `--aug-bar` edge, and one filled accent (`--aug-bar`) for the Move to Served bar and the card's ↓ Cooked button. `body.cooked-<name>` (and `.co-<name>` for the Settings tiles) sets `--aug-bar`, `--aug-bar-hover`, `--aug-ink`, `--aug-bg`, `--aug-edge`, `--aug-card` and `--aug-card-edge`. Shadows and tints are `color-mix()` of `--aug-bar`.
+
+| Name | Accent (bar) | Label ink | Block bg | Note |
+| --- | --- | --- | --- | --- |
+| **ocean** (default) | #3a6fb5 | #1d4f8c | #e9f1fb | #fdfeff |
+| teal | #20807a | #145f59 | #e4f3f1 | #fcfefe |
+| midnight | #2c3b63 | #1f2c4d | #e8ebf3 | #fcfcfe |
+| graphite | #4a5059 | #2f343b | #eceef1 | #fdfdfd |
+
+The `:root` `--aug-*` values are the ocean fallback; `render()` always puts one `cooked-*` class on `<body>`.
+
+**History:** violet band (1.4–1.6, "girly") → slate band (1.7–1.11, "too ugly") → caramel and other band palettes including three browns (1.12, "looks like shit"). All three rejected looks shared the heavy dark header band; Served only started working once it became light. Don't bring back the band or brown tones.
 
 ### Project palette
 
@@ -90,9 +109,9 @@ A highlighted card gets a tinted background, a 55% border, a 4px bar in the colo
 ### Other states
 
 - **Selected (Ctrl+click):** a 2px accent ring, a light accent background, and a round `--accent-deep` badge with the order number (top-left, white outline).
-- **Drop targets:** a dashed outline (Combined in indigo, Final in #34d399). Dashed placeholders in the accent colour.
-- **Swipe backdrops:** red gradient for delete; green gradient (#0e9f6e) for "Move to Final" on the Combined note.
-- **Notes-list rows** (Combined and Final): number, first line, and on hover ↑ ↓ ✎ ↩ buttons (22px). The Notes toggle looks pressed (tinted background) while open; its label stays "Notes" so the word-count stats keep their room.
+- **Drop targets:** a dashed outline (Cooked in slate #3f4a62, Served in #34d399). Dashed placeholders in the accent colour.
+- **Swipe backdrops:** red gradient for delete; green gradient (#0e9f6e) for "Move to Served" on the Cooked note.
+- **Notes-list rows** (Cooked and Served): number, first line, and on hover ↑ ↓ ✎ ↩ 🗑 buttons (22px, icons 13px). The trash (`.fp-del`, 1.15) sits 3px apart from the others and is quiet grey like them; only on hover does it turn `--danger` red on a 10% red tint (the other buttons tint in the stage colour). At the slim default width a hovered row keeps about 60px for its text (checked by the suite: at least 40px). The Notes toggle looks pressed (tinted background) while open; its label stays "Notes" so the word-count stats keep their room.
 - **Column resize handle** (`.col-resize`): a 10px strip in the gap right of each column. On hover a 3px × 48px rounded line appears (dark ink at 30% in Soft, mint at 60% in Deep); while dragging it runs the full height and the cursor is `col-resize` everywhere.
 
 ## Typography
@@ -121,6 +140,7 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
 ## Sizes and layout
 
 - **Window:** default 1280×820, minimum 480×400. Top bar 48px.
+- **Board frame (1.16):** `.stage` has margin 2px 12px 12px, radius 14px, `overflow: hidden`, a transparent 1px border with `--frame-edge` painted as a `border-box` background layer under it (the canvas layers are `padding-box`), and `box-shadow: 0 0 0 3px var(--frame-glow), inset 0 1px 0 var(--frame-hi)`. `body` uses `--topbar` as its background, so the shell around the frame matches the top bar in both themes. The board's scrollbar track has a 12px margin at each end so the thumb clears the round corners. Why a gradient on a background layer: `border-image` ignores `border-radius`.
 - **Densities** (the default column width; a resized column uses its own width, 200–900px):
 
   | Setting | Column width | Card padding | Card text | Line clamp | Card gap | Column gap |
@@ -130,22 +150,30 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
   | roomy | 330px | 11/13/10/16px | 13.5px | 6 lines | 8px | 16px |
 
 - **Column:** radius 16px. Header at least 46px tall; the name wraps to two lines.
-- **New prompt bar:** 36px tall; the plus sits in a 22px `--accent-deep` square. A 36px square mic button sits beside it.
-- **Cards:** radius 12px. On hover, an action pill appears top-right (highlighter, stack "to Combined", edit) with 26px buttons.
-- **Combined and Final:** blocks radius 12px (Combined's header band 11px top corners), inner note or box radius 9px, combined text clamped to 8 lines with a fade until "Show all".
-- **Top bar:** brand, search, then (right) undo/redo, the ↔ reset-widths icon button, the settings gear. No "+ Project" button since 1.6. Disabled top-bar icon buttons are drawn at 30% opacity.
+- **Cooking header (1.8; plain since 1.9):** a 28px row with no background or border, text `--accent-ink`, the same 11.5px / 700 / uppercase / +0.045em type as the Cooked and Served labels, with a chevron and a flame icon. It tints to accent 9% on hover.
+- **New prompt bar (1.8; soft since 1.9):** two equal flex halves, 36px tall, gap 6px, padding 0 6px, 13px / 650 labels. White pills with no border at rest (1.5px transparent) and a hairline shadow; on hover a 55%-accent border and `--shadow-md`. The icons (plus, mic) are 16–17px glyphs in `--accent-deep`, with no filled square. `.col-new` is a size container: under 244px the left label switches to "New". A draft shows "Draft" plus an 8px amber dot by the +.
+- **Calm-board rules (1.9, for many columns):**
+  - every column body is the same neutral (#eef2f0 in Deep, #f6f8f7 in Soft); only headers and card bars carry colour;
+  - empty Cooked/Served show just their name at 60% opacity (the drop-zone frame and helper sentence appear only while dragging);
+  - cards in Deep have no border, just a soft two-layer shadow;
+  - canvas dots are at 3.5% white.
+  Keep repeated per-column furniture light; weight belongs to content.
+- **Cards:** radius 12px, no border in Deep (soft shadow). On hover, an action pill appears top-right with two buttons (1.11): the highlighter (26px icon) and **↓ Cooked**, a filled `--aug-bar` button (the Cooked accent, Ocean blue by default) with a down arrow and the word "Cooked" (white, 11.5px / 650), hover `--aug-bar-hover`. The edit pencil was removed (right-click or E edits).
+- **Cooked and Served:** blocks radius 12px (light sections; neither has a header band since 1.13), inner note or box radius 9px. The text shows `--stage-lines` (6) lines with a fade. Under it, a slim full-width **Show more / Show less** bar (`.stage-more`, 24px, chevron that flips) opens it to min(56vh, 480px), scrolling inside. The Notes lists are capped at 220px. The footer gap is 4px so "n prompts · w words" fits next to Notes and the pencil at slim width.
+- **Dialogs:** Settings and Help share `.modal-card`. `.modal-section` headings are 12px / 700 / uppercase / `--ink-2` with a hairline above. The Help stage cards are white with a coloured square per stage. `kbd` inside Help is forced light, because Deep theme otherwise styles `kbd` for the dark top bar.
+- **Top bar:** brand, search, then (right) undo/redo, the ↔ reset-widths icon button, the ? help button (1.7), the settings gear. No "+ Project" button since 1.6. Disabled top-bar icon buttons are drawn at 30% opacity.
 - **Composer:**
   - radius 12px with an accent ring; the textarea grows up to 300px;
   - an attachment row, and a message row for errors with action links;
   - the bottom bar holds the mic (a 30px circle, or a red pill with timer and bars while recording), the camera, a status line, then (edit mode) delete, close (×) and Save.
 - **Menus** radius 12px, **toasts** 12px, **settings dialog** 18px.
-- **Scroll arrows:** 36px circles on the board edges.
+- **Scroll arrows (`.pan-btn`, restyled in 1.16):** 38px circles, 10px in from the board edges at 45% height. A solid white-to-mint gradient disc (`#fff` → `#f3f8f5`), a 1.5px ring (Chromium draws it 1px at 100% scale) in `color-mix(--primary 60%, #0c2a1d)` (deep emerald), a faint 3px white halo (16%) and a soft drop shadow; the chevron is `--ink-2`, 18px, stroke 2.2. Hover: ring `--primary`, chevron `--primary-deep`, `scale: 1.06`. Hidden at rest (`opacity: 0`, nudged 6px outward with `translate`); `.is-near` (pointer within 96px of that edge) or `:focus-visible` fades and slides it in over about 0.2s. They use the separate `translate` / `scale` properties so the slide and the hover grow don't fight over `transform`. A see-through frosted disc was tried and dropped: over the dark canvas it read as muddy grey.
 
 ## Icons (`src/renderer/icons.js`, 24px stroke, 1.8 width)
 
-`plus`, `mic`, `stop`, `copy`, `check`, `edit`, `trash`, `more`, `chevron`, `used` (check in circle, the Final icon), `restore` (circular arrow), `grip`, `pencilLine`, `arrowLeft`, `arrowRight`, `arrowDown`, `arrowUp`, `width` (two bars with a double arrow: column width), `camera`, `close`, `expand`, `image`, `layers` (the "stack" icon for Combined), `highlighter`, `undo`.
+`plus`, `mic`, `stop`, `copy`, `check`, `edit`, `trash`, `more`, `chevron`, `used` (check in circle, the Served icon), `restore` (circular arrow), `grip`, `pencilLine`, `arrowLeft`, `arrowRight`, `arrowDown`, `arrowUp`, `width` (two bars with a double arrow: column width), `sort` (lines with a down arrow), `camera`, `close`, `expand`, `image`, `layers` (the "stack" icon for Cooked), `highlighter`, `undo`.
 
-Top-bar icons (search, undo/redo, reset widths, gear) are inlined in `index.html`.
+Top-bar icons (search, undo/redo, reset widths, help, gear) are inlined in `index.html`.
 
 ## App icon and monstera art
 
@@ -161,5 +189,5 @@ The leaf is one path, with a mask cutting slits (thick lines) and holes (ellipse
 - **Swipe spring-back:** 0.32s.
 - **Copy:** a ripple of 0.6s and a chip for 1.3s.
 - **Toasts:** spring in.
-- **Final flash:** an expanding emerald ring, 0.7s, when text lands in Final or the Final text is copied.
+- **Served flash:** an expanding emerald ring, 0.7s, when text lands in Served or the Served text is copied.
 - **Composer:** busy progress line; recording ring grows with the input level.

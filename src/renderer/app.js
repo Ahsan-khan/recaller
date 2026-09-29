@@ -48,22 +48,26 @@
   ];
   const highlightOf = (note) => HIGHLIGHTS.find((h) => h.id === note.highlight) || null;
 
-  // The three stages of a column, top to bottom. On screen they are called:
-  //   notes     — "prompts": new prompts, one card each
-  //   used      — "Combined": the prompts moved down, joined into ONE note
-  //   combined  — "Final": the final text; moving the Combined note down appends it here
-  // The on-screen names changed in 1.4 and again in 1.6 (Augmented → Combined,
-  // Used → Final). The data names were kept so existing notes load exactly as
-  // before, so data `combined` is NOT the stage called "Combined".
+  // The three stages of a column, top to bottom. On screen (since 1.8) they are called:
+  //   notes     — "Cooking": new prompts, one card each
+  //   used      — "Cooked": the prompts moved down, joined into ONE note
+  //   combined  — "Served": the final text; moving the Cooked note down appends it here
+  // The on-screen names changed in 1.4, 1.6 and 1.8 (Used/Augmented → Combined/Final
+  // → Cooked/Served). The data names were kept so existing notes load exactly as before.
   const LISTS = ['notes', 'used', 'combined'];
-  const STAGE_NAME = { used: 'Combined', combined: 'Final' };
+  const STAGE_NAME = { notes: 'Cooking', used: 'Cooked', combined: 'Served' };
+  const STAGE_WHOLE = { used: 'Cooked note', combined: 'Served text' };
   const TITLE_FONTS = ['instrument', 'jakarta', 'onest', 'sora', 'space', 'inter', 'manrope', 'geist', 'caps'];
   const DEFAULT_TITLE_FONT = 'instrument';
   const titleFont = () => (TITLE_FONTS.includes(data.prefs.titleFont) ? data.prefs.titleFont : DEFAULT_TITLE_FONT);
+  // Settings › Cooked colour (1.12; light palettes since 1.13). Stored in prefs.cookedColor only
+  // when picked; a value from an older version (e.g. caramel) falls back to ocean when drawing.
+  const COOKED_COLORS = ['ocean', 'teal', 'midnight', 'graphite'];
+  const cookedColor = () => (COOKED_COLORS.includes(data.prefs.cookedColor) ? data.prefs.cookedColor : 'ocean');
   // Column widths: drag a column's edge; the top-bar button puts them all back to the default.
   const MIN_COL_W = 200;
   const MAX_COL_W = 900;
-  // How notes are joined when combined (Combined, Final, Ctrl+click): a blank line or a single new line.
+  // How notes are joined when combined (Cooked, Served, Ctrl+click): a blank line or a single new line.
   const joiner = () => (data.prefs.joiner === 'line' ? '\n' : '\n\n');
   const IMAGE_ID = /^[a-f0-9]{32}$/;
 
@@ -231,11 +235,11 @@
     const tips = [
       'Click a note to copy it, then paste anywhere with Ctrl+V.',
       'Swipe a note to the left (hold the mouse button and drag) to delete it. Ctrl+Z brings it back.',
-      'Press and hold a note, then drag it into “Combined”. Drop it on another project to move it.',
-      'Tap the mic next to New prompt to dictate — text appears as you speak. Add your OpenAI key in Settings first.',
+      'Press and hold a note, then drag it down into “Cooked”. Drop it on another project to move it.',
+      'Click Dictate next to New prompt to speak a prompt — text appears as you talk. Add your OpenAI key in Settings first.',
       'Tap the camera in the editor to snip part of your screen into a note. Click an image on a card to copy it.',
       'Hold Ctrl and click several notes to copy them all at once, with a blank line between each.',
-      'Move prompts down into “Combined” and they join into one note. Move that note down into “Final” (swipe it left, drag it, or click Move to Final) and it is added to the final text. Click either one to copy it; the pencil edits it.',
+      'New prompts start in “Cooking”. Move them down into “Cooked” and they join into one note. Move that note down into “Served” (swipe it left, drag it, or click Move to Served) and it is added to the final text. Click either one to copy it; the pencil edits it.',
       'Hover a note and click the highlighter to colour-mark it, e.g. to check it again later.',
       'Drag the right edge of a column to make it wider or narrower. The ↔ button in the top bar puts every column back to the default width.',
       'Ctrl+K search · Ctrl+N new prompt · Ctrl+M dictate · Ctrl+Shift+S screenshot · Ctrl+Z undo',
@@ -315,6 +319,7 @@
       if (live) {
         p.draft = live.draft;
         p.draftImages = live.draftImages;
+        p.notesCollapsed = live.notesCollapsed;
         p.usedCollapsed = live.usedCollapsed;
         p.augCollapsed = live.augCollapsed;
         p.augExpanded = live.augExpanded;
@@ -445,12 +450,14 @@
       <header class="col-head">
         <svg class="col-leaf"><use href="#monstera"/></svg>
         <h2 class="col-name"></h2>
-        <span class="col-count"></span>
         <button class="head-btn col-menu" title="Project options" aria-label="Project options">${I.more}</button>
       </header>
+      <div class="cook-headrow">
+        <button class="cook-head" title="Cooking: prompts you're still working on"><span class="chev">${I.chevron}</span>${I.flame}<span>Cooking</span><span class="cook-count"></span></button>
+      </div>
       <div class="col-new">
-        <button class="new-prompt col-add"><span class="np-plus">${I.plus}</span><span class="np-label">New prompt</span><span class="np-draft">Draft</span></button>
-        <button class="new-voice col-mic" title="Dictate a new prompt (Ctrl+M)" aria-label="Dictate a new prompt">${I.mic}</button>
+        <button class="new-prompt col-add"><span class="np-icon">${I.plus}</span><span class="np-label"><span class="lbl-long">New prompt</span><span class="lbl-short">New</span><span class="lbl-draft">Draft</span></span></button>
+        <button class="new-prompt new-voice col-mic" title="Dictate a new prompt (Ctrl+M)" aria-label="Dictate a new prompt"><span class="np-icon">${I.mic}</span><span class="np-label">Dictate</span></button>
       </div>
       <div class="col-compose"></div>
       <div class="col-scroll">
@@ -458,27 +465,31 @@
         <div class="list-empty active-empty"><span class="empty-text"></span></div>
         <section class="used is-empty">
           <div class="used-headrow">
-            <button class="used-head" title="Prompts moved here join into one note"><span class="chev">${I.chevron}</span>${I.layers}<span>Combined</span><span class="used-count"></span></button>
+            <button class="used-head" title="Prompts moved here join into one note"><span class="chev">${I.chevron}</span>${I.layers}<span>Cooked</span><span class="used-count"></span></button>
           </div>
           <div class="aug-wrap">
-            <div class="aug-under">${I.used}<b>Move to Final</b></div>
-            <div class="aug-note" tabindex="0" title="Click to copy · swipe left or drag onto Final to move it down">
+            <div class="aug-under">${I.used}<b>Move to Served</b></div>
+            <div class="aug-note" tabindex="0" title="Click to copy · swipe left or drag onto Served to move it down">
               <div class="aug-text"></div>
-              <div class="aug-foot"><span class="aug-stats"></span><span class="spacer"></span><button class="aug-more" hidden>Show all</button><button class="aug-parts-btn">Notes</button><button class="aug-edit" title="Edit the combined note" aria-label="Edit the combined note">${I.edit}</button></div>
+              <button class="aug-more stage-more" hidden></button>
+              <div class="aug-images stage-images" hidden></div>
+              <div class="aug-foot"><span class="aug-stats"></span><span class="spacer"></span><button class="aug-parts-btn">Notes</button><button class="aug-edit" title="Edit the cooked note" aria-label="Edit the cooked note">${I.edit}</button></div>
               <div class="aug-parts" hidden></div>
             </div>
           </div>
-          <button class="aug-move" title="Add this note to the end of Final">${I.arrowDown}<span>Move to Final</span></button>
+          <button class="aug-move" title="Add this note to the end of Served">${I.arrowDown}<span>Move to Served</span></button>
           <div class="aug-empty">Move prompts here and they join into one note</div>
         </section>
         <section class="final" hidden>
           <div class="final-head">
-            <button class="final-toggle" title="The final text: every note added from Combined, joined"><span class="chev">${I.chevron}</span>${I.used}<span>Final</span></button>
+            <button class="final-toggle" title="Served: the final text, every note added from Cooked, joined"><span class="chev">${I.chevron}</span>${I.used}<span>Served</span></button>
           </div>
           <div class="final-body">
             <div class="final-text" title="Click to copy it all"></div>
-            <div class="final-empty">Move the Combined note down to add it here</div>
-            <div class="final-foot"><span class="final-stats"></span><span class="spacer"></span><button class="final-more" hidden>Show all</button><button class="final-parts-btn">Notes</button><button class="final-edit" title="Edit the final text" aria-label="Edit the final text">${I.edit}</button></div>
+            <button class="final-more stage-more" hidden></button>
+            <div class="final-images stage-images" hidden></div>
+            <div class="final-empty">Move the Cooked note down to add it here</div>
+            <div class="final-foot"><span class="final-stats"></span><span class="spacer"></span><button class="final-parts-btn">Notes</button><button class="final-edit" title="Edit the served text" aria-label="Edit the served text">${I.edit}</button></div>
             <div class="final-parts" hidden></div>
           </div>
           <div class="final-edit-host"></div>
@@ -490,7 +501,8 @@
       root,
       head: $('.col-head', root),
       nameEl: $('.col-name', root),
-      countEl: $('.col-count', root),
+      cookHead: $('.cook-head', root),
+      countEl: $('.cook-count', root),
       addBtn: $('.col-add', root),
       newRow: $('.col-new', root),
       composeHost: $('.col-compose', root),
@@ -505,11 +517,15 @@
       augText: $('.aug-text', root),
       augStats: $('.aug-stats', root),
       augMore: $('.aug-more', root),
+      augImages: $('.aug-images', root),
       augParts: $('.aug-parts', root),
       augPartsBtn: $('.aug-parts-btn', root),
       augMoveBtn: $('.aug-move', root),
       augSig: null,
-      augExpanded: Boolean(project.usedExpanded),
+      // Cooked and Served always start at their fixed size; "Show more" opens them up
+      // for the session only. (Older versions saved that as usedExpanded / augExpanded;
+      // those flags are left in the file untouched but no longer read.)
+      augExpanded: false,
       augPartsOpen: false,
       finalSection: $('.final', root),
       finalHead: $('.final-head', root),
@@ -517,13 +533,14 @@
       finalText: $('.final-text', root),
       finalStats: $('.final-stats', root),
       finalMore: $('.final-more', root),
+      finalImages: $('.final-images', root),
       finalParts: $('.final-parts', root),
       finalPartsBtn: $('.final-parts-btn', root),
       finalEditHost: $('.final-edit-host', root),
       finalSig: null,
-      finalExpanded: Boolean(project.augExpanded),
+      finalExpanded: false,
       partsOpen: false,
-      stageEditor: null, // { list, partId, composer }: editing the Combined note or the Final text
+      stageEditor: null, // { list, partId, composer }: editing the Cooked note or the Served text
       composer: null,
       renaming: false,
     };
@@ -541,8 +558,7 @@
         <div class="card-meta"><span class="card-hl-tag"></span><span class="card-time"></span><span class="card-copies"></span><button class="card-more" hidden>Show more</button></div>
         <div class="card-actions">
           <button class="card-act act-hl" title="Highlight (H)" aria-label="Highlight">${I.highlighter}</button>
-          <button class="card-act act-used" title="Move to Combined (U)" aria-label="Move to Combined">${I.layers}</button>
-          <button class="card-act act-edit" title="Edit (E)" aria-label="Edit">${I.edit}</button>
+          <button class="card-act act-used act-primary" title="Move to Cooked (U)" aria-label="Move to Cooked">${I.arrowDown}<span>Cooked</span></button>
         </div>
       </article>`;
     if (fresh.has(note.id)) {
@@ -579,6 +595,22 @@
       </div>`).join('');
   }
 
+  // The pictures of every note in Cooked or Served, in order, shown as a strip under the text.
+  // Clicking one copies it (the text is copied on its own; see copyStageImage).
+  function stageImages(notes) {
+    const seen = new Set();
+    return notes.flatMap((n) => n.images).filter((img) => !seen.has(img.id) && seen.add(img.id));
+  }
+
+  function renderStageImages(box, images) {
+    box.hidden = !images.length;
+    box.innerHTML = images.map((img) => `
+      <div class="card-img" data-img="${img.id}" title="Click to copy this image">
+        <img src="${imgUrl(img.id, true)}" alt="" draggable="false" loading="lazy" />
+        <button class="img-expand" title="View full size" aria-label="View full size">${I.expand}</button>
+      </div>`).join('');
+  }
+
   const toMeasure = new Set();
 
   function updateCard(view, note, query) {
@@ -609,12 +641,10 @@
     for (const col of augToMeasure) {
       if (!col.root.isConnected) continue;
       const augOver = col.augText.scrollHeight > col.augText.clientHeight + 2;
-      col.augMore.hidden = !(col.augExpanded || augOver);
-      col.augMore.textContent = col.augExpanded ? 'Show less' : 'Show all';
+      paintMore(col.augMore, col.augExpanded, augOver);
       col.augText.classList.toggle('fits', !augOver && !col.augExpanded);
       const overflowing = col.finalText.scrollHeight > col.finalText.clientHeight + 2;
-      col.finalMore.hidden = !(col.finalExpanded || overflowing);
-      col.finalMore.textContent = col.finalExpanded ? 'Show less' : 'Show all';
+      paintMore(col.finalMore, col.finalExpanded, overflowing);
       col.finalText.classList.toggle('fits', !overflowing && !col.finalExpanded);
     }
     augToMeasure.clear();
@@ -627,7 +657,14 @@
     toMeasure.clear();
   }
 
-  // After a column changes width, "Show more" / "Show all" need checking again.
+  // The slim "Show more / Show less" bar under the Cooked note and the Served text.
+  function paintMore(btn, expanded, overflowing) {
+    btn.hidden = !(expanded || overflowing);
+    btn.classList.toggle('is-open', expanded);
+    btn.innerHTML = `${I.chevron}<span>${expanded ? 'Show less' : 'Show more'}</span>`;
+  }
+
+  // After a column changes width, the "Show more" buttons need checking again.
   function remeasure(cols = [...columns.values()]) {
     for (const col of cols) {
       if (!col) continue;
@@ -639,8 +676,8 @@
 
   const hitsAll = (text, query) => query.terms.length > 0 && query.terms.every((t) => text.toLowerCase().includes(t));
 
-  // The Notes list under the Combined note and the Final text: one row per part,
-  // with buttons to reorder it, edit it on its own, or send it back up a stage.
+  // The Notes list under the Cooked note and the Served text: one row per part,
+  // with buttons to reorder it, edit it on its own, send it back up a stage, or delete it.
   function partsHtml(notes, query, back) {
     return notes.map((note, i) => `
       <div class="final-part" data-id="${note.id}">
@@ -651,6 +688,7 @@
           <button class="fp-down" title="Move down" aria-label="Move down"${i === notes.length - 1 ? ' disabled' : ''}>${I.arrowDown}</button>
           <button class="fp-edit" title="Edit this note" aria-label="Edit this note">${I.edit}</button>
           <button class="${back.cls}" title="${back.title}" aria-label="${back.title}">${I.restore}</button>
+          <button class="fp-del" title="Delete this note" aria-label="Delete this note">${I.trash}</button>
         </span>
       </div>`).join('');
   }
@@ -689,9 +727,11 @@
 
     const active = project.notes.filter((n) => matches(n, query));
     const searching = query.terms.length > 0;
-    col.countEl.textContent = searching ? `${active.length}/${project.notes.length}` : String(project.notes.length);
+    col.countEl.textContent = searching ? `· ${active.length}/${project.notes.length}` : project.notes.length ? `· ${project.notes.length}` : '';
+    // Cooking can be collapsed like the other stages (a search always shows the matches).
+    col.root.classList.toggle('cooking-collapsed', Boolean(project.notesCollapsed) && !searching);
     col.usedCount.textContent = project.used.length ? `· ${project.used.length}` : '';
-    col.emptyText.textContent = searching ? 'No matches' : 'No prompts yet';
+    col.emptyText.textContent = searching ? 'No matches' : 'Nothing cooking yet. Click New prompt or Dictate.';
     col.usedSection.classList.toggle('is-collapsed', project.usedCollapsed);
 
     // The composer survives re-renders; it's only created/destroyed here.
@@ -709,7 +749,10 @@
           p.draftImages = images;
           persistSoon();
         },
-        onSave: (text, images) => addNote(col.id, text, images),
+        onSave: (text, images) => {
+          addNote(col.id, text, images);
+          closeComposer('', []); // saved: the editor closes and New prompt | Dictate come back
+        },
         onCancel: (text, images) => closeComposer(text, images),
       });
       col.composeHost.appendChild(col.composer.root);
@@ -725,7 +768,7 @@
 
     syncList(col.activeList, active, project, query, seen);
 
-    // Combined (data `used`): the prompts moved here, joined into one note in the order they were added.
+    // Cooked (data `used`): the prompts moved here, joined into one note in the order they were added.
     // A search also highlights matches here, and opens the text up if it matches.
     const augText = augmentedText(project);
     const nAug = project.used.length;
@@ -734,37 +777,41 @@
     col.usedSection.classList.toggle('is-expanded', col.augExpanded || hitsAll(augText, query));
     col.usedSection.classList.toggle('is-editing', augEditing);
     col.augMoveBtn.hidden = !nAug || augEditing;
-    const augSig = `${augText}\u0001${project.used.map((n) => n.id).join(',')}\u0001${col.augPartsOpen}\u0001${query.key}`;
+    const augImages = stageImages(project.used);
+    const augSig = `${augText}\u0001${project.used.map((n) => n.id).join(',')}\u0001${augImages.map((i) => i.id).join(',')}\u0001${col.augPartsOpen}\u0001${query.key}`;
     if (col.augSig !== augSig) {
       col.augSig = augSig;
       col.augText.innerHTML = highlight(augText, query);
+      renderStageImages(col.augImages, augImages);
       const words = augText.trim() ? augText.trim().split(/\s+/).length : 0;
       col.augStats.textContent = `${nAug} prompt${nAug === 1 ? '' : 's'} · ${words.toLocaleString()} words`;
       col.augParts.hidden = !col.augPartsOpen;
       col.augPartsBtn.setAttribute('aria-pressed', String(col.augPartsOpen));
-      col.augPartsBtn.title = col.augPartsOpen ? 'Hide the separate notes' : 'Show the separate notes: reorder, edit or send one back';
-      col.augParts.innerHTML = partsHtml(project.used, query, { cls: 'ap-back fp-back', title: 'Send back to prompts' });
+      col.augPartsBtn.title = col.augPartsOpen ? 'Hide the separate notes' : 'Show the separate notes: reorder, edit, send back or delete one';
+      col.augParts.innerHTML = partsHtml(project.used, query, { cls: 'ap-back fp-back', title: 'Send back to Cooking' });
       augToMeasure.add(col);
     }
 
-    // Final (data `combined`): the exact text of every note added to it, in order.
+    // Served (data `combined`): the exact text of every note added to it, in order.
     const combined = finalText(project);
     col.finalSection.hidden = !(project.used.length || project.combined.length);
     col.finalSection.classList.toggle('is-collapsed', project.augCollapsed);
     col.finalSection.classList.toggle('is-expanded', col.finalExpanded || hitsAll(combined, query));
     col.finalSection.classList.toggle('is-empty', !project.combined.length);
     col.finalSection.classList.toggle('is-editing', col.stageEditor?.list === 'combined');
-    const sig = `${combined}\u0001${project.combined.map((n) => n.id).join(',')}\u0001${col.partsOpen}\u0001${query.key}`;
+    const finalImages = stageImages(project.combined);
+    const sig = `${combined}\u0001${project.combined.map((n) => n.id).join(',')}\u0001${finalImages.map((i) => i.id).join(',')}\u0001${col.partsOpen}\u0001${query.key}`;
     if (col.finalSig !== sig) {
       col.finalSig = sig;
       col.finalText.innerHTML = highlight(combined, query);
+      renderStageImages(col.finalImages, finalImages);
       const n = project.combined.length;
       const words = combined.trim() ? combined.trim().split(/\s+/).length : 0;
       col.finalStats.textContent = `${n} note${n === 1 ? '' : 's'} · ${words.toLocaleString()} words`;
       col.finalParts.hidden = !col.partsOpen;
       col.finalPartsBtn.setAttribute('aria-pressed', String(col.partsOpen));
-      col.finalPartsBtn.title = col.partsOpen ? 'Hide the separate notes' : 'Show the separate notes: reorder, edit or send one back';
-      col.finalParts.innerHTML = partsHtml(project.combined, query, { cls: 'fp-back', title: 'Send back to Combined' });
+      col.finalPartsBtn.title = col.partsOpen ? 'Hide the separate notes' : 'Show the separate notes: reorder, edit, send back or delete one';
+      col.finalParts.innerHTML = partsHtml(project.combined, query, { cls: 'fp-back', title: 'Send back to Cooked' });
       augToMeasure.add(col);
     }
   }
@@ -778,6 +825,8 @@
     document.body.classList.add(`density-${DENSITIES.includes(data.prefs.density) ? data.prefs.density : 'slim'}`);
     document.body.classList.remove(...TITLE_FONTS.map((t) => `title-${t}`));
     document.body.classList.add(`title-${titleFont()}`);
+    document.body.classList.remove(...COOKED_COLORS.map((c) => `cooked-${c}`));
+    document.body.classList.add(`cooked-${cookedColor()}`);
     ui.selection = ui.selection.filter((id) => locate(id)?.list === 'notes');
     const query = parseQuery(ui.search);
     const seen = new Set();
@@ -835,13 +884,28 @@
     if (!project) return;
     checkpoint('New note');
     const note = makeNote(text, images);
-    project.notes.unshift(note);
+    // New prompts go to the bottom, so a column reads oldest → newest and flows on down into Cooked.
+    project.notes.push(note);
+    delete project.notesCollapsed; // a collapsed Cooking opens to show it
     project.draft = '';
     project.draftImages = [];
     fresh.add(note.id);
     persist();
     render();
-    columns.get(projectId)?.scroll.scrollTo({ top: 0, behavior: 'smooth' });
+    cards.get(note.id)?.root.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  }
+
+  // Project menu › Sort oldest first: lines up prompts saved before new ones went to the bottom.
+  const isOldestFirst = (notes) => notes.every((n, i) => i === 0 || notes[i - 1].createdAt <= n.createdAt);
+
+  function sortOldestFirst(projectId) {
+    const project = findProject(projectId);
+    if (!project || project.notes.length < 2 || isOldestFirst(project.notes)) return;
+    checkpoint('Sort prompts');
+    project.notes = project.notes.slice().sort((a, b) => a.createdAt - b.createdAt);
+    persist();
+    render();
+    toast('Prompts sorted oldest first', { action: 'Undo', onAction: undo, history: true });
   }
 
   function openComposer(projectId, { voice = false, screenshot = false } = {}) {
@@ -881,7 +945,7 @@
     return columns.get(ui.composing)?.composer ?? null;
   }
 
-  // Any editor open (new prompt, a card, the Combined note or the Final text)?
+  // Any editor open (new prompt, a card, the Cooked note or the Served text)?
   const isEditing = () => Boolean(ui.composing || ui.editing || [...columns.values()].some((c) => c.stageEditor));
 
   function startEdit(id) {
@@ -999,7 +1063,7 @@
     card._copiedTimer = setTimeout(() => card.classList.remove('is-copied'), 1300);
   }
 
-  // Clicking the Final text copies all of it.
+  // Clicking the Served text copies all of it.
   async function copyFinal(projectId, event) {
     const col = columns.get(projectId);
     const project = findProject(projectId);
@@ -1014,7 +1078,7 @@
       return;
     }
     ui.lastProjectId = projectId;
-    flashCopied(col.finalBody, event, 'Copied');
+    flashCopied(col.finalBody, event, col.finalImages.hidden ? 'Copied' : 'Text copied');
     col.finalSection.classList.remove('is-flash');
     void col.finalSection.offsetWidth;
     col.finalSection.classList.add('is-flash');
@@ -1093,10 +1157,10 @@
   function moveSelectionToUsed() {
     const ids = ui.selection.filter((id) => locate(id)?.list === 'notes');
     if (!ids.length) {
-      toast('Those notes are already in Combined');
+      toast('Those notes are already in Cooked');
       return;
     }
-    checkpoint('Move to Combined');
+    checkpoint('Move to Cooked');
     // Appended in click order, so the combined note reads in that order.
     for (const id of ids) {
       const loc = locate(id);
@@ -1110,13 +1174,13 @@
     ui.selection = [];
     persist();
     render();
-    toast(`Moved ${ids.length} to Combined`, { action: 'Undo', onAction: undo, history: true });
+    toast(`Moved ${ids.length} to Cooked`, { action: 'Undo', onAction: undo, history: true });
   }
 
   $('#sel-used').addEventListener('click', moveSelectionToUsed);
   $('#sel-clear').addEventListener('click', clearSelection);
 
-  // Stack icon / "U": new prompt → end of the Combined note.
+  // Stack icon / "U": new prompt → end of the Cooked note.
   function toggleUsed(id) {
     if (locate(id)?.list === 'notes') moveBetween(id, 'used');
   }
@@ -1125,13 +1189,14 @@
     const loc = locate(id);
     if (!loc || loc.list === to) return;
     const toUsed = to === 'used';
-    checkpoint(toUsed ? 'Move to Combined' : 'Move back');
+    checkpoint(toUsed ? 'Move to Cooked' : 'Move back');
     loc.project[loc.list].splice(loc.index, 1);
     if (toUsed) {
       loc.note.usedAt = Date.now();
       loc.project.used.push(loc.note);
     } else {
-      loc.project.notes.unshift(loc.note);
+      loc.project.notes.push(loc.note); // back to the bottom of Cooking, just above Cooked
+      delete loc.project.notesCollapsed; // and show it
     }
     fresh.add(id);
     const view = cards.get(id);
@@ -1144,10 +1209,10 @@
     render();
     const col = columns.get(loc.project.id);
     if (toUsed && loc.project.usedCollapsed && col) bump(col.usedHead);
-    toast(toUsed ? 'Added to Combined' : 'Moved back to prompts', { action: 'Undo', onAction: undo, history: true });
+    toast(toUsed ? 'Added to Cooked' : 'Moved back to Cooking', { action: 'Undo', onAction: undo, history: true });
   }
 
-  // The whole Combined note → appended to the Final text; Combined starts empty again.
+  // The whole Cooked note → appended to the Served text; Cooked starts empty again.
   function moveAugmentedToFinal(projectId, { animate = false } = {}) {
     const project = findProject(projectId);
     const col = columns.get(projectId);
@@ -1155,7 +1220,7 @@
     const commit = () => {
       const p = findProject(projectId);
       if (!p || !p.used.length) return;
-      checkpoint('Move to Final');
+      checkpoint('Move to Served');
       const now = Date.now();
       for (const n of p.used) n.usedAt = now;
       p.combined.push(...p.used);
@@ -1173,7 +1238,7 @@
         void col.finalSection.offsetWidth;
         col.finalSection.classList.add('is-flash');
       }
-      toast('Moved to Final', { action: 'Undo', onAction: undo, history: true });
+      toast('Moved to Served', { action: 'Undo', onAction: undo, history: true });
     };
     if (!animate || !col) return commit();
     col.augNote.style.transition = 'transform .2s cubic-bezier(.4,0,1,1), opacity .2s ease-in';
@@ -1187,7 +1252,8 @@
     const project = findProject(projectId);
     if (!col || !project) return;
     const text = augmentedText(project);
-    if (!text) return;
+    // Only pictures, no text: copy the first picture, like an image-only card.
+    if (!text) return void (col.augImages.firstElementChild && copyStageImage(col, col.augImages.firstElementChild, event));
     try {
       await api.copy(text);
     } catch (err) {
@@ -1196,11 +1262,34 @@
       return;
     }
     ui.lastProjectId = projectId;
-    flashCopied(col.augNote, event, 'Copied');
+    flashCopied(col.augNote, event, col.augImages.hidden ? 'Copied' : 'Text copied');
     if (ui.settings?.hideAfterCopy) setTimeout(() => api.minimize(), 260);
   }
 
-  // ---- editing the Combined note and the Final text
+  // A picture in the strip under the Cooked note or the Served text copies on its own.
+  // The text never carries its pictures: when the clipboard holds text and a picture,
+  // Claude, ChatGPT and most chat boxes attach the picture and drop the text.
+  async function copyStageImage(col, tile, event) {
+    let ok = false;
+    try {
+      ok = await api.copyImage(tile.dataset.img);
+    } catch (err) {
+      console.error(err);
+    }
+    if (!ok) {
+      toast("Couldn't copy to the clipboard.");
+      return;
+    }
+    ui.lastProjectId = col.id;
+    tile.classList.remove('is-copied');
+    void tile.offsetWidth;
+    tile.classList.add('is-copied');
+    setTimeout(() => tile.classList.remove('is-copied'), 1300);
+    flashCopied(tile.closest('.aug-note, .final-body'), event, 'Image copied');
+    if (ui.settings?.hideAfterCopy) setTimeout(() => api.minimize(), 260);
+  }
+
+  // ---- editing the Cooked note and the Served text
   // The pencil in the footer edits the whole text, which is saved back as ONE note.
   // The pencil on a row in the Notes list edits just that part; the others stay separate.
 
@@ -1236,7 +1325,8 @@
       images: part ? part.images : project[list].flatMap((n) => n.images),
       placeholder: part ? 'Edit this note…' : `Edit the ${name.toLowerCase()} text…`,
       closeLabel: 'Cancel',
-      allowDelete: Boolean(part),
+      allowDelete: true,
+      deleteLabel: part ? 'Delete this note' : `Delete the whole ${STAGE_WHOLE[list].toLowerCase()}`,
       onSave: (text, images) => {
         saveStageEdit(projectId, list, partId, text, images, openedIds);
         closeStageEditor(col);
@@ -1244,7 +1334,8 @@
       onCancel: () => closeStageEditor(col),
       onDelete: () => {
         closeStageEditor(col);
-        deletePart(projectId, list, partId);
+        if (partId) deletePart(projectId, list, partId);
+        else deleteStageText(projectId, list, openedIds);
       },
     });
     col.stageEditor = { list, partId, composer };
@@ -1278,10 +1369,13 @@
     persist();
   }
 
+  // One part of the Cooked note or the Served text: the trash on its Notes row, or in its editor.
   function deletePart(projectId, list, partId) {
     const p = findProject(projectId);
     const index = p ? p[list].findIndex((n) => n.id === partId) : -1;
     if (index < 0) return;
+    const col = columns.get(projectId);
+    if (col?.stageEditor?.list === list) closeStageEditor(col);
     checkpoint('Delete note');
     p[list].splice(index, 1);
     persist();
@@ -1289,7 +1383,20 @@
     toast('Note deleted', { action: 'Undo', onAction: undo, duration: 7000, history: true });
   }
 
-  // ↑ / ↓ on a row in the Notes list: reorder the parts of the Combined note or the Final text.
+  // The trash in the whole-text editor deletes the whole Cooked note (or Served text).
+  // Anything that arrived while the editor was open wasn't in it, so it stays.
+  function deleteStageText(projectId, list, openedIds) {
+    const p = findProject(projectId);
+    if (!p || !p[list].some((n) => openedIds.has(n.id))) return;
+    const what = STAGE_WHOLE[list];
+    checkpoint(`Delete ${what}`);
+    p[list] = p[list].filter((n) => !openedIds.has(n.id));
+    persist();
+    render();
+    toast(`${what} deleted`, { action: 'Undo', onAction: undo, duration: 7000, history: true });
+  }
+
+  // ↑ / ↓ on a row in the Notes list: reorder the parts of the Cooked note or the Served text.
   function movePart(id, delta) {
     const loc = locate(id);
     if (!loc || loc.list === 'notes') return;
@@ -1303,17 +1410,17 @@
     render();
   }
 
-  // A note in the Final text → back to the end of the Combined note.
+  // A note in the Served text → back to the end of the Cooked note.
   function sendBackFromFinal(id) {
     const loc = locate(id);
     if (!loc || loc.list !== 'combined') return;
-    checkpoint('Send back to Combined');
+    checkpoint('Send back to Cooked');
     loc.project.combined.splice(loc.index, 1);
     loc.project.used.push(loc.note);
     fresh.add(id);
     persist();
     render();
-    toast('Sent back to Combined', { action: 'Undo', onAction: undo, history: true });
+    toast('Sent back to Cooked', { action: 'Undo', onAction: undo, history: true });
   }
 
   function setHighlight(id, hl) {
@@ -1450,7 +1557,7 @@
     toast(`Deleted “${project.name}”`, { action: 'Undo', onAction: undo, duration: 9000, history: true });
   }
 
-  // Project menu › Clear Combined / Clear Final (list is the data name: 'used' or 'combined').
+  // Project menu › Clear Cooked / Clear Served (list is the data name: 'used' or 'combined').
   function clearStage(id, list) {
     const project = findProject(id);
     if (!project || !project[list].length) return;
@@ -1480,7 +1587,7 @@
 
   // ================================================================ composer
 
-  function createComposer({ text = '', images: initialImages = [], placeholder, closeLabel = 'Close', allowDelete = false, onSave, onCancel, onDraft, onDelete }) {
+  function createComposer({ text = '', images: initialImages = [], placeholder, closeLabel = 'Close', allowDelete = false, deleteLabel = 'Delete note', onSave, onCancel, onDraft, onDelete }) {
     const root = el('div', 'composer');
     root.innerHTML = `
       <textarea rows="2" spellcheck="true"></textarea>
@@ -1495,7 +1602,7 @@
         <button type="button" class="icon-btn shot-btn" title="Add a screenshot (Ctrl+Shift+S) — or paste an image" aria-label="Add a screenshot">${I.camera}</button>
         <span class="composer-status"></span>
         <span class="spacer"></span>
-        ${allowDelete ? `<button type="button" class="icon-btn danger comp-delete" title="Delete note" aria-label="Delete note">${I.trash}</button>` : ''}
+        ${allowDelete ? `<button type="button" class="icon-btn danger comp-delete" title="${deleteLabel}" aria-label="${deleteLabel}">${I.trash}</button>` : ''}
         <button type="button" class="icon-btn comp-cancel" title="${closeLabel} (Esc)" aria-label="${closeLabel}">${I.close}</button>
         <button type="button" class="btn btn-primary comp-save" title="Save (Ctrl+Enter)">Save</button>
       </div>`;
@@ -1952,6 +2059,11 @@
 
   // ================================================================ gestures
 
+  // Things inside a column that scroll on their own (the opened-up Cooked and Served
+  // texts and their Notes lists scroll inside a capped height).
+  const SCROLLERS = '.col-scroll, textarea, .aug-text, .final-text, .aug-parts, .final-parts';
+  const onScrollbar = (e) => e.target instanceof HTMLElement && e.target.matches(SCROLLERS) && e.offsetX >= e.target.clientWidth;
+
   board.addEventListener('pointerdown', (e) => {
     // Middle button anywhere, or left button on empty canvas: pan the board.
     if (e.button === 1 || (e.button === 0 && e.target === board)) {
@@ -1960,6 +2072,7 @@
       return;
     }
     if (e.button !== 0) return;
+    if (onScrollbar(e)) return; // dragging a scrollbar, not the note
     const ctrlOnCard = (e.ctrlKey || e.metaKey) && e.target.closest('.card-wrap') && !e.target.closest('button');
     if (!ctrlOnCard) ui.anchor = null;
     const colEl = e.target.closest('.column');
@@ -2058,12 +2171,15 @@
     });
   }
 
-  // ---- the Combined note: click copies, swipe left or drag onto Final moves it down
+  // ---- the Cooked note: click copies, swipe left or drag onto Served moves it down
 
   function startAugGesture(e, col) {
     if (!col) return;
     const note = col.augNote;
     const g = { x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, mode: null, travel: 0 };
+    // A click on a picture in the strip copies that picture; anywhere else copies the text.
+    const tile = e.target.closest('.aug-images .card-img');
+    const copy = (ev) => (tile ? copyStageImage(col, tile, ev) : copyAugmented(col.id, ev));
     const beginDrag = () => {
       g.mode = 'drag';
       dragActive = true;
@@ -2118,7 +2234,7 @@
       onEnd(ev, cancelled) {
         clearTimeout(hold);
         if (!g.mode) {
-          if (!cancelled) copyAugmented(col.id, ev);
+          if (!cancelled) copy(ev);
           return;
         }
         if (g.mode === 'swipe') {
@@ -2154,7 +2270,7 @@
         } else {
           g.ghost.remove();
           render();
-          if (stillClick) copyAugmented(col.id, ev);
+          if (stillClick) copy(ev);
         }
       },
     });
@@ -2202,7 +2318,7 @@
     }, 320);
   }
 
-  // ---- drag to reorder / move to Combined or Final / move between projects
+  // ---- drag to reorder / move to Cooked or Served / move between projects
 
   function beginDrag(g) {
     g.mode = 'drag';
@@ -2373,11 +2489,12 @@
         if (t.final || t.stack) index = arr.length; // combined notes grow at the end
         arr.splice(index, 0, loc.note);
         if (t.list !== 'notes' && loc.list !== t.list) loc.note.usedAt = Date.now();
+        if (t.list === 'notes') delete dest.notesCollapsed; // a collapsed Cooking opens to show it
         const moved = !(from.project === dest && from.list === t.list && from.index === index);
         if (moved) {
-          if (t.list === 'combined') moveLabel = 'Add to Final';
+          if (t.list === 'combined') moveLabel = 'Add to Served';
           else if (from.project !== dest) moveLabel = `Move to ${dest.name}`;
-          else if (t.list === 'used' && from.list !== 'used') moveLabel = 'Add to Combined';
+          else if (t.list === 'used' && from.list !== 'used') moveLabel = 'Add to Cooked';
           else if (t.list === 'notes' && from.list === 'used') moveLabel = 'Move back';
           else moveLabel = 'Reorder';
           pushHistory(moveLabel, before);
@@ -2424,7 +2541,7 @@
       g.ghost.remove();
     }
     if (moveLabel && moveLabel !== 'Reorder') {
-      const labels = { 'Add to Combined': 'Added to Combined', 'Move back': 'Moved back', 'Add to Final': 'Added to Final' };
+      const labels = { 'Add to Cooked': 'Added to Cooked', 'Move back': 'Moved back', 'Add to Served': 'Added to Served' };
       toast(labels[moveLabel] || `Moved to ${findProject(t.col.id)?.name}`, { action: 'Undo', onAction: undo, history: true });
     }
   }
@@ -2631,6 +2748,25 @@
     panRight.hidden = max <= 2 || board.scrollLeft >= max - 2;
   }
 
+  // The arrows stay out of sight until the pointer comes near their edge of the board
+  // (1.16: an always-on › over the last column was a distraction on a wide board).
+  const stageEl = board.parentElement;
+  const PAN_ZONE = 96; // px from the stage's left / right edge
+  let panNear = 0; // -1 left edge, 1 right edge, 0 neither
+
+  function setPanNear(near) {
+    if (near === panNear) return;
+    panNear = near;
+    panLeft.classList.toggle('is-near', near === -1);
+    panRight.classList.toggle('is-near', near === 1);
+  }
+
+  stageEl.addEventListener('pointermove', (e) => {
+    const r = stageEl.getBoundingClientRect();
+    setPanNear(e.clientX - r.left < PAN_ZONE ? -1 : r.right - e.clientX < PAN_ZONE ? 1 : 0);
+  }, { passive: true });
+  stageEl.addEventListener('pointerleave', () => setPanNear(0));
+
   function columnStep() {
     const col = board.querySelector('.column');
     const gap = parseFloat(getComputedStyle(board).columnGap) || 12;
@@ -2689,8 +2825,10 @@
     if (e.ctrlKey || dragActive) return;
     if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
     if (board.scrollWidth <= board.clientWidth) return;
-    const scroller = e.target.closest('.col-scroll, textarea');
-    if (scroller && scroller.scrollHeight > scroller.clientHeight + 1) return;
+    // Leave the wheel to anything under the pointer that can scroll vertically itself.
+    for (let n = e.target; n && n !== board; n = n.parentElement) {
+      if (n.matches(SCROLLERS) && n.scrollHeight > n.clientHeight + 1 && getComputedStyle(n).overflowY !== 'hidden') return;
+    }
     e.preventDefault();
     const unit = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? board.clientWidth : 1;
     board.scrollLeft += e.deltaY * unit;
@@ -2756,7 +2894,6 @@
       openLightbox(e.target.closest('.card-img').dataset.img, wrap?.dataset.id);
       return;
     }
-    if (e.target.closest('.act-edit') && wrap) return startEdit(wrap.dataset.id);
     if (e.target.closest('.act-used') && wrap) return toggleUsed(wrap.dataset.id);
     if (e.target.closest('.act-hl') && wrap) return openHighlightMenu(wrap.dataset.id, e.target.closest('.act-hl'));
     if (e.target.closest('.card-more') && wrap) {
@@ -2782,6 +2919,15 @@
       render();
       return;
     }
+    if (e.target.closest('.cook-head')) {
+      // Only written while collapsed, so columns never collapsed keep no extra field.
+      const p = findProject(col.id);
+      if (p.notesCollapsed) delete p.notesCollapsed;
+      else p.notesCollapsed = true;
+      persist();
+      render();
+      return;
+    }
     if (e.target.closest('.final-toggle')) {
       const p = findProject(col.id);
       p.augCollapsed = !p.augCollapsed;
@@ -2791,10 +2937,6 @@
     }
     if (e.target.closest('.final-more')) {
       col.finalExpanded = !col.finalExpanded;
-      const p = findProject(col.id);
-      if (col.finalExpanded) p.augExpanded = true;
-      else delete p.augExpanded;
-      persist();
       augToMeasure.add(col);
       render();
       return;
@@ -2814,15 +2956,11 @@
     }
     if (e.target.closest('.aug-more')) {
       col.augExpanded = !col.augExpanded;
-      const p = findProject(col.id);
-      if (col.augExpanded) p.usedExpanded = true;
-      else delete p.usedExpanded;
-      persist();
       augToMeasure.add(col);
       render();
       return;
     }
-    // rows in the Notes list of the Combined note (.aug-parts) and the Final text (.final-parts)
+    // rows in the Notes list of the Cooked note (.aug-parts) and the Served text (.final-parts)
     const part = e.target.closest('.final-part');
     if (part) {
       const id = part.dataset.id;
@@ -2831,10 +2969,37 @@
       if (e.target.closest('.fp-edit')) return editStage(col.id, part.closest('.aug-parts') ? 'used' : 'combined', id);
       if (e.target.closest('.ap-back')) return moveBetween(id, 'notes');
       if (e.target.closest('.fp-back')) return sendBackFromFinal(id);
+      if (e.target.closest('.fp-del')) return deletePart(col.id, part.closest('.aug-parts') ? 'used' : 'combined', id);
       return;
     }
-    // Clicking the final text copies it all, unless the user is selecting part of it.
-    if (e.target.closest('.final-text') && !String(window.getSelection())) copyFinal(col.id, e);
+    // A picture under the Served text copies just that picture (the Cooked note's strip
+    // is handled by its press gesture).
+    const servedImg = e.target.closest('.final-images .card-img');
+    if (servedImg) return copyStageImage(col, servedImg, e);
+    // Clicking the final text copies it all, unless the user is selecting part of it
+    // (or dragging the scrollbar of the opened-up text).
+    if (e.target.closest('.final-text') && !String(window.getSelection()) && !onScrollbar(e)) copyFinal(col.id, e);
+  });
+
+  // Right-click edits: a prompt card, the Cooked note or the Served text (whole), or one row
+  // of their Notes lists (that part alone). With text selected, the usual Copy menu shows instead.
+  board.addEventListener('contextmenu', (e) => {
+    if (String(window.getSelection()).trim()) return;
+    if (e.target.closest('input, textarea, .composer')) return;
+    const colEl = e.target.closest('.column');
+    const col = colEl && columns.get(colEl.dataset.id);
+    if (!col) return;
+    const part = e.target.closest('.final-part');
+    const wrap = e.target.closest('.card-wrap');
+    let edit = null;
+    if (part) edit = () => editStage(col.id, part.closest('.aug-parts') ? 'used' : 'combined', part.dataset.id);
+    else if (wrap && !wrap.classList.contains('is-editing')) edit = () => startEdit(wrap.dataset.id);
+    else if (e.target.closest('.aug-note')) edit = () => editStage(col.id, 'used');
+    else if (e.target.closest('.final-body') && !col.finalSection.classList.contains('is-empty')) edit = () => editStage(col.id, 'combined');
+    if (!edit) return;
+    e.preventDefault();
+    closeMenu();
+    edit();
   });
 
   board.addEventListener('dblclick', (e) => {
@@ -2960,9 +3125,10 @@
       menuItem(menu, I.arrowLeft, 'Move left', () => moveProject(col.id, -1), { disabled: index === 0 });
       menuItem(menu, I.arrowRight, 'Move right', () => moveProject(col.id, 1), { disabled: index === data.projects.length - 1 });
       menuItem(menu, I.width, 'Reset width', () => resetColumnWidth(col.id), { disabled: !colWidth(col.id) });
+      menuItem(menu, I.sort, 'Sort prompts oldest first', () => sortOldestFirst(col.id), { disabled: project.notes.length < 2 || isOldestFirst(project.notes) });
       menu.appendChild(el('div', 'menu-sep'));
-      menuItem(menu, I.layers, `Clear Combined (${project.used.length})`, () => clearStage(col.id, 'used'), { disabled: !project.used.length });
-      menuItem(menu, I.used, `Clear Final (${project.combined.length})`, () => clearStage(col.id, 'combined'), { disabled: !project.combined.length });
+      menuItem(menu, I.layers, `Clear Cooked (${project.used.length})`, () => clearStage(col.id, 'used'), { disabled: !project.used.length });
+      menuItem(menu, I.used, `Clear Served (${project.combined.length})`, () => clearStage(col.id, 'combined'), { disabled: !project.combined.length });
       menuItem(menu, I.trash, 'Delete project', () => deleteProject(col.id), { danger: true });
     });
   }
@@ -3085,6 +3251,7 @@
     density: $('#set-density'),
     theme: $('#set-theme'),
     titleFont: $('#set-title-font'),
+    cooked: $('#set-cooked'),
     joiner: $('#set-joiner'),
     backup: $('#set-backup'),
     backupStatus: $('#backup-status'),
@@ -3126,6 +3293,8 @@
     for (const b of f.density.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.value === data.prefs.density));
     const title = titleFont();
     for (const b of f.titleFont.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.value === title));
+    const cooked = cookedColor();
+    for (const b of f.cooked.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.value === cooked));
     const join = data.prefs.joiner === 'line' ? 'line' : 'blank';
     for (const b of f.joiner.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.value === join));
   }
@@ -3201,6 +3370,14 @@
     paintDensity();
     render();
   });
+  f.cooked.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-value]');
+    if (!b) return;
+    data.prefs.cookedColor = b.dataset.value;
+    persist();
+    paintDensity();
+    render();
+  });
   f.titleFont.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-value]');
     if (!b) return;
@@ -3231,6 +3408,19 @@
     if (!res?.ok) toast(res?.error || 'Restore failed.');
   });
   $('#open-settings').addEventListener('click', () => openSettings());
+
+  // ---- help (top-bar ?, F1): how the stages work, handy moves and shortcuts
+  const helpDialog = $('#help');
+
+  function openHelp() {
+    closeMenu();
+    if (dialog.open) dialog.close();
+    const hotkey = ui.settings?.hotkey;
+    $('#help-hotkey').textContent = hotkey ? prettyAccel(hotkey).replace(/ \+ /g, ' ') : 'Off';
+    $('#help-hotkey-label').textContent = hotkey ? 'Show or hide Recaller from any app' : 'Show/hide from any app (set a key in Settings)';
+    if (!helpDialog.open) helpDialog.showModal();
+  }
+  $('#open-help').addEventListener('click', openHelp);
   dialog.addEventListener('close', () => {
     if (f.key.value.trim()) saveSetting({ apiKey: f.key.value.trim() });
   });
@@ -3282,7 +3472,7 @@
   document.addEventListener('keydown', (e) => {
     const mod = e.ctrlKey || e.metaKey;
     const k = e.key.toLowerCase();
-    if (dialog.open || lightbox.open) return;
+    if (dialog.open || lightbox.open || helpDialog.open) return;
     if (e.key === 'Escape' && openMenuEl) {
       closeMenu();
       return;
@@ -3322,11 +3512,14 @@
     } else if (mod && k === ',') {
       e.preventDefault();
       openSettings();
+    } else if (e.key === 'F1' || (e.key === '?' && !mod && !isTyping(e.target))) {
+      e.preventDefault();
+      openHelp();
     }
   });
 
   api.onSummoned(() => {
-    if (dialog.open || isEditing() || Voice.isActive()) return;
+    if (dialog.open || helpDialog.open || isEditing() || Voice.isActive()) return;
     focusSearch();
   });
 
