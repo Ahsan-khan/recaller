@@ -80,6 +80,7 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | `Ctrl+Enter` | Save (during dictation, it finishes transcribing first) |
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo |
 | `Ctrl+Shift+N` | New project (or the **+ New project** tile at the end of the board) |
+| `Ctrl+,` | Settings |
 | `Ctrl+Alt+R` | Show or hide Recaller from any app (change it in Settings) |
 | `F1` or `?` | How Recaller works: stages, handy moves and shortcuts |
 | `Enter` / `E` / `U` / `H` / `Del` | On a focused card: copy, edit, add to Cooked, highlight, delete |
@@ -107,7 +108,7 @@ npm install
 npm run dist:mac
 ```
 
-This builds `dist/Recaller-1.16.0-arm64.dmg`. Open it, drag **Recaller** onto **Applications**, then open Recaller from Applications.
+This builds `dist/Recaller-1.16.0-arm64.dmg`. Open it, drag **Recaller** onto **Applications**, then eject the "Recaller 1.16.0" disk (the eject button beside it in Finder's sidebar) and open Recaller from Applications. Don't open Recaller from the disk image's window: that copy runs from the disk image, which then can't be ejected. If you already did, quit it (⌘Q), eject the disk and open Recaller from Applications; your notes are the same either way.
 
 - **A copy built on your own Mac** opens straight away.
 - **A downloaded or AirDropped copy** is blocked the first time, because it isn't signed with an Apple Developer ID: macOS says it can't verify the developer. Close that message, open **System Settings › Privacy & Security**, and click **Open Anyway** next to the note about Recaller. You only do this once. (On macOS 15 and later, Control-click › Open no longer gets past this.)

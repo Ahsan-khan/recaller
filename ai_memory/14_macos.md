@@ -11,7 +11,7 @@ The rest of this folder describes the shared app. Read this file before changing
 
 **Status (seventh session, 2026-09-29):** the Mac edition of 1.16.0 is built and verified. It is **uncommitted** work on branch `masos`. The session itself never opened the packaged app.
 
-**Late update:** from about 20:43 on 2026-09-29, while this handoff was being written, the owner opened the packaged app from the mounted dmg and then copied Recaller.app (1.16.0) into `/Applications`. That first run created `~/Library/Application Support/Recaller`, which now holds their real Mac notes. Nothing about how it went is recorded. So where this file says something is untested or not tried by a person, read "not verified by a session and not reported by the owner yet", and ask them.
+**Late update:** at about 20:43 on 2026-09-29, while this handoff was being written, the owner copied Recaller.app (1.16.0) into `/Applications` (20:43:22) and then opened the copy on the mounted dmg (20:43:25), not the one in Applications. That first run created `~/Library/Application Support/Recaller`, which now holds their real Mac notes. At the end of the session, that dmg copy was still the running Recaller. Nothing about how it went is recorded. So where this file says something is untested or not tried by a person, read "not verified by a session and not reported by the owner yet", and ask them.
 
 ## 1. What it is: one codebase, two downloads
 
@@ -69,10 +69,13 @@ Every Mac difference is gated, so the Windows app behaves exactly as before: the
   - `src/renderer/app.js`, `index.html`, `styles.css` and `voice.js`;
   - the four suites (`features.e2e.js`, `update-safety.e2e.js`, `multi-copy.e2e.js`, `capture-board.js`) and `tests/e2e/README.md`;
   - the docs: the root `README.md` and every file in `ai_memory/`.
-- **New and still untracked:** `build/icon-mac.png`, `tests/e2e/mac-harness.js` and this file, `ai_memory/14_macos.md`. Commit all three with the rest (but not Finder's `.DS_Store` in the repo root):
+- **New, staged (`A` in `git status`) but not yet committed:** `build/icon-mac.png`, `tests/e2e/mac-harness.js` and this file, `ai_memory/14_macos.md`. Commit all three with the rest:
   - the changed suites `require('./mac-harness')` and won't start without it, on Windows too;
   - `dist:mac` needs the icon;
   - the rest of `ai_memory` points here.
+- **Before committing:** the owner staged the whole Mac edition at about 21:13 on 2026-09-29.
+  - Any file that `git status -s` shows as `MM` or `AM` was edited after that, so its newer text isn't staged. Stage it again (or commit from the working tree) first.
+  - Finder's `.DS_Store` in the repo root was staged too (`A  .DS_Store`). It must not be committed: untick it in GitHub Desktop, or run `git restore --staged .DS_Store`. Adding `.DS_Store` to `.gitignore` would stop it coming back; that is the owner's call.
 
 ### How it came about
 
@@ -240,8 +243,12 @@ Windows has no menu. On a Mac, Recaller has four menus:
 ### The data folder and the installed app
 
 - **Data:** `~/Library/Application Support/Recaller/`. This is the same `path.join(app.getPath('appData'), 'Recaller')` pin that gives `%APPDATA%\Recaller` on Windows.
-  - It holds the same files: `recaller-data.json`, `recaller-settings.json`, their `.bak` copies, `images/`, `backups/`, and Chromium's own files.
+  - It holds the same kinds of files: `recaller-data.json`, `recaller-settings.json`, their `.bak` copies, `images/`, `backups/`, and Chromium's own files.
   - The owner's first run created it late on 2026-09-29, and it now holds their real notes.
+  - **That first run made no backup.** It started with no data file, and `backups.create()` returns null without `recaller-data.json`, so `protectData()` made no `upgrade` or daily backup. It still stamped `lastVersion` 1.16.0, so the next start makes no `upgrade` backup either.
+    - A `.bak` copy is made only when an existing file is read: the settings one at the next start, the data one at the next start or page reload.
+    - At about 21:35 on 2026-09-29 the folder held only `recaller-data.json`, `recaller-settings.json` and Chromium's files: no `backups/`, `.bak` or `images/`.
+    - The first backup will be the daily one, from the hourly check (the first at about 21:43, if the app keeps running) or from the next launch. Check that `backups/` exists before copying the PC's notes over (section 7).
   - Settings › Open data folder opens it in Finder, and Finder's Go › Go to Folder… reaches it too.
 - **The installed app** is `/Applications/Recaller.app` (1.16.0, copied there by the owner late on 2026-09-29). To read its version: `plutil -extract CFBundleShortVersionString raw /Applications/Recaller.app/Contents/Info.plist`.
 
@@ -500,7 +507,7 @@ hdiutil verify dist/Recaller-1.16.0-arm64.dmg
    - Closing the window doesn't quit. ⌃⌥R or the Dock icon brings it back, and ⌘Q quits.
 5. The global hotkey needs no permission; Electron's `globalShortcut` needs Accessibility only for media keys.
 
-The owner went through the first steps late on 2026-09-29 (opening the app from the dmg, then copying it to Applications). How the steps and the prompts went isn't recorded yet.
+The owner went through the first steps late on 2026-09-29: they copied the app to Applications (20:43:22), then opened the copy on the mounted dmg (20:43:25), not the one in Applications. At the end of the session that dmg copy was still the running Recaller. How the steps and the prompts went isn't recorded yet.
 
 ### Updating and uninstalling
 
@@ -522,7 +529,9 @@ The owner went through the first steps late on 2026-09-29 (opening the app from 
   1. It hides the Dock icon first (`app.dock?.hide()`).
   2. It renders in a hidden, transparent, frameless window with `enableLargerThanScreen`, because 1024 px is taller than the 982 pt screen.
   3. It captures the window with `capturePage`. On Retina the capture is 2× (2048 px), so it is scaled to 1024.
-- **It fails loudly.** If the capture is empty or the wrong size, it prints `icon:mac: no usable capture` and exits with code 1, instead of quietly writing nothing. Without the file, electron-builder would quietly use the Windows icon for the Mac app.
+- **It fails loudly.** It checks the capture before any scaling. If the capture is empty, not square, or smaller than 1024 px, it prints `icon:mac: no usable capture` and exits with code 1, instead of quietly writing nothing or a stretched icon. Without the file, electron-builder would quietly use the Windows icon for the Mac app.
+  - Only a capture that passes is scaled: a Retina 2048 px capture comes down to exactly 1024.
+  - `icon:mac` was run again after this check was added, and the icon came out byte-identical to the one in the dmg.
 - **Without `--mac`,** the script behaves exactly as before (512 px `build/icon.png`). Don't run plain `npm run icon` on the Mac:
   - it rewrites the tracked Windows icon from a Retina render, which may not match the PC's;
   - it flashes a Dock icon.
@@ -546,7 +555,7 @@ The same npm scripts work on both computers. `tests/e2e/mac-harness.js` exports 
 - **`MOD`** is `'meta'` on a Mac and `'control'` elsewhere: the app's shortcut and multi-select modifier.
 - **`MOD_KEY`** is `'Meta'` or `'Control'`: the keyCode for holding it down.
 - **`macRect(W, H)`** places a test window past the outer left or right edge of all displays, on the side away from the cursor.
-  - It leaves 2 px on screen, at the top of the cursor's display (`workArea.y`).
+  - It leaves 2 px on screen, at the top of the display that forms that outer edge (`edge.workArea.y`), so the sliver stays on a screen even when several displays are attached (section 8).
   - The 2 px matter: macOS stops drawing a window that is wholly off screen, and `capturePage` and animations stop with it.
 - **`quiet()`** runs before `require(APP_MAIN)`, on a Mac only:
   - `app.dock?.hide()`, so there is no Dock icon;
@@ -668,7 +677,7 @@ A person has to check these once (section 8).
     - `app.getVersion()` is 44.4.5, even for a packaged run, so the log never shows which build was tested.
 11. **The "crashing window" wasn't Recaller.**
     - The owner said "the app window kept crashing when you opened it". No Recaller or Electron process had run.
-    - The crash reports came from other programs started from VS Code: a `Tracer.app` in `/private/tmp`, `repro_bigsur` and a copied `python3`.
+    - The crash reports came from programs outside this session. A Tracer app (`/private/tmp/*/Tracer.app`, bundle `ai.ponders.tracer`) crashed three times on 2026-09-29: at 20:02, started from VS Code, and at 20:14:16 and 20:14:20, opened through Launch Services. Tracer is the owner's own separate project, in `/Users/ahsan/Documents/GitHub/tracer`. The other two, `repro_bigsur` and a copied `python3`, were started from VS Code.
     - Check which process crashed before assuming a test or the app did.
 12. **Retina.** The screen is 1512×982 points at 2×, and window and display coordinates are in points.
     - The suites force a scale factor of 1, so their screenshots are 1×.
@@ -722,5 +731,5 @@ A person has to check these once (section 8).
 - **The masos code on Windows:**
   - The suites haven't been run on the PC, and the Windows exe wasn't rebuilt from masos.
   - Windows sameness rests on the gates, the review and the mocked-Electron comparison (section 1). Run the suites on the PC before shipping from masos.
-- **`macRect` with several displays.** It takes x from the outermost display but y from the cursor's display. With an external display at a different height, the 2 px sliver could land on no display at all. It has only run on the built-in screen.
+- **`macRect` with several displays (fixed at the end of the session).** It used to take x from the outermost display but y from the cursor's display, so with an external display at a different height the 2 px sliver could land on no display. It now takes y from the display that forms the chosen outer edge. That was checked with simulated screens (one screen gives exactly the old placement); the suites have only run on the built-in screen.
 - **After a snip taken in full screen,** the window comes back windowed, not in full screen.

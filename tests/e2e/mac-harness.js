@@ -12,8 +12,8 @@ const MOD_KEY = IS_MAC ? 'Meta' : 'Control'; // its keyCode, for holding it down
 const macState = { hides: 0 }; // app.hide() calls, counted by quiet()
 
 // Where a test window goes on a Mac: past the outer left or right edge of all displays, on the
-// side away from the cursor, at the top of the cursor's display. 2 px stay on screen: macOS stops
-// drawing a window that is wholly off screen, and capturePage and animations stop with it.
+// side away from the cursor, at the top of the display that forms that edge. 2 px stay on screen:
+// macOS stops drawing a window that is wholly off screen, and capturePage and animations stop with it.
 function macRect(W, H) {
   const c = screen.getCursorScreenPoint();
   const displays = screen.getAllDisplays();

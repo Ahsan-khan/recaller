@@ -194,14 +194,15 @@ Sixth session (2026-09-28 to 2026-09-29, on a new MacBook Pro). It is known only
 Seventh session (2026-09-29, on the MacBook Pro, branch `masos`):
 
 24. **"Read every file … and learn everything so we can proceed to build", then the Mac edition of 1.16.0.**
-    - The owner's words are in `10`, messages 34 to 40.
+    - The owner's words are in `10`, messages 34 to 41.
     - All 14 files were read. A read-only audit then checked about 1,310 of their claims against the code and git. It found about 49 high or medium mismatches and about 59 low ones, none refuted: mostly Windows-only wording and stale status, plus some real code issues. This update corrected the docs; the code issues are listed in `09` (known issues), not fixed.
     - "okay so we currently have a windows app right?": yes. 1.16 builds only a Windows installer.
     - The request: "i want to create a similar mac os app. i want to keep the windows app as it is, but create another mac os app. it should be similar to how software is available online with two different files for windows and mac".
     - The owner's three answers: reuse the discarded 1.17.0 attempt? **"Start from scratch"**. Who downloads the Mac version? **"Just me for now"**, so an ad-hoc-signed Apple Silicon dmg, approved once in System Settings if macOS blocks it, with proper signing later. Run the Mac-safe test suites on this Mac? **"Yes, run them"**.
     - What was built: the Mac edition of 1.16.0 on `masos`, uncommitted. It has ⌘ shortcuts and ⌘-click, Control-click to edit, the traffic lights in the top bar, a Mac menu bar, a window that hides when closed, ⌃⌥R to show or hide it, handling for the microphone and Screen Recording permissions, a Mac icon, `npm run dist:mac` → `dist/Recaller-1.16.0-arm64.dmg`, and Mac-safe test suites (12 + 21 + 139 on the Mac). The Windows app is unchanged. See `14_macos.md` for the whole Mac edition, `08` (1.16.0 for Mac) and `11` #49 onward.
-    - "the app window kept crashing when you opened it": nothing of Recaller's had run or crashed; the crash reports came from other programs started from VS Code (see `10`, message 39). The work was stopped anyway as a precaution, then finished after "okay its fine, just lets finish this up".
-    - The session never opened the built Mac app. The owner opened it themselves at the very end (late on 2026-09-29, from the dmg) and copied it into `/Applications`; how it went isn't recorded yet.
+    - "the app window kept crashing when you opened it": nothing of Recaller's had run or crashed; the crash reports came from other programs: Tracer, the owner's own separate `tracer` project (its 20:02 crash started from VS Code, the two at 20:14 opened through Launch Services), and `repro_bigsur` and a copied `python3`, both started from VS Code (see `10`, message 39). The work was stopped anyway as a precaution, then finished after "okay its fine, just lets finish this up".
+    - The session never opened the built Mac app. At the very end (about 20:43 on 2026-09-29) the owner copied it into `/Applications` themselves, then opened the copy inside the mounted dmg, which was still the running one when the session ended. How it went isn't recorded yet.
+    - Status checks while the docs were updated and after the summary ("whats happening", "now?", "now?", "anything running?", "all documentation updated?"; `10`, message 41): each was answered with a fresh check, and the last one led to a final sweep of this folder.
 
 ## Things the owner has not decided or confirmed
 

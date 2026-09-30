@@ -49,13 +49,13 @@ Seventh session, 2026-09-29, on the MacBook Pro. The owner asked for "a similar 
   - Counts: Windows 12 + 21 + 134, unchanged. Mac 12 + 21 + 139 (134 − 3 + 8).
 - **Verified on the Mac:**
   - From source: multi-copy 12/12, update-safety 21/21, features 139/139, with all 8 Mac checks passing and the real snip skipped. Measured: `env(titlebar-area-x)` 92px, top-bar padding-left 84px, `getWindowButtonPosition()` {x: 16, y: 16}, and the logo at x 84 with its centre at y 24.
-  - Against the packaged `app.asar` (`APP_MAIN=dist/mac-arm64/Recaller.app/Contents/Resources/app.asar/src/main.js`): 12/12, 21/21 and 139/139 (`tests/e2e/.out/mac-pkg-all.log`).
+  - Against the packaged `app.asar` (`APP_MAIN="$PWD/dist/mac-arm64/Recaller.app/Contents/Resources/app.asar/src/main.js"`): 12/12, 21/21 and 139/139 (`tests/e2e/.out/mac-pkg-all.log`).
   - The build: `dist/Recaller-1.16.0-arm64.dmg` (129 MB) and `dist/mac-arm64/Recaller.app`. codesign: `Signature=adhoc`, valid on disk, satisfies its Designated Requirement, arm64 only. electron-builder 26 signed it ad hoc (`identityName=- identityHash=none`) and skipped notarization. `spctl` says "rejected", as expected for an app that isn't notarized. `hdiutil verify` reports a VALID checksum. The dmg holds Recaller.app and an Applications link, and has no quarantine attribute, because it was built here, not downloaded.
   - `Info.plist`: `CFBundleIdentifier` com.akhan.recaller, `CFBundleShortVersionString` 1.16.0, `NSMicrophoneUsageDescription` set, `LSMinimumSystemVersion` 13.0, `LSApplicationCategoryType` productivity, `NSRequiresAquaSystemAppearance` false. The app's `icon.icns` is 1024px, made from the Mac icon.
   - The `app.asar` holds only `src`, `build/icon.png` and `package.json`, and its 15 source files are byte-identical to the tested working tree.
 - **Not done, or untested:**
   - The session never launched the packaged Recaller.app, because it would open a real window on the owner's screen; the suites load its `app.asar` in the development Electron. Its app menu should read "Recaller" (from source it reads "Electron").
-  - The owner opened it themselves at the very end (late on 2026-09-29, from the mounted dmg) and copied it into `/Applications`. Nothing about that first run is recorded: real key presses, the real traffic lights, the app menu's name, and the microphone, Screen Recording and keychain prompts are all still unreported.
+  - At the very end (late on 2026-09-29) the owner copied it into `/Applications` themselves, then opened the copy inside the mounted dmg (still running from there at the end of the session). Nothing about that first run is recorded: real key presses, the real traffic lights, the app menu's name, and the microphone, Screen Recording and keychain prompts are all still unreported.
   - Intel Macs, and snipping over another app's full-screen Space.
   - The Windows exe wasn't rebuilt: Windows stays the 1.16.0 the owner has, and it can't be run on the Mac anyway.
 

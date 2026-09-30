@@ -332,7 +332,7 @@ One IIFE. After the top constants comes a short `// ---- macOS (1.16 Mac edition
 - **Settings:**
   - `prettyAccel()` keeps the Windows expression (`CommandOrControl` → `Ctrl`, `+` → ` + `). **On a Mac** it calls `macAccel()`: symbols in ⌃⌥⇧⌘ order with no separators, then the key, so `'Control+Alt+R'` shows as `⌃⌥R`. Arrow names become ↑ ↓ ← →, Enter or Return becomes ↩, Esc becomes ⎋, and Plus becomes +.
   - The shortcut recorder saves Control as `'Control'` and ⌘ as `'Command'` on a Mac (Windows: `'CommandOrControl'` and `'Super'`), names punctuation from `e.code` (`MAC_CODE_KEYS`, because Option changes `e.key`), and asks for "Use at least one of ⌃, ⌥, ⇧ or ⌘".
-  - The key status reads "Saved in your Mac’s keychain. Paste a new key to replace it." instead of "Saved and encrypted on this PC. …". As on Windows it shows for any saved key object, even a `{ plain }` one or one that can't be decrypted.
+  - The key status reads "Saved in your Mac’s keychain. Paste a new key to replace it." instead of "Saved and encrypted on this PC. …". As on Windows, it shows whenever the file holds a key object and some key is usable: a decryptable `{ enc }`, a `{ plain }` one, or one that can't be decrypted while `OPENAI_API_KEY` is set (the env key is then used under the "Saved" label). A key that can't be decrypted, with no `OPENAI_API_KEY`, shows "Needed for voice…", with Remove still offered.
 - **Permission buttons:**
   - The composer's screenshot error with code `'PERMISSION'` gets an **Open System Settings** button (`api.openPrivacy('screen')`).
   - A global snip's `PERMISSION` result shows a 12-second toast with **Open Settings**.

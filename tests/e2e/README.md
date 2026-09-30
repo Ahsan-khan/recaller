@@ -1,6 +1,6 @@
 # End-to-end tests
 
-These suites drive the real Recaller app with synthetic mouse and keyboard input. Each one runs against a throwaway data folder, a mock OpenAI server and a fake microphone. Test windows stay off-screen and never take focus.
+These suites drive the real Recaller app with synthetic mouse and keyboard input. Each one runs against a throwaway data folder, and the features suite adds a mock OpenAI server and a fake microphone. Test windows stay mostly off-screen and don't take focus. The one exception is the features suite's real screen snip on Windows, which focuses its overlay and then Recaller; on a Mac it is skipped.
 
 | Command | Suite | Checks |
 | --- | --- | --- |
@@ -10,7 +10,7 @@ These suites drive the real Recaller app with synthetic mouse and keyboard input
 | `npm test` | all three, in the order above | |
 | `npm run capture` | `capture-board.js`: renders a sample board to `.out/*.png` for visual review | |
 
-- **Test a packaged build:** set `APP_MAIN` to `dist\win-unpacked\resources\app.asar\src\main.js`.
+- **Test a packaged build:** set `APP_MAIN` to the absolute path: PowerShell `$env:APP_MAIN = "$PWD\dist\win-unpacked\resources\app.asar\src\main.js"`, or Git Bash `export APP_MAIN="$(pwd -W)/dist/win-unpacked/resources/app.asar/src/main.js"`.
 - **Real data:** `MODE=real` runs the update-safety suite on a *copy* of `%APPDATA%\Recaller`. Delete `.out\data-real` afterwards.
 - **Output:** everything goes to `.out/`, which is git-ignored.
 - **Before running:** run `node --check <file>` on any suite you edit. A syntax error pops up an Electron error dialog on screen.
@@ -22,7 +22,7 @@ The same commands work on a Mac. `mac-harness.js` keeps a run out of your way th
 - **Out of sight:** there's no Dock icon. Each test window sits just past the outer edge of your displays, with a 2 px sliver left on screen so macOS keeps drawing it, and your pointer passes through it. The app can't take focus or hide itself, and no native menu, System Settings or Finder window opens.
 - **⌘ for Ctrl:** the suites send ⌘ wherever they send Ctrl on Windows (multi-select clicks, ⌘↩, ⌘Z, ⌘Y, ⌘N). Check names still say Ctrl.
 - **Features suite:** it skips the real screen snip (3 checks, printed as `SKIP`), which would need Screen Recording permission and would capture your screen. It adds 8 Mac checks: the logo beside the traffic lights, ⌘ key names, Control+click, a real right-click, the menu bar, hide after copying, ⌘H, and a draft saved on quit. That makes 139 checks on a Mac. An `INFO` line prints the title-bar measurements, for tuning.
-- **Test a packaged build:** set `APP_MAIN` to `dist/mac-arm64/Recaller.app/Contents/Resources/app.asar/src/main.js`.
+- **Test a packaged build:** from the repo root, use an absolute path: `APP_MAIN="$PWD/dist/mac-arm64/Recaller.app/Contents/Resources/app.asar/src/main.js" npm test`. A relative path gets past the `HARNESS FAIL: no app at …` check, but `require()` then fails and Electron shows an error dialog on screen.
 - **Real data:** `MODE=real` copies `~/Library/Application Support/Recaller`. Delete `.out/data-real` afterwards.
 - **Retina capture:** `SCALE=2 npm run capture` renders at 2×.
 - **Clipboard:** the suites use the real clipboard, as on Windows.

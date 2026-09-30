@@ -340,13 +340,13 @@ Seventh session (2026-09-29, on the MacBook Pro, branch `masos`). All of its mes
 
 [The question: reuse the discarded 1.17.0 attempt in `stash@{0}`? So the Mac edition was built fresh, and the stash was not read, applied or popped for it.]
 
-> Just me for now
+> Just me for now (Recommended)
 
 [The question: who will download the Mac version? So it's an Apple Silicon dmg with only an ad-hoc signature (no Developer ID), which the owner approves once in System Settings if macOS blocks it; proper signing is left for later.]
 
-> Yes, run them
+> Yes, run them (Recommended)
 
-[The question: may the Mac-safe test suites run on this Mac? They use 2px windows, no Dock icon, no focus stealing and no microphone or screen recording, but they overwrite the clipboard. They were run: 12 + 21 + 139, from source and against the packaged `app.asar`.]
+[The question: may the Mac-safe test suites run on this Mac? They use 2px windows, no Dock icon, no focus stealing and no microphone or screen recording, but they overwrite the clipboard. They were run: 12 + 21 + 139, from source and against the packaged `app.asar`. "(Recommended)", in this answer and the one above, was the assistant's tag on the option the owner picked.]
 
 ## Message 38 (sent while the build was running)
 
@@ -360,10 +360,30 @@ Seventh session (2026-09-29, on the MacBook Pro, branch `masos`). All of its mes
 
 > the app window kept crashing when you opened it
 
-[Investigated. No Recaller or Electron process had run or crashed at that time. The crash reports from that time came from programs outside this session, all started from VS Code: `/private/tmp/*/Tracer.app` (bundle `ai.ponders.tracer`), `repro_bigsur` and a copied `python3`. The workflow's transcripts showed its agents had only read files and run `node --check`. The workflow was stopped anyway, as a precaution.]
+[Investigated. No Recaller or Electron process had run or crashed at that time. The crash reports from that time came from programs outside this session: `/private/tmp/*/Tracer.app` (bundle `ai.ponders.tracer`), which crashed at 20:02 (started from VS Code) and at 20:14:16 and 20:14:20 (opened through Launch Services), and `repro_bigsur` and a copied `python3`, both started from VS Code. The workflow's transcripts showed its agents had only read files and run `node --check`. The workflow was stopped anyway, as a precaution. Later that evening `hdiutil info` showed `/Users/ahsan/Documents/GitHub/tracer/dist/Tracer.dmg` mounted: Tracer is the owner's own separate project, which explains the Tracer.app crash reports.]
 
 ## Message 40
 
 > okay its fine, just lets finish this up
 
-[Read as: the crashes weren't Recaller's, so finish the Mac edition. It was completed and reviewed (the reviewer's fixes: Edit › Undo does nothing while the window is hidden; ⌘, doesn't repaint an open Settings; closing or snipping from full screen leaves full screen first; a full-screen frame isn't saved as the window size; `icon:mac` fails loudly). Then it was tested, built into `dist/Recaller-1.16.0-arm64.dmg` and checked, and this folder was brought up to date. The session never opened the built app. While this folder was being updated (late on 2026-09-29), the owner opened it themselves from the dmg and copied it into `/Applications`; no message about that first run is recorded here.]
+[Read as: the crashes weren't Recaller's, so finish the Mac edition. It was completed and reviewed (the reviewer's fixes: Edit › Undo does nothing while the window is hidden; ⌘, doesn't repaint an open Settings; closing or snipping from full screen leaves full screen first; a full-screen frame isn't saved as the window size; `icon:mac` fails loudly). Then it was tested, built into `dist/Recaller-1.16.0-arm64.dmg` and checked, and this folder was brought up to date. The session never opened the built app. While this folder was being updated (about 20:43 on 2026-09-29), the owner copied it into `/Applications` themselves, then opened the copy inside the mounted dmg. No message about that first run is recorded here.]
+
+## Message 41 (status checks while this folder was updated, and after the summary)
+
+> whats happening
+
+> now?
+
+> now?
+
+> anything running?
+
+> all documentation updated?
+
+[Status questions, each answered with a fresh check rather than from memory:
+- While the docs agents worked: which files had changed, and when the consistency pass would run.
+- "anything running?": nothing from the session was running (no test Electron, no build, no workflow). Only the owner's own Recaller was open, launched at 20:43 from the mounted `Recaller 1.16.0` dmg rather than from `/Applications`. The advice: quit, eject the dmg, and open Recaller from Applications. The mounted `Tracer.dmg` from the owner's `tracer` project also explained the earlier crash reports.
+- "all documentation updated?": a final sweep found three things that had changed after the docs pass, all now corrected:
+  - the `macRect()` multi-display fix (`09`, `14`, `06`, `11`, `12`);
+  - this message log;
+  - the Tracer origin (`01`, `07`, `10`).]

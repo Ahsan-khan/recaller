@@ -88,14 +88,16 @@ async function renderMac() {
   await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(macHtml)}`);
   await new Promise((r) => setTimeout(r, 300));
   const shot = await win.webContents.capturePage({ x: 0, y: 0, width: MAC_SIZE, height: MAC_SIZE });
-  const image = shot.isEmpty() ? null : shot.resize({ width: MAC_SIZE, height: MAC_SIZE, quality: 'best' });
-  // Fail loudly: without the file, electron-builder would quietly use the Windows icon for the Mac app.
-  const size = image?.getSize();
-  if (!image || size.width !== MAC_SIZE || size.height !== MAC_SIZE) {
-    console.error('icon:mac: no usable capture', shot.getSize());
+  // Fail loudly on an empty, clipped or non-square capture (checked before any scaling): without the
+  // file, electron-builder would quietly use the Windows icon for the Mac app.
+  const got = shot.getSize();
+  if (shot.isEmpty() || got.width !== got.height || got.width < MAC_SIZE) {
+    console.error('icon:mac: no usable capture', got);
     app.exit(1);
     return;
   }
+  const image = got.width === MAC_SIZE ? shot : shot.resize({ width: MAC_SIZE, height: MAC_SIZE, quality: 'best' });
+  const size = image.getSize();
   const out = path.join(__dirname, '..', 'build', 'icon-mac.png');
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, image.toPNG());

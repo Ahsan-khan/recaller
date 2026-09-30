@@ -10,7 +10,7 @@ Status as of **2026-09-29**, seventh session (on the owner's Mac):
 - **The Mac edition of 1.16.0 was built and verified** on branch `masos` in this session. It is **uncommitted** there.
   - The build is `dist/Recaller-1.16.0-arm64.dmg`, ad-hoc signed and not notarized.
   - The session itself never opened the packaged app.
-  - **Late update:** from about 20:43 on 2026-09-29, while this handoff was being written, the owner opened it from the mounted dmg and then copied Recaller.app (1.16.0) into `/Applications`. That first run created `~/Library/Application Support/Recaller`, which now holds their real Mac notes. Nothing about how it went is recorded (Gatekeeper, the permission and keychain prompts, the keys, the look), so ask. Where these files call a Mac behaviour untested or "not tried by a person", read it as "not verified by a session and not reported by the owner yet" (see `14`).
+  - **Late update:** at about 20:43 on 2026-09-29, while this handoff was being written, the owner copied Recaller.app (1.16.0) into `/Applications` and, a few seconds later, opened the copy inside the mounted dmg, not the one in Applications. That first run created `~/Library/Application Support/Recaller`, which now holds their real Mac notes. When this session ended, the dmg copy was still the running Recaller and the "Recaller 1.16.0" disk was still mounted; the advice was to quit it with ⌘Q, eject the disk and open Recaller from Applications (`10`, message 41). Nothing else about the run is recorded (Gatekeeper, the permission and keychain prompts, the keys, the look), so ask. Where these files call a Mac behaviour untested or "not tried by a person", read it as "not verified by a session and not reported by the owner yet" (see `14`).
 - **Tests:**
   - Windows: 12 + 21 + 134, run on the PC in the fifth session, plus 9 on a copy of the real data.
   - Mac: 12 + 21 + 139, from source and against the packaged app's `app.asar` (loaded in the development Electron). The 3 real screen-snip checks are skipped there, and 8 Mac checks are added.
@@ -106,7 +106,10 @@ AI agents should read `13` first, then continue with the order above. Read `14` 
 - **Branches:**
   - `main` holds 1.16.0, through the PR #1 merge of `v1` (`dd5a3b0`, 2026-09-29). Its tree is identical to `664212a`. Before that merge it was `296fd32` "initial commits" (1.6.0), whose parent `3876950` is 1.5.0.
   - `v1` is the Windows working branch. The owner commits each version there with a short message and pushes: "1.8", "1.9", … "1.12" = `290c74d`, "1.13" = `0f7ceea`, "1.14" = `8776a32`, "1.15" = `7f101e6`, "1.16" = `664212a`.
-  - `masos` is the Mac edition. The owner created it from `main` (`dd5a3b0`) on 2026-09-29 and published it. The Mac work is uncommitted in its working tree, including three new untracked files: `build/icon-mac.png`, `tests/e2e/mac-harness.js` and `ai_memory/14_macos.md`. Finder's untracked `.DS_Store` in the repo root should not be committed.
+  - `masos` is the Mac edition. The owner created it from `main` (`dd5a3b0`) on 2026-09-29 and published it. The Mac work is uncommitted there.
+    - **Staged:** the owner staged all of it at about 21:13 on 2026-09-29. `git status` shows changed files as `M`, and the three new files (`build/icon-mac.png`, `tests/e2e/mac-harness.js` and `ai_memory/14_macos.md`) as `A`.
+    - **Edited since:** any file shown as `MM` or `AM` has newer text than its staged copy. Stage it again (or commit from the working tree) before committing.
+    - **`.DS_Store`:** Finder's `.DS_Store` in the repo root was staged too (`A  .DS_Store`) and must not be committed. Before committing, untick it in GitHub Desktop or run `git restore --staged .DS_Store`. Adding `.DS_Store` to `.gitignore` would stop it coming back; that is the owner's call.
   - `stash@{0}` ("On v1: Discarded changes since 1.16 push (1.17.0 macOS work) — 2026-09-29") is the sixth session's discarded Mac attempt. The Mac edition was built without it: the build never read, applied or popped it. Leave it alone unless the owner asks.
 - **Source:** `src/`.
 - **Tests:** `tests/e2e/`. Run them with `npm test`; on a Mac, read `14` first.
