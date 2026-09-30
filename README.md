@@ -8,6 +8,8 @@ A desktop board for prompts and notes you want to reuse. Each project is a colum
 
 Click any note, the Cooked note or the Served text to copy it. You can also dictate new prompts with your voice. New to it? Click **?** in the top bar (or press `F1`) for a one-page guide.
 
+Recaller is a Windows app, and there is also a Mac edition of the same version for Apple Silicon Macs: a separate download, like software that comes as one file for Windows and one for Mac. Everything below is written for Windows; see [Recaller on a Mac](#recaller-on-a-mac) for what's different there.
+
 ## Install
 
 ```
@@ -18,6 +20,8 @@ npm run dist
 This builds `dist/Recaller Setup 1.16.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
+
+On a Mac, build the Windows installer with `npm run dist:win` instead: it builds for x64, while plain `npm run dist` on an Apple Silicon Mac would make an arm64 Windows app. (`dist:win` hasn't been tried yet.)
 
 ## Updating
 
@@ -84,15 +88,84 @@ In Settings you can also set a **Screenshot to note** shortcut that works from a
 
 ## Voice
 
-Voice uses OpenAI speech-to-text. Add your API key in **Settings** (gear icon). The key is encrypted with Windows DPAPI and never reaches the page itself. If no key is saved, Recaller uses the `OPENAI_API_KEY` environment variable.
+Voice uses OpenAI speech-to-text. Add your API key in **Settings** (gear icon). The key is encrypted with Windows DPAPI (on a Mac, with a key kept in your keychain) and never reaches the page itself. If no key is saved, Recaller uses the `OPENAI_API_KEY` environment variable.
 
 Recording splits your speech at natural pauses. Each phrase is sent and streamed back while you keep talking, and silent stretches are never sent. The default model is `gpt-transcribe`. Pick `gpt-4o-mini-transcribe` for the lowest latency and cost. `whisper-1` works too, but it can't stream, so text appears one phrase at a time. The optional **Vocabulary hint** helps with names and jargon.
 
 ## Data
 
-Notes are stored in `%APPDATA%\Recaller\recaller-data.json`, and images in `%APPDATA%\Recaller\images\`. Every save writes a temp file and then renames it into place, so a crash can't leave a half-written file. At each launch, Recaller copies the last good file to `recaller-data.json.bak` and removes image files that no note uses any more. **Settings → Open data folder** opens that folder.
+Notes are stored in `%APPDATA%\Recaller\recaller-data.json`, and images in `%APPDATA%\Recaller\images\`. Every save writes a temp file and then renames it into place, so a crash can't leave a half-written file. At each launch, Recaller copies the last good file to `recaller-data.json.bak` and removes image files that no note uses any more. **Settings → Open data folder** opens that folder. On a Mac the same files live in `~/Library/Application Support/Recaller`.
+
+## Recaller on a Mac
+
+The Mac edition is the same Recaller 1.16.0 with Mac keys, the traffic lights and a menu bar. It's for Apple Silicon Macs (M1 or newer) with macOS 13 or later. It's new: the install steps, the permission prompts and the keychain prompt below haven't been confirmed yet.
+
+### Install on a Mac
+
+```
+npm install
+npm run dist:mac
+```
+
+This builds `dist/Recaller-1.16.0-arm64.dmg`. Open it, drag **Recaller** onto **Applications**, then open Recaller from Applications.
+
+- **A copy built on your own Mac** opens straight away.
+- **A downloaded or AirDropped copy** is blocked the first time, because it isn't signed with an Apple Developer ID: macOS says it can't verify the developer. Close that message, open **System Settings › Privacy & Security**, and click **Open Anyway** next to the note about Recaller. You only do this once. (On macOS 15 and later, Control-click › Open no longer gets past this.)
+- **Updating:** quit Recaller first (⌘Q; closing its window only hides it), then drag the new Recaller onto Applications and replace the old one. Your notes stay, and the backup before an update is made as on Windows. Because this build isn't signed with a Developer ID, macOS may treat each update as a new app and ask for the microphone, Screen Recording and keychain permissions again.
+- **Uninstalling:** quit Recaller and move it from Applications to the Bin. Your notes stay in `~/Library/Application Support/Recaller`, and so does the "Recaller Safe Storage" keychain item if there is one, until you remove them.
+
+### Permissions
+
+- **Microphone:** the first time you dictate, macOS asks whether Recaller may use the microphone. If it's blocked, Recaller says so and offers **Open System Settings**: under **Privacy & Security › Microphone**, turn Recaller on (or off and on again after an update), then try again.
+- **Screen Recording:** your first screenshot makes macOS ask for Screen Recording permission, and Recaller shows a message with **Open System Settings**. Under **Privacy & Security › Screen & System Audio Recording**, turn Recaller on (or off and on again after an update), then quit Recaller (⌘Q) and open it again.
+- **Keychain:** saving your OpenAI key may bring up a keychain prompt about "Recaller Safe Storage". Choose **Always Allow**.
+
+### Keys and clicks
+
+⌘ does what Ctrl does on Windows, and the tooltips and the help panel show the Mac keys. Control-click is a right-click, as everywhere on a Mac, so it edits. The Control keys (⌃A, ⌃E, ⌃K and the rest) keep their usual text-editing jobs in text fields.
+
+| Keys | Does |
+| --- | --- |
+| Click | Copy a note |
+| ⌘-click | Copy several notes at once, in click order (Ctrl+click on Windows) |
+| Right-click or Control-click | Edit a prompt, the Cooked note or the Served text |
+| `⌘K` | Search. `↩` copies the top matching card |
+| `⌘N` | New prompt in the current project |
+| `⌘M` | Start or stop dictation |
+| `⇧⌘S` | Add a screenshot to the note you're writing (or start a new one) |
+| `⌘↩` | Save (during dictation, it finishes transcribing first) |
+| `⌘Z` / `⇧⌘Z` | Undo / redo |
+| `⇧⌘N` | New project |
+| `⌘,` | Settings |
+| `⌃⌥R` | Show or hide Recaller from any app. That's Control+Option+R, the same keys as Ctrl+Alt+R on a PC (change it in Settings) |
+| `?` | How Recaller works |
+| `↩` / `E` / `U` / `H` / `⌫` | On a focused card: copy, edit, add to Cooked, highlight, delete. `⌘⌫` deletes too |
+| `⌘H` / `⌘W` / `⌘Q` | Hide Recaller / close its window (Recaller keeps running) / quit |
+
+### Window and menus
+
+- The traffic lights sit at the top left of the top bar, with the Recaller logo just after them.
+- Closing the window (the red button or ⌘W) only hides it. Recaller keeps running so that ⌃⌥R works from any app; ⌃⌥R or a click on its Dock icon brings the window back. ⌘Q quits.
+- When Recaller is in front, ⌃⌥R hides it and the app you were using gets the focus back, so a paste lands there. **Settings → Hide Recaller after copying** does the same after each copy.
+- A click on a card while another app is in front copies it straight away; you don't have to click Recaller first.
+- The menu bar has **Recaller** (About, Settings… ⌘,, Services, Hide ⌘H, Hide Others, Show All, Quit ⌘Q), **Edit** (Undo, Redo, Cut, Copy, Paste, Paste and Match Style, Select All), **Window** (Minimize, Zoom, Close Window, Bring All to Front) and **Help** (How Recaller Works). Window › Minimize has no ⌘M, because ⌘M is Dictate. Edit › Undo undoes your typing while you're in a text field, and the last board change otherwise.
+- Full screen (the green button) works, and the top bar then uses the space the traffic lights leave. Closing the window or starting a screenshot leaves full screen first.
+
+### Your data on a Mac
+
+Everything lives in `~/Library/Application Support/Recaller` (in Finder, **Go › Go to Folder…**): `recaller-data.json`, `recaller-settings.json`, `images/` and `backups/`. **Settings → Open data folder** opens it. Backups and **Restore** work as on Windows.
+
+The Mac and the PC each keep their own board. To bring the PC's notes over (not tried yet):
+
+1. Open Recaller on the Mac once, so it creates its folder, then quit it with ⌘Q.
+2. Copy `recaller-data.json` and the `images` folder from `%APPDATA%\Recaller` on the PC into the Mac's folder, replacing the ones there. This replaces any notes you made on the Mac; they survive only if one of its backups holds them (**Settings → Backups**).
+3. Don't copy `recaller-settings.json`. The PC's saved API key is encrypted for Windows and can't be read on a Mac, so enter your key again in Settings.
+4. Open Recaller and check that every project and note is there. Keep the PC's copy until you have. After that the two boards don't sync.
 
 ## Development
 
 - **Full handoff** (architecture, data model, every flow, design system, build and release, pitfalls, backlog): see [`ai_memory/`](ai_memory/README.md).
-- **Tests:** `npm test` runs the end-to-end suites in [`tests/e2e/`](tests/e2e/README.md).
+- **Tests:** `npm test` runs the end-to-end suites in [`tests/e2e/`](tests/e2e/README.md): 12 + 21 + 134 checks on Windows. On a Mac they keep out of your way (tiny off-screen windows, no Dock icon) and run 12 + 21 + 139: the real screenshot's 3 checks are skipped and 8 Mac checks added. They use the real clipboard on both.
+- **Builds:** `npm run dist` makes the Windows installer on the PC, `npm run dist:win` makes it from a Mac, and `npm run dist:mac` makes the Mac dmg. `npm run icon` (on the PC) and `npm run icon:mac` (on the Mac) redraw the Windows and Mac icons.
+- **Mac details:** how the Mac edition differs and how it's built and tested is in [`ai_memory/14_macos.md`](ai_memory/14_macos.md).
+- **Branches:** the Mac edition lives on the `masos` branch; `main` and `v1` hold the Windows 1.16.0.

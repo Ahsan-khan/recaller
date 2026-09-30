@@ -289,3 +289,81 @@ Fifth session (2026-09-26, later the same day). 1.15.0 was installed and committ
 > yes i meant the whole space not the arror i mean the board frame
 
 ["arror" = arrow. The border was meant for the whole board space. Built into 1.16.0 (not yet installed, so the version stayed): the board became a rounded panel inset 12px in a dark shell the colour of the top bar, with a 1px gradient emerald edge (bright mint at the top-left, even emerald elsewhere) and a faint glow. Eight edge styles were compared side by side first. The arrow's emerald ring was kept since it matches the frame; the owner can ask for it back to plain.]
+
+---
+
+Sixth session (2026-09-28 to 2026-09-29, on the owner's new MacBook Pro). 1.16 had been committed and pushed on `v1` by then ("1.16" = `664212a`). This session is known only in part: its messages were recorded in the `ai_memory` notes inside the discarded `stash@{0}`, where they were numbered 25 to 32. Only the two below are known word for word, and they keep their numbers from those notes; the gaps are the messages not known here.
+
+## Message 28 (sixth session)
+
+> okay make it so i can install on macos as well
+
+## Message 30 (sixth session)
+
+> i want to be able to install on both btw
+
+[A 1.17.0 with a Mac edition was built (a dmg and a Windows exe) and tested on the Mac. It was never installed or opened. It was then discarded (message 33) and kept only as `stash@{0}`. Nothing from it is in the code; see `08`, "1.17.0 (discarded, never released)".]
+
+## Message 33 (a separate short session, 2026-09-29, 18:11–18:12)
+
+> i made some changes to my project that i dont want to keep anymore
+
+> since my last push
+
+[Everything since the 1.16 push was stashed as `stash@{0}`, "On v1: Discarded changes since 1.16 push (1.17.0 macOS work) — 2026-09-29". The owner gave no reason. They then merged `v1` into `main` (PR #1, 18:33), pulled `main`, and created and published a new branch `masos` (18:36). A likely reading, unconfirmed: they wanted the Mac work kept apart from the Windows app.]
+
+---
+
+Seventh session (2026-09-29, on the MacBook Pro, branch `masos`). All of its messages up to this update are below.
+
+## Message 34
+
+> Read every file in /Users/ahsan/Documents/GitHub/recaller/ai_memory and learn everything so we can proceed to build
+
+[All 14 files were read. A read-only verification workflow then checked about 1,310 of their claims against the code and git. It found about 49 high or medium mismatches, confirmed or partly confirmed on a second check, and about 59 low ones; none was refuted. Most were Windows-only wording and stale status: "1.16.0 is uncommitted" (it was committed as "1.16" = `664212a`) and "`main` holds 1.5.0" (it held 1.6.0, `296fd32`, until the PR #1 merge). It also found real code issues, now listed in `09` (known issues 10 to 21). The docs were corrected in this session's update.]
+
+## Message 35
+
+> okay so we currently have a windows app right?
+
+[Answered yes: 1.16 builds only a Windows NSIS installer (`npm run dist` → `dist/Recaller Setup 1.16.0.exe`). The committed code had no Mac build target; for macOS it had only a minimal menu of three standard roles.]
+
+## Message 36: the Mac request
+
+> i want to create a similar mac os app. i want to keep the windows app as it is, but create another mac os app. it should be similar to how software is available online with two different files for windows and mac
+
+[Read as: leave the Windows app exactly as it is, and make a Mac edition of the same app as a second download (a `.dmg` beside the `.exe`), like software offered with a Windows file and a Mac file. "Similar" was read as the same app, look and features with Mac habits (⌘ keys, Control-click as right-click, the traffic lights, a menu bar, hiding on close), not a redesign. Built as "1.16.0 for Mac" on branch `masos`, with every Mac difference fenced; see `14_macos.md`, `08` and `11` #49 onward. Three questions were asked before building (message 37).]
+
+## Message 37: the owner's answers to three questions
+
+> Start from scratch
+
+[The question: reuse the discarded 1.17.0 attempt in `stash@{0}`? So the Mac edition was built fresh, and the stash was not read, applied or popped for it.]
+
+> Just me for now
+
+[The question: who will download the Mac version? So it's an Apple Silicon dmg with only an ad-hoc signature (no Developer ID), which the owner approves once in System Settings if macOS blocks it; proper signing is left for later.]
+
+> Yes, run them
+
+[The question: may the Mac-safe test suites run on this Mac? They use 2px windows, no Dock icon, no focus stealing and no microphone or screen recording, but they overwrite the clipboard. They were run: 12 + 21 + 139, from source and against the packaged `app.asar`.]
+
+## Message 38 (sent while the build was running)
+
+> show me progress''
+
+> whats happening now
+
+[Both were sent while the implementation workflow was running, asking how far it had got.]
+
+## Message 39
+
+> the app window kept crashing when you opened it
+
+[Investigated. No Recaller or Electron process had run or crashed at that time. The crash reports from that time came from programs outside this session, all started from VS Code: `/private/tmp/*/Tracer.app` (bundle `ai.ponders.tracer`), `repro_bigsur` and a copied `python3`. The workflow's transcripts showed its agents had only read files and run `node --check`. The workflow was stopped anyway, as a precaution.]
+
+## Message 40
+
+> okay its fine, just lets finish this up
+
+[Read as: the crashes weren't Recaller's, so finish the Mac edition. It was completed and reviewed (the reviewer's fixes: Edit › Undo does nothing while the window is hidden; ⌘, doesn't repaint an open Settings; closing or snipping from full screen leaves full screen first; a full-screen frame isn't saved as the window size; `icon:mac` fails loudly). Then it was tested, built into `dist/Recaller-1.16.0-arm64.dmg` and checked, and this folder was brought up to date. The session never opened the built app. While this folder was being updated (late on 2026-09-29), the owner opened it themselves from the dmg and copied it into `/Applications`; no message about that first run is recorded here.]

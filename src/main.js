@@ -4,12 +4,15 @@ const {
   app, BrowserWindow, ipcMain, clipboard, ClipboardItem, safeStorage, globalShortcut,
   session, shell, Menu, screen,
 } = require('electron');
+const fs = require('node:fs');
 const path = require('node:path');
 const { readJsonWithFallback, writeJsonAtomic, backup } = require('./store');
 const { transcribe } = require('./transcribe');
 const images = require('./images');
 const screenshot = require('./screenshot');
 const backups = require('./backups');
+
+const IS_MAC = process.platform === 'darwin'; // the Mac edition; on Windows everything runs as before
 
 // Where notes live. Pinned explicitly so that no future change to the app's
 // name or packaging can ever point a new version at a different (empty) folder.
@@ -20,6 +23,7 @@ images.registerScheme();
 const DATA_FILE = () => path.join(app.getPath('userData'), 'recaller-data.json');
 const SETTINGS_FILE = () => path.join(app.getPath('userData'), 'recaller-settings.json');
 const ICON = path.join(__dirname, '..', 'build', 'icon.png');
+const MAC_ICON = path.join(__dirname, '..', 'build', 'icon-mac.png'); // Dock icon when run from source (npm run icon:mac)
 
 // Window-controls colours must match the top bar of each theme.
 const THEMES = {
@@ -32,7 +36,7 @@ const DEFAULT_SETTINGS = {
   model: 'gpt-transcribe',
   language: '',
   hint: '',
-  hotkey: 'CommandOrControl+Alt+R',
+  hotkey: IS_MAC ? 'Control+Alt+R' : 'CommandOrControl+Alt+R', // Mac: ⌃⌥R (⌥⌘R is VS Code's Reveal in Finder)
   shotHotkey: '',
   hideAfterCopy: false,
   theme: 'deep',
@@ -44,6 +48,7 @@ const DEFAULT_SETTINGS = {
 let win = null;
 let settings = { ...DEFAULT_SETTINGS };
 const hotkeyOk = { hotkey: false, shotHotkey: false };
+let quitting = false; // Mac: set on ⌘Q, so closing the window stops meaning "hide"
 
 // ---------------------------------------------------------------- settings
 
@@ -149,7 +154,8 @@ function rememberBounds() {
   boundsTimer = setTimeout(() => {
     if (!win || win.isDestroyed() || !win.isVisible()) return;
     settings.maximized = win.isMaximized();
-    if (!settings.maximized && !win.isMinimized()) settings.bounds = win.getBounds();
+    // Mac: a full-screen frame is not the window's own size, so it isn't kept.
+    if (!settings.maximized && !win.isMinimized() && !(IS_MAC && win.isFullScreen())) settings.bounds = win.getBounds();
     saveSettings();
   }, 400);
 }
@@ -169,6 +175,8 @@ function createWindow() {
     backgroundColor: titleBar().color,
     titleBarStyle: 'hidden',
     titleBarOverlay: process.platform === 'darwin' ? true : titleBar(),
+    // Mac: traffic lights centred in the 48 px top bar, and the click that brings Recaller forward also lands.
+    ...(IS_MAC ? { trafficLightPosition: { x: 16, y: 16 }, acceptFirstMouse: true } : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -182,19 +190,46 @@ function createWindow() {
   win.once('ready-to-show', () => win.show());
   win.on('resize', rememberBounds);
   win.on('move', rememberBounds);
-  win.on('close', () => {
+  win.on('close', (e) => {
     flushData();
     settings.maximized = win.isMaximized();
-    if (!settings.maximized && !win.isMinimized() && win.isVisible()) settings.bounds = win.getBounds();
+    if (!settings.maximized && !win.isMinimized() && win.isVisible() && !(IS_MAC && win.isFullScreen())) settings.bounds = win.getBounds();
     saveSettings();
+    // Mac: the red button and ⌘W only hide the window (the hotkey brings it back); ⌘Q quits.
+    if (IS_MAC && !quitting) {
+      e.preventDefault();
+      if (win.isFullScreen()) {
+        // Hiding a full-screen window leaves its Space behind as an empty black screen: leave full screen first.
+        const w = win;
+        w.once('leave-full-screen', () => { if (!w.isDestroyed()) w.hide(); });
+        w.setFullScreen(false);
+      } else {
+        win.hide();
+      }
+    }
   });
-  win.on('closed', () => { win = null; });
+  win.on('closed', () => {
+    win = null;
+    if (IS_MAC) flushData(); // ⌘Q: the page's last save (on beforeunload) arrives after 'close'
+  });
   win.on('session-end', flushData); // Windows shutdown / sign-out
+
+  // Mac: full screen hides the traffic lights, so the page gives their space back to the top bar.
+  if (IS_MAC) {
+    const w = win;
+    const fullScreen = (on) => {
+      if (!w.isDestroyed()) w.webContents.send('app:command', on ? 'fullscreen-on' : 'fullscreen-off');
+    };
+    w.on('enter-full-screen', () => fullScreen(true));
+    w.on('leave-full-screen', () => fullScreen(false));
+    w.webContents.on('did-finish-load', () => fullScreen(w.isFullScreen()));
+  }
 
   win.webContents.on('context-menu', (_e, params) => showContextMenu(params));
   win.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
-    const devtools = input.key === 'F12' || (input.control && input.shift && input.key.toLowerCase() === 'i');
+    const devtools = input.key === 'F12' || (input.control && input.shift && input.key.toLowerCase() === 'i') ||
+      (IS_MAC && input.meta && input.alt && input.code === 'KeyI'); // ⌘⌥I (Option changes input.key)
     if (devtools && !app.isPackaged) {
       win.webContents.toggleDevTools();
       event.preventDefault();
@@ -234,23 +269,32 @@ function applyTheme() {
 function summon() {
   if (!win) return createWindow();
   if (win.isMinimized()) win.restore();
+  if (IS_MAC) app.show(); // undo a ⌘H / app.hide() first
   win.show();
+  if (IS_MAC) app.focus({ steal: true }); // the hotkey was pressed in another app: come to the front
   win.focus();
   win.webContents.send('app:summoned');
 }
 
 function toggleWindow() {
-  if (win && win.isVisible() && win.isFocused() && !win.isMinimized()) win.minimize();
-  else summon();
+  if (win && win.isVisible() && win.isFocused() && !win.isMinimized()) {
+    if (IS_MAC) app.hide(); // focus goes straight back to the previous app, so a paste lands there
+    else win.minimize();
+  } else {
+    summon();
+  }
 }
 
 // Global "screenshot to Recaller": snip first, then bring Recaller up with it.
 async function screenshotFromAnywhere() {
   const onScreen = win && win.isVisible() && !win.isMinimized();
   const result = await screenshot.capture(onScreen ? win : null);
+  // Mac: the snip made Recaller the active app; a cancel hands focus back. Never on BUSY (a snip is still up).
+  if (IS_MAC && result.code === 'CANCELLED' && !onScreen) app.hide();
   if (result.code === 'CANCELLED' || result.code === 'BUSY') return;
   summon();
-  win?.webContents.send('shot:captured', result);
+  if (IS_MAC) sendWhenLoaded('shot:captured', result);
+  else win?.webContents.send('shot:captured', result);
 }
 
 function applyHotkeys() {
@@ -266,6 +310,86 @@ function applyHotkeys() {
   };
   bind('hotkey', toggleWindow);
   bind('shotHotkey', screenshotFromAnywhere);
+}
+
+// ---------------------------------------------------------------- macOS menu
+
+// Sends once the page is listening: a window created a moment ago is still loading.
+function sendWhenLoaded(channel, payload) {
+  if (!win || win.isDestroyed()) return;
+  const contents = win.webContents;
+  if (contents.isLoading()) contents.once('did-finish-load', () => contents.send(channel, payload));
+  else contents.send(channel, payload);
+}
+
+// Brings the window up for a menu command. Not summon(): its 'app:summoned'
+// would move focus to the search box.
+function showForCommand() {
+  if (!win) return createWindow();
+  app.show();
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+}
+
+function macMenu() {
+  const command = (name) => () => {
+    showForCommand();
+    sendWhenLoaded('app:command', name);
+  };
+  // The page picks text undo in a field or its own history, so these leave the window alone. With the
+  // window hidden (⌘W) or minimized, ⌘Z would change the board out of sight, so then they do nothing.
+  const edit = (name) => () => {
+    if (win && win.isVisible() && !win.isMinimized()) sendWhenLoaded('app:command', name);
+  };
+  return Menu.buildFromTemplate([
+    {
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { label: 'Settings…', accelerator: 'Command+,', click: command('settings') },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { id: 'undo', label: 'Undo', accelerator: 'Command+Z', click: edit('undo') },
+        { id: 'redo', label: 'Redo', accelerator: 'Shift+Command+Z', click: edit('redo') },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'pasteAndMatchStyle' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      role: 'window',
+      submenu: [
+        { label: 'Minimize', click: () => win?.minimize() }, // no ⌘M: in the page that is Dictate
+        { role: 'zoom' },
+        { type: 'separator' },
+        { label: 'Close Window', accelerator: 'Command+W', click: () => win?.close() }, // hides, see 'close'
+        { type: 'separator' },
+        { role: 'front' },
+      ],
+    },
+    {
+      role: 'help',
+      submenu: [
+        { label: 'How Recaller Works', click: command('help') }, // no accelerator: the page handles ?
+      ],
+    },
+  ]);
 }
 
 // ---------------------------------------------------------------- updates & backups
@@ -325,7 +449,7 @@ function registerIpc() {
 
   ipcMain.handle('clipboard:write', (_e, text) => inOrder(() => clipboard.writeText(String(text ?? ''))).then(() => true));
 
-  ipcMain.handle('window:minimize', () => win?.minimize());
+  ipcMain.handle('window:minimize', () => (IS_MAC ? app.hide() : win?.minimize())); // Mac: hide, like ⌘H
 
   ipcMain.handle('settings:get', () => publicSettings());
 
@@ -346,6 +470,16 @@ function registerIpc() {
   });
 
   ipcMain.handle('app:open-data-folder', () => shell.openPath(app.getPath('userData')));
+
+  // Mac: opens the System Settings pane where a blocked permission is turned on.
+  if (IS_MAC) {
+    const PRIVACY_PANES = { microphone: 'Privacy_Microphone', screen: 'Privacy_ScreenCapture' };
+    ipcMain.handle('app:open-privacy', async (_e, kind) => {
+      if (typeof kind !== 'string' || !Object.hasOwn(PRIVACY_PANES, kind)) return false;
+      await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?' + PRIVACY_PANES[kind]);
+      return true;
+    });
+  }
 
   // ---- images
   ipcMain.handle('image:save', (_e, bytes) => {
@@ -415,9 +549,23 @@ if (!app.requestSingleInstanceLock()) {
     app.setAppUserModelId('com.akhan.recaller');
     loadSettings();
     protectData();
+    // Mac: the app runs for days without restarting, so look for the day's backup every hour.
+    if (IS_MAC) {
+      setInterval(() => {
+        flushData();
+        try { backups.dailyIfDue(); } catch (err) { console.error('[backups]', err); }
+      }, 60 * 60 * 1000);
+    }
 
     if (process.platform === 'darwin') {
-      Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]));
+      app.setAboutPanelOptions({
+        applicationName: 'Recaller',
+        applicationVersion: app.getVersion(),
+        credits: 'Your prompts and notes, one click away.',
+      });
+      Menu.setApplicationMenu(macMenu());
+      // Run from source, the Dock would show Electron's icon.
+      if (!app.isPackaged && fs.existsSync(MAC_ICON)) app.dock?.setIcon(MAC_ICON);
     } else {
       Menu.setApplicationMenu(null);
     }
@@ -432,7 +580,10 @@ if (!app.requestSingleInstanceLock()) {
     applyHotkeys();
     createWindow();
 
-    app.on('activate', () => { if (!win) createWindow(); });
+    app.on('activate', () => {
+      if (!win) createWindow();
+      else if (IS_MAC && !win.isVisible()) summon(); // Dock click brings the hidden window back
+    });
   });
 
   app.on('web-contents-created', (_e, contents) => {
@@ -444,7 +595,11 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.on('before-quit', flushData);
-  app.on('will-quit', () => globalShortcut.unregisterAll());
+  if (IS_MAC) app.on('before-quit', () => { quitting = true; });
+  app.on('will-quit', () => {
+    if (IS_MAC) flushData(); // ⌘Q never reaches 'window-all-closed'
+    globalShortcut.unregisterAll();
+  });
   app.on('window-all-closed', () => {
     flushData();
     if (process.platform !== 'darwin') app.quit();

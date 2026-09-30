@@ -43,5 +43,13 @@ contextBridge.exposeInMainWorld('recaller', {
     ipcRenderer.on('app:summoned', listener);
     return () => ipcRenderer.removeListener('app:summoned', listener);
   },
+
+  // Mac only: the menu bar's commands, and the System Settings privacy panes.
+  openPrivacy: (kind) => ipcRenderer.invoke('app:open-privacy', kind),
+  onCommand: (fn) => {
+    const listener = (_e, name) => fn(name);
+    ipcRenderer.on('app:command', listener);
+    return () => ipcRenderer.removeListener('app:command', listener);
+  },
   platform: process.platform,
 });

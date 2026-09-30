@@ -5,8 +5,10 @@ All styling is in `src/renderer/styles.css`, driven by CSS custom properties.
 - **Theme** is a class on `<body>`: `theme-deep` (default) or `theme-soft`.
 - **Density:** `density-compact`, `density-slim` or `density-roomy`.
 - **Column title font:** `title-instrument` (default), `title-jakarta`, `title-onest`, `title-sora`, `title-space`, `title-inter`, `title-manrope`, `title-geist` or `title-caps`.
+- **Cooked colour:** `cooked-ocean` (default), `cooked-teal`, `cooked-midnight` or `cooked-graphite`.
+- **Mac only:** `is-mac`, added once at startup, and `is-fullscreen`, while the window is in full screen. See "macOS" at the end.
 
-The renderer swaps these classes in `render()` and `applyTheme()`.
+The renderer swaps these classes in `render()` and `applyTheme()`. `index.html` starts `<body>` with `density-slim theme-deep title-instrument cooked-ocean`.
 
 ## Design principles (from the owner's feedback)
 
@@ -14,11 +16,11 @@ The renderer swaps these classes in `render()` and `applyTheme()`.
 2. **Every region is visibly distinct:** the canvas, columns, column headers, the three stages and cards each have their own tone. Neighbouring projects get different hues.
 3. **Dense:** slim columns (268px default), with actions in headers or bars rather than extra rows. The Compact and Roomy options exist, and since 1.6 each column can be resized by dragging its edge (the top-bar ↔ button resets all of them).
 4. **Sharp, readable type:**
-   - titles are at least 15px and bold, with neutral letter-spacing;
+   - column titles are 15–16px and bold, with neutral or slightly tight letter-spacing (0 to −0.015em). The one exception is the Sora Caps option: 12.5px, uppercase, +0.08em;
    - no text-shadow on text over a colour (it renders soft on Windows);
-   - small labels in dark ink, never light grey.
+   - section and stage labels are in dark ink, never light grey. Smaller meta text (card meta, stage footers, part numbers, empty-list text, help lines, `kbd`) uses the muted grey-green `--ink-3` (#718d7d) at 10.5–12px.
 5. **Nothing overlaps:** buttons get their own space; long names wrap to two lines, then shorten with "…".
-6. **Feedback is quick and satisfying but brief:** ripples, chips, flashes and spring animations of 0.2–0.4s. All motion is reduced under `prefers-reduced-motion`.
+6. **Feedback is quick and satisfying but brief:** most transitions and springs take 0.2–0.4s. A few effects run longer: the ripple (0.6s), the Served flash (0.7s), the composer flash (0.9s) and the looping busy line (1.1s), and the "Copied" chip stays 1.3s. Under `prefers-reduced-motion` every CSS animation and transition is cut to almost nothing; the four smooth scrolls started from `app.js` don't check it.
 
 ## Colour tokens
 
@@ -26,45 +28,57 @@ The renderer swaps these classes in `render()` and `applyTheme()`.
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `--canvas` / `--canvas-2` | #dce9e1 / #cddfd4 | board background gradient |
+| `--canvas` / `--canvas-2` | #dce9e1 / #cddfd4 | board background gradient (its first stop, #e4efe8, is a literal) |
 | `--canvas-dot` | rgba(12,42,29,.07) | 20px dot grid on the canvas |
-| `--topbar` | #fbfdfc | top bar (and Windows title-bar overlay) |
+| `--topbar` | #fbfdfc | top bar (and the Windows title-bar overlay; on a Mac, only the window background) |
+| `--topbar-h` | 48px | top bar height; must equal the title-bar overlay height (48) in `main.js` |
+| `--col-edge` | #cddfd4 | the border of columns, menus and the Settings/Help dialogs |
 | `--card` / `--card-edge` | #ffffff / #dfe9e3 | cards |
 | `--ink` / `--ink-2` / `--ink-3` | #0c2a1d / #3c5a4b / #718d7d | text, strong to muted |
 | `--line` / `--line-strong` | rgba(12,42,29,.09) / .16 | hairlines, field borders |
 | `--primary` / `--primary-deep` | #0e9f6e / #057a55 | brand emerald (buttons, focus rings) |
-| `--primary-soft` / `--primary-mist` | #d9f5e8 / #effaf5 | soft emerald fills |
+| `--primary-soft` / `--primary-mist` | #d9f5e8 / #effaf5 | soft emerald fills (`--primary-soft` is unused) |
 | `--highlight` | #b6f2cd | search match marks |
 | `--rec` | #e5484d | recording pill |
 | `--danger` | #dc4f3a | delete swipe, errors |
-| `--aug-bg` / `--aug-edge` / `--aug-ink` | #e6e9ef / #c9cfda / #334058 | Cooked block background, border, text (data `used`) |
-| `--aug-card` / `--aug-card-edge` | #f9fafc / #d6dbe4 | the near-white Cooked note |
-| `--aug-bar` / `--aug-bar-hover` / `--aug-band` | #3f4a62 / #2f384c / gradient #47526b → #384259 | Cooked accent bar, Move to Served bar, and the slate-navy header band |
-| `--final-card` / `--final-card-edge` | #f3f8f5 / #cfe3d6 | the pale mint Served text box (data `combined`) |
+| `--aug-bg` / `--aug-edge` / `--aug-ink` | #e9f1fb / #c9dbf1 / #1d4f8c | Cooked block background, border and label text (data `used`) |
+| `--aug-card` / `--aug-card-edge` | #fdfeff / #d8e5f6 | the near-white Cooked note |
+| `--aug-bar` / `--aug-bar-hover` | #3a6fb5 / #2d5b98 | the Cooked accent: the note's 3px edge, the ↓ Move to Served bar and the card's ↓ Cooked button |
+| `--final-bg` / `--final-edge` / `--final-ink` | #e4eee8 / #c6dccd / #0b5a3f | the light sage Served section, its border and its label (data `combined`) |
+| `--final-card` / `--final-card-edge` | #fbfdfb / #d3e6da | the near-white Served text box |
 | `--stage-lines` | 6 | how many lines the Cooked note and Served text show before "Show more" |
 | `--frame-edge` | `linear-gradient(150deg, rgba(5,122,85,.55) 0%, rgba(12,42,29,.2) 30%, rgba(12,42,29,.17) 100%)` | the board frame's 1px edge (1.16), a gradient painted under a transparent border |
 | `--frame-glow` / `--frame-hi` | rgba(16,168,116,.06) / rgba(255,255,255,.7) | the frame's faint 3px outer glow and its inner top highlight |
+
+The `--aug-*` values are the Ocean palette (since 1.13), identical to `body.cooked-ocean`. They never show on their own, because `<body>` always carries a `cooked-*` class (see "Cooked palettes" below).
+
+- **No band token:** there is no `--aug-band`. 1.13 removed the Cooked header band, its token (in `:root` and six palette variants) and both of its uses.
+- **Dead tokens:** `--used-bg` / `--used-edge` (defined in `:root` and again in Deep), `--primary-soft` and `--accent-wash` are defined but never used, so changing them does nothing.
+- **Hard-coded colours:** several theme colours are literals, not tokens: the canvas's first gradient stop (#e4efe8 Soft, #145640 Deep), the column bodies (#f6f8f7 Soft, #eef2f0 Deep), the Served accents (#047857 and rgba(4,120,87,…)), the empty-Served label ink #0b5a3f, the Served drop outline #34d399 and its drag frame #10a874. Changing `--canvas`, `--final-ink` or `--primary` alone won't recolour them.
+- **Stale comments:** a few comments in `styles.css` still describe rejected looks. Above the `--aug-*` tokens: "a muted slate block with a slate-navy header band … Served … a deep-green block". At the ↓ Cooked button: "in the Cooked stage's slate". At the Cooked picker: "six preview tiles, each a mini Cooked header band" (there are four, each a mini light note). At the empty stages: "a dashed outline" (at rest the border is transparent). Trust this file and the rules themselves, not those comments; the owner rejected the slate band and the deep-green Served.
 
 **Per-column accent tokens** are set inline on each `.column` as `--accent: <project colour>`. The derived shades are redeclared on `:root, .column, .drag-ghost`, because custom properties resolve where they are declared:
 
 - `--accent-ink`: 68% accent mixed with #06140d (accent-coloured text);
 - `--accent-tint`: 15% accent on white;
-- `--accent-wash`: 4% accent on #f7faf8;
+- `--accent-wash`: 4% accent on #f7faf8 (defined, but unused);
 - `--accent-deep`: 80% accent on black.
 
 ### Deep theme (`body.theme-deep`, the default)
 
-- **Canvas:** `linear-gradient(165deg, #145640, #0e3a2b 45%, #06231a)` with white 7% dots. The monstera leaves are drawn in #6ee7b7 at 5–7% opacity.
+- **Canvas:** `linear-gradient(165deg, #145640, #0e3a2b 45%, #06231a)` with white dots at 3.5% (1.9 halved them from 7%). The monstera leaves are drawn in #6ee7b7 at 5–7% opacity.
 - **Board frame (1.16):** `--frame-edge` is `linear-gradient(150deg, rgba(167,243,208,.72) 0%, rgba(52,211,153,.4) 28%, rgba(52,211,153,.32) 100%)` (a bright mint sheen at the top-left settling to an even emerald), `--frame-glow` rgba(52,211,153,.07), `--frame-hi` rgba(255,255,255,.06). The margin around the frame is `body`'s background, #082a1f like the top bar.
-- **Top bar:** #082a1f, with white text. Since 1.16 it has no bottom border or shadow; the board frame below it draws that edge. The search box is white 9% and turns white on focus. The Windows title-bar overlay matches: #082a1f with #e7f7ee symbols.
-- **Columns:** a light body (`color-mix(accent 7%, #f3f7f4)`) with a strong drop shadow.
-- **Column header:** a solid gradient from `mix(accent 90%, black)` to `--accent-deep`, with a white title (no shadow), a white-22% count pill, and white header buttons.
+- **Top bar:** #082a1f, with white text. Since 1.16 it has no bottom border or shadow; the board frame below it draws that edge. The search box is white 9% and turns white on focus. The Windows title-bar overlay matches: #082a1f with #e7f7ee symbols. (On a Mac there is no overlay colour: the traffic lights keep macOS's own colours, and only the window background follows the theme.)
+- **Columns:** since 1.9 a flat neutral body, #eef2f0, with no accent tint, a rgba(0,0,0,.2) border and a strong drop shadow.
+- **Column header:** a solid gradient from `mix(accent 90%, black)` to `--accent-deep`, holding the small leaf, a white title (no shadow) and the ⋯ button in white at 92%. There is no count pill: the prompt count moved to the Cooking row in 1.8, and a test checks that `.col-head .col-count` is absent.
 - **Primary:** #10a874.
 - **Toasts and selection bar:** light mint (#f0fdf6) with dark text, so they stand out on the dark canvas. In Soft they are dark (#0c2a1d) with light text.
 
 ### Soft theme differences
 
-The canvas is a light green-grey gradient and the top bar is white. The column header is `--accent-tint` with a 3px accent line on top, and the title is in dark ink.
+The Soft theme is simply the `:root` values. `applyTheme()` adds a `theme-soft` class, but no CSS rule targets it; all theme styling lives in `body.theme-deep` rules. So to change Soft, edit `:root` and check that the matching Deep override still wins.
+
+The canvas is a light green-grey gradient (#e4efe8 → #dce9e1 → #cddfd4) and the top bar is near-white (#fbfdfc). Column bodies are #f6f8f7. The column header is `--accent-tint` with a 3px accent line on top, and the title is in dark ink.
 
 ### Stage colours (the same in both themes)
 
@@ -74,7 +88,7 @@ The owner asked twice for more difference between the stages, and then, round af
 | --- | --- |
 | New prompts | White cards with a 3px project-accent bar on the left (`--accent-deep` in Deep theme) |
 | Cooked (data `used`) | 1.13: a light section in the Cooked palette (Ocean by default): pale block (#e9f1fb, border #c9dbf1), label "COOKED · n" in #1d4f8c (no band), a white note with a 3px #3a6fb5 edge, and a full-width #3a6fb5 "↓ Move to Served" bar (hover #2d5b98). Collapsed, only the label row shows. **Empty:** only its faint name; a drop zone while dragging |
-| Served (data `combined`) | 1.10: a light sage section (`--final-bg` #e4eee8, border `--final-edge` #c6dccd, faint shadow) with the header label "SERVED" in `--final-ink` #0b5a3f (no counter, no Copy all since 1.6). A near-white text box (#fbfdfb, border #d3e6da) gets an emerald ring on hover and a "Copied" chip when clicked. Before 1.10 it was a deep-green gradient block; the owner asked for less emphasis because "it will always be served". **Empty:** only its faint name; a drop zone while dragging |
+| Served (data `combined`) | 1.10: a light sage section (`--final-bg` #e4eee8, border `--final-edge` #c6dccd, faint shadow) with the header label "SERVED" in `--final-ink` #0b5a3f (no counter, no Copy all since 1.6). A near-white text box (`--final-card` #fbfdfb, border `--final-card-edge` #d3e6da) gets an emerald ring on hover and a "Copied" chip when clicked. Before 1.10 it was a deep-green gradient block; the owner asked for less emphasis because "it will always be served". **Empty:** only its faint name; a drop zone while dragging |
 
 ### Cooked palettes (1.12; light since 1.13)
 
@@ -108,10 +122,14 @@ A highlighted card gets a tinted background, a 55% border, a 4px bar in the colo
 
 ### Other states
 
-- **Selected (Ctrl+click):** a 2px accent ring, a light accent background, and a round `--accent-deep` badge with the order number (top-left, white outline).
-- **Drop targets:** a dashed outline (Cooked in slate #3f4a62, Served in #34d399). Dashed placeholders in the accent colour.
+- **Selected (Ctrl+click; ⌘-click on a Mac):** a 2px accent ring, a light accent background, and a round `--accent-deep` badge with the order number (top-left, white outline).
+- **Drop targets:**
+  - Cooked: a 2px dashed outline in `--aug-bar`, so it follows the picked Cooked palette (Ocean #3a6fb5 by default). An empty Cooked shows a 1.5px dashed `--aug-bar` frame on `--aug-bg` while anything is being dragged.
+  - Served: a 2px dashed outline in #34d399. An empty Served shows a 1.5px dashed #10a874 frame on an 8% green tint while dragging.
+  - Card placeholders: 2px dashed in the column's accent at 55%, on an 8% accent tint (they sit in that column's list).
+  - The column placeholder (dragging a whole column) is not in an accent: a fixed emerald rgba(14,159,110,.4) in Soft, pale mint rgba(236,253,245,.35) in Deep.
 - **Swipe backdrops:** red gradient for delete; green gradient (#0e9f6e) for "Move to Served" on the Cooked note.
-- **Notes-list rows** (Cooked and Served): number, first line, and on hover ↑ ↓ ✎ ↩ 🗑 buttons (22px, icons 13px). The trash (`.fp-del`, 1.15) sits 3px apart from the others and is quiet grey like them; only on hover does it turn `--danger` red on a 10% red tint (the other buttons tint in the stage colour). At the slim default width a hovered row keeps about 60px for its text (checked by the suite: at least 40px). The Notes toggle looks pressed (tinted background) while open; its label stays "Notes" so the word-count stats keep their room.
+- **Notes-list rows** (Cooked and Served): number, first line, and on hover ↑ ↓ ✎ ↩ 🗑 buttons (22px, icons 13px). The trash (`.fp-del`, 1.15) sits 3px apart from the others and is quiet grey like them; only on hover does it turn `--danger` red on a 10% red tint (the other buttons tint in the stage colour). At the slim default width a hovered row keeps about 60px for its text (checked by the suite: at least 40px; the check passes on the Mac too). The Notes toggle looks pressed (tinted background) while open; its label stays "Notes" so the word-count stats keep their room.
 - **Column resize handle** (`.col-resize`): a 10px strip in the gap right of each column. On hover a 3px × 48px rounded line appears (dark ink at 30% in Soft, mint at 60% in Deep); while dragging it runs the full height and the cursor is `col-resize` everywhere.
 
 ## Typography
@@ -120,8 +138,8 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
 
 | Family (CSS name) | File(s) | Used for |
 | --- | --- | --- |
-| Geist | geist-latin.woff2, geist-latin-ext.woff2 | All UI text and headings (`--font-ui`, `--font-head`) |
-| Geist Mono | geist-mono-latin.woff2 | Timestamps and card meta, word/note stats, shortcut hints (kbd), recording timer, part numbers (`--font-mono`) |
+| Geist | geist-latin.woff2, geist-latin-ext.woff2 | All UI text and headings (`--font-ui`, `--font-head`); also the "Geist" column title option (16px / 700 / −0.01em) |
+| Geist Mono | geist-mono-latin.woff2 | Timestamps and card meta, word/note stats, shortcut hints (kbd; on a Mac kbd uses the system font, see "macOS"), recording timer, part numbers (`--font-mono`) |
 | Instrument Sans | instrument-sans-latin.woff2 | Column titles, **default since 1.6** (16px / 650 / 0em). Weight axis 400–700 |
 | Plus Jakarta Sans | plus-jakarta-sans-latin.woff2 | Column title option (15.5px / 700 / −0.005em) |
 | Onest | onest-latin.woff2 | Column title option (16px / 650 / −0.005em) |
@@ -132,8 +150,11 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
 
 - **Title fonts** are applied through the variables `--title-font`, `--title-size`, `--title-weight`, `--title-track` and `--title-case`. They are set by the `body.title-*` classes and by the `.t-*` classes on the preview tiles.
 - **Brand wordmark:** Geist 17px / 700 / −0.035em.
-- **Section labels** ("AUGMENTED", "USED"): Geist 11.5px / 700 / +0.045em / uppercase.
-- **Font loading:** `font-display: block` avoids a flash of the fallback font. Characters outside the Latin set fall back to Geist latin-ext, then Segoe UI.
+- **Section labels** (COOKING, COOKED, SERVED): Geist 11.5px / 700 / +0.045em / uppercase. (Before 1.6 these stages were called AUGMENTED and USED.) The Settings and Help section headings (`.modal-section`) are 12px.
+- **Font stacks and fallback:** `font-display: block` avoids a flash of the fallback font.
+  - On Windows (`:root`): `--font-ui` is Geist, "Segoe UI Variable Text", "Segoe UI", system-ui; `--font-head` the same with "Segoe UI Variable Display"; `--font-mono` is Geist Mono, "Cascadia Mono", Consolas, ui-monospace. Geist covers Latin and Latin Extended (two files); anything else falls back to Segoe UI, then system-ui. Geist Mono has Latin only (no latin-ext file).
+  - On a Mac, `body.is-mac` keeps Geist and Geist Mono first and swaps the Windows fallbacks for the system fonts (SF Pro and SF Mono); see "macOS".
+  - No bundled font has ✓, ↔, ⌘, ⇧, ⌥, ⌃ or ↩. The picker ticks, Help's ↔ and the Mac key symbols therefore come from a system font (Segoe on Windows, an Apple font on a Mac) and look a little different on each.
 - **History:** the soft serif Fraunces was used in versions 1.0–1.2 and was removed in 1.3. Sora was the title default in 1.3–1.5. In 1.6 the owner asked for a "sharper cleaner" title font; nine candidates (Plus Jakarta Sans, Onest, Instrument Sans, Inter Tight, Red Hat Display, Schibsted Grotesk, Outfit, Figtree, Hanken Grotesk) were rendered on real headers next to Sora at 1× scale, and Instrument Sans (crisp, slightly condensed, distinct from Geist) became the default, with Plus Jakarta Sans and Onest added to the picker.
 - **Licences:** each font has its OFL licence file next to it in `src/renderer/fonts/` (`INSTRUMENT-SANS-LICENSE.txt`, `PLUS-JAKARTA-SANS-LICENSE.txt`, `ONEST-LICENSE.txt`, …).
 
@@ -151,35 +172,35 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
 
 - **Column:** radius 16px. Header at least 46px tall; the name wraps to two lines.
 - **Cooking header (1.8; plain since 1.9):** a 28px row with no background or border, text `--accent-ink`, the same 11.5px / 700 / uppercase / +0.045em type as the Cooked and Served labels, with a chevron and a flame icon. It tints to accent 9% on hover.
-- **New prompt bar (1.8; soft since 1.9):** two equal flex halves, 36px tall, gap 6px, padding 0 6px, 13px / 650 labels. White pills with no border at rest (1.5px transparent) and a hairline shadow; on hover a 55%-accent border and `--shadow-md`. The icons (plus, mic) are 16–17px glyphs in `--accent-deep`, with no filled square. `.col-new` is a size container: under 244px the left label switches to "New". A draft shows "Draft" plus an 8px amber dot by the +.
+- **New prompt bar (1.8; soft since 1.9):** two equal flex halves, 36px tall, gap 6px, each pill with padding 0 6px (the bar itself 6px 8px 2px), 13px / 650 labels. White pills with no border at rest (1.5px transparent) and a hairline shadow; on hover a 55%-accent border and `--shadow-md`. The icons (plus, mic) are 16–17px glyphs in `--accent-deep`, with no filled square. `.col-new` is a size container: under 244px the left label switches to "New". Its content box is the column's width minus 18px (the 1px borders and the bar's padding), so Compact (236px) shows "New", Slim (268px) shows "New prompt", and any column resized to 262px or less shows "New". A draft shows "Draft" plus an 8px amber dot by the +.
 - **Calm-board rules (1.9, for many columns):**
   - every column body is the same neutral (#eef2f0 in Deep, #f6f8f7 in Soft); only headers and card bars carry colour;
   - empty Cooked/Served show just their name at 60% opacity (the drop-zone frame and helper sentence appear only while dragging);
   - cards in Deep have no border, just a soft two-layer shadow;
   - canvas dots are at 3.5% white.
   Keep repeated per-column furniture light; weight belongs to content.
-- **Cards:** radius 12px, no border in Deep (soft shadow). On hover, an action pill appears top-right with two buttons (1.11): the highlighter (26px icon) and **↓ Cooked**, a filled `--aug-bar` button (the Cooked accent, Ocean blue by default) with a down arrow and the word "Cooked" (white, 11.5px / 650), hover `--aug-bar-hover`. The edit pencil was removed (right-click or E edits).
+- **Cards:** radius 12px, no border in Deep (soft shadow). On hover, an action pill appears top-right with two buttons (1.11): the highlighter (a 26px button with a 15px icon) and **↓ Cooked**, a filled `--aug-bar` button (the Cooked accent, Ocean blue by default) with a down arrow and the word "Cooked" (white, 11.5px / 650), hover `--aug-bar-hover`. The edit pencil was removed (right-click or E edits).
 - **Cooked and Served:** blocks radius 12px (light sections; neither has a header band since 1.13), inner note or box radius 9px. The text shows `--stage-lines` (6) lines with a fade. Under it, a slim full-width **Show more / Show less** bar (`.stage-more`, 24px, chevron that flips) opens it to min(56vh, 480px), scrolling inside. The Notes lists are capped at 220px. The footer gap is 4px so "n prompts · w words" fits next to Notes and the pencil at slim width.
 - **Dialogs:** Settings and Help share `.modal-card`. `.modal-section` headings are 12px / 700 / uppercase / `--ink-2` with a hairline above. The Help stage cards are white with a coloured square per stage. `kbd` inside Help is forced light, because Deep theme otherwise styles `kbd` for the dark top bar.
-- **Top bar:** brand, search, then (right) undo/redo, the ↔ reset-widths icon button, the ? help button (1.7), the settings gear. No "+ Project" button since 1.6. Disabled top-bar icon buttons are drawn at 30% opacity.
+- **Top bar:** brand, search, then (right) undo/redo, the ↔ reset-widths icon button, the ? help button (1.7), the settings gear. No "+ Project" button since 1.6. Disabled top-bar icon buttons are drawn at 30% opacity. Its left padding is 14px; the right padding (`calc(100vw - env(titlebar-area-x) - env(titlebar-area-width) + 12px)`) keeps clear of the Windows window controls. On a Mac the left padding is 84px, or 14px in full screen, to clear the traffic lights (see "macOS"). Below 700px of window width, the "Recaller" name and the search box's key hint are hidden.
 - **Composer:**
-  - radius 12px with an accent ring; the textarea grows up to 300px;
+  - radius 12px, with a 1.5px border in the accent at 45% and a soft 3px accent ring around it; the textarea grows up to 300px;
   - an attachment row, and a message row for errors with action links;
   - the bottom bar holds the mic (a 30px circle, or a red pill with timer and bars while recording), the camera, a status line, then (edit mode) delete, close (×) and Save.
 - **Menus** radius 12px, **toasts** 12px, **settings dialog** 18px.
-- **Scroll arrows (`.pan-btn`, restyled in 1.16):** 38px circles, 10px in from the board edges at 45% height. A solid white-to-mint gradient disc (`#fff` → `#f3f8f5`), a 1.5px ring (Chromium draws it 1px at 100% scale) in `color-mix(--primary 60%, #0c2a1d)` (deep emerald), a faint 3px white halo (16%) and a soft drop shadow; the chevron is `--ink-2`, 18px, stroke 2.2. Hover: ring `--primary`, chevron `--primary-deep`, `scale: 1.06`. Hidden at rest (`opacity: 0`, nudged 6px outward with `translate`); `.is-near` (pointer within 96px of that edge) or `:focus-visible` fades and slides it in over about 0.2s. They use the separate `translate` / `scale` properties so the slide and the hover grow don't fight over `transform`. A see-through frosted disc was tried and dropped: over the dark canvas it read as muddy grey.
+- **Scroll arrows (`.pan-btn`, restyled in 1.16):** 38px circles, 10px in from the board edges at 45% height. A solid white-to-mint gradient disc (`#fff` → `#f3f8f5`), a 1.5px ring (Chromium draws it 1px at 100% scale; at the Mac's 2× it draws a true 1.5px, see "macOS") in `color-mix(--primary 60%, #0c2a1d)` (deep emerald), a faint 3px white halo (16%) and a soft drop shadow; the chevron is `--ink-2`, 18px, stroke 2.2. Hover: ring `--primary`, chevron `--primary-deep`, `scale: 1.06`. Hidden at rest (`opacity: 0`, nudged 6px outward with `translate`); `.is-near` (pointer within 96px of that edge) or `:focus-visible` fades and slides it in over about 0.2s. They use the separate `translate` / `scale` properties so the slide and the hover grow don't fight over `transform`. A see-through frosted disc was tried and dropped: over the dark canvas it read as muddy grey. The ring came from reading the owner's "a slight border to it" as a border on the arrow; they meant the board frame. It was kept because it matches the frame, and the owner can ask for a plain disc (see `10`, message 24).
 
-## Icons (`src/renderer/icons.js`, 24px stroke, 1.8 width)
+## Icons (`src/renderer/icons.js`, 24px grid, stroke width 1.8)
 
-`plus`, `mic`, `stop`, `copy`, `check`, `edit`, `trash`, `more`, `chevron`, `used` (check in circle, the Served icon), `restore` (circular arrow), `grip`, `pencilLine`, `arrowLeft`, `arrowRight`, `arrowDown`, `arrowUp`, `width` (two bars with a double arrow: column width), `sort` (lines with a down arrow), `camera`, `close`, `expand`, `image`, `layers` (the "stack" icon for Cooked), `highlighter`, `undo`.
+27 icons: `plus`, `mic`, `stop`, `copy`, `check`, `edit`, `trash`, `more`, `chevron`, `used` (check in circle, the Served icon), `restore` (circular arrow), `grip`, `pencilLine`, `arrowLeft`, `arrowRight`, `camera`, `close`, `expand`, `image`, `layers` (the "stack" icon for Cooked), `highlighter`, `arrowDown`, `arrowUp`, `width` (two bars with a double arrow: column width), `flame` (the Cooking header), `sort` (lines with a down arrow), `undo`.
 
-Top-bar icons (search, undo/redo, reset widths, help, gear) are inlined in `index.html`.
+Four of them (`copy`, `grip`, `image`, `undo`) are defined but not used by `app.js`. Top-bar icons (search, undo/redo, reset widths, help, gear) are inlined in `index.html`.
 
 ## App icon and monstera art
 
-`build/icon.png` (512×512) is generated by `npm run icon` (`scripts/make-icon.js`). The script renders the `#monstera` SVG symbol from `index.html`'s sprite onto an emerald rounded square (gradient #63ad72 → #1f5530, with a light leaf).
+`build/icon.png` (512×512, the Windows icon) is generated by `npm run icon` (`scripts/make-icon.js`). The script renders the `#monstera` SVG symbol from `index.html`'s sprite onto an emerald rounded square: a 480px body inset 16px with radius 116, a diagonal gradient #63ad72 → #1f5530, a soft white radial glow (22% at the top-left), and a light leaf (#eaf6dc) tilted −16°. The Mac icon, `build/icon-mac.png`, is described under "macOS" below.
 
-The leaf is one path, with a mask cutting slits (thick lines) and holes (ellipses). The same symbol is used for the top-bar mark, column-header leaves, the empty board and the background leaves.
+The `#monstera` symbol has three paths: a stroked stem, the leaf fill, and a midrib stroked in `var(--rib, rgba(255,255,255,.28))`. A mask cuts slits (thick lines) and holes (ellipses) into the leaf and the midrib, not the stem. Every use sets `--rib` to suit its background (the top-bar mark, column-header leaves, the empty board, the background leaves, the Deep variants and both app icons), so recolouring a leaf needs both `color` and `--rib`.
 
 ## Motion
 
@@ -190,4 +211,39 @@ The leaf is one path, with a mask cutting slits (thick lines) and holes (ellipse
 - **Copy:** a ripple of 0.6s and a chip for 1.3s.
 - **Toasts:** spring in.
 - **Served flash:** an expanding emerald ring, 0.7s, when text lands in Served or the Served text is copied.
-- **Composer:** busy progress line; recording ring grows with the input level.
+- **Composer:** busy progress line (1.1s loop); recording ring grows with the input level; a 0.9s flash.
+
+## macOS (the Mac edition only)
+
+The Mac edition of 1.16.0 (uncommitted work on branch `masos`, 2026-09-29) keeps the same design. Everything Mac-only in the CSS is one block at the end of `styles.css`, under `body.is-mac`. `app.js` adds that class on a Mac only, before the first render, so none of it reaches Windows. (The rest of the Mac edition is in `14_macos.md`.)
+
+- **The top bar:**
+  - `body.is-mac .topbar { padding-left: 84px; }` starts the brand after the traffic lights (they end at x 70, plus 14px);
+  - `body.is-mac.is-fullscreen .topbar { padding-left: 14px; }`: in full screen the lights are hidden, so the bar gets its space back. `main.js` sends `fullscreen-on` / `fullscreen-off`, and `app.js` toggles `is-fullscreen`;
+  - the right-padding formula needs no change: on a Mac it comes to 12px.
+- **Traffic-light geometry:**
+  - `main.js` sets `trafficLightPosition: { x: 16, y: 16 }`. The three standard buttons are 14×16pt frames, 20pt apart, so they span x 16–70 and y 16–32, centred on y 24, the middle of the 48px bar;
+  - measured by the features suite on this Mac: `getWindowButtonPosition()` = {x: 16, y: 16}, and the logo at x 84 with its centre at y 24;
+  - `env(titlebar-area-x)` reports 92px there (the area Electron keeps clear of the lights). The CSS uses the fixed 84px instead;
+  - the lights keep macOS's colours in both themes; only the window background follows the theme.
+- **Font stacks,** declared on `body.is-mac`:
+  - `--font-ui` and `--font-head`: "Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  - `--font-mono`: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace.
+
+  Geist and Geist Mono still draw all Latin text; anything else falls back to SF Pro or SF Mono instead of the Windows fonts. They are declared on `body`, not `:root`, because the `body.title-*` classes resolve `var(--font-head)` on `body`: that way the column titles and the title-picker tiles pick up the Mac stack too. The lists are written out in full on purpose, because a variable that refers to itself is invalid.
+- **Key caps:** `body.is-mac kbd { font-family: -apple-system, BlinkMacSystemFont, var(--font-ui); letter-spacing: 0.04em; }`. No bundled font has ⌘ ⇧ ⌥ ⌃ ↩ (their cmap tables were checked), so the system font draws them, the way macOS menus do. On Windows, `kbd` stays in Geist Mono.
+- **Labels:** the Mac key labels are text, not styling: `data-mac` / `data-mac-title` attributes in `index.html` and the `kb()` helper in `app.js` (see `04` §25).
+- **Retina:** this Mac's screen is 2× (3024×1964px, 1512×982pt), while the owner's PC is 1× (a 5120×1392 ultrawide at 100%). Every size is in CSS px, so the layout is identical, but some things draw differently:
+  - 1.5px borders draw at full weight at 2× (3 device px), while the 1× PC floors them to 1px. So the scroll arrows' ring and the composer ring look slightly heavier than on the PC. The same goes for the New prompt hover border, the rename field, the "+ New project" tile and the empty Cooked/Served drag frames;
+  - the frame's 1px gradient edge gets two device pixels and reads stronger at 2×. The other faint effects tuned at 1× (the 3px glow, the canvas dots, the resize line) also look crisper;
+  - `-webkit-font-smoothing: antialiased` (on `body`) only takes effect on a Mac, and Core Text at 2× renders text differently from DirectWrite at 1×;
+  - the owner's taste was set on the 1× Windows screen. They first opened the Mac edition at the very end of the seventh session, and their view of the Mac look isn't recorded. Nothing was retuned for Retina, on purpose: wait for their review, and don't retune weights, tracking or opacities from the Mac alone;
+  - the e2e suites force device scale factor 1 (so does `make-icon.js`), so the suites' captures show 1×. `SCALE=2 npm run capture` renders the board at 2× on a Mac (not run yet). The Mac icon's hidden-window capture still came back at 2× (below).
+- **The Mac icon** (`build/icon-mac.png`, 1024×1024, made by `npm run icon:mac`, which runs `scripts/make-icon.js --mac`):
+  - Apple's icon grid: an 824×824 rounded-square body, inset 100px (100–924), corner radius 185, in a transparent 1024px canvas;
+  - the Windows icon's gradient (#63ad72 → #1f5530), radial glow and leaf, mapped from its 480px body onto the 824px one (scale 824/480);
+  - a soft drop shadow under the body: `feDropShadow` dy 12, stdDeviation 7 (a 14px blur), 28% black;
+  - it is rendered in a hidden 1024px window (`enableLargerThanScreen`) with `capturePage`. On this Retina Mac the capture comes back at 2× (2048px), so it is scaled to 1024 at 'best' quality. (An offscreen window's paint frame came back empty here, which is why.) The Dock icon is hidden while the script runs, so nothing flashes;
+  - if no usable 1024px capture comes back, the script exits with an error ("icon:mac: no usable capture") and writes nothing. That way the Mac app can't quietly ship with the Windows icon;
+  - `package.json` `build.mac.icon` points at it, and electron-builder makes the app's 1024px `icon.icns` from it. A run from source also puts it in the Dock (`app.dock.setIcon`);
+  - `npm run icon` without `--mac` behaves exactly as before, and `build/icon.png` is unchanged.

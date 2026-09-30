@@ -1,105 +1,166 @@
 # 02: Architecture
 
+This file describes version 1.16.0 on both platforms:
+
+- **Windows** (the owner's main install): committed on branch `v1` as "1.16" (`664212a`) and merged into `main` by PR #1 (`dd5a3b0`).
+- **The Mac edition** of the same 1.16.0: uncommitted work on branch `masos` (seventh session, 2026-09-29). It reuses the Windows code, and every Mac difference is fenced: `IS_MAC` in JavaScript, `body.is-mac` in CSS, the `mac` / `dmg` sections in `package.json`. On Windows the `masos` code behaves exactly like 1.16.0.
+- An earlier Mac attempt (1.17.0, sixth session) was discarded and is kept as `stash@{0}`. None of it was used; the build never read it.
+
+Mac-only behaviour is marked **On a Mac**. Anything unmarked applies to both platforms. `14_macos.md` describes the whole Mac edition in one place: every difference, its flows, the build and the Mac-safe tests.
+
 ## Stack
 
 - **Electron 44.4.5**: Chromium plus Node 24, main process in CommonJS.
-- **Packaging:** electron-builder 26.15.3, producing an NSIS one-click installer for Windows x64.
+- **Packaging:** electron-builder 26.15.3.
+  - **Windows:** an NSIS one-click installer for x64. `npm run dist` on the PC; from a Mac use `npm run dist:win`, which pins `--x64` (a bare `--win nsis` on Apple Silicon builds an arm64 app the PC can't run).
+  - **Mac (`masos` only):** a dmg for Apple Silicon (arm64 only), ad-hoc signed (`identity: "-"`), no hardened runtime, not notarised: `npm run dist:mac` makes `dist/Recaller-1.16.0-arm64.dmg`. Its Info.plist has `com.akhan.recaller`, `LSMinimumSystemVersion` 13.0 and an `NSMicrophoneUsageDescription`. Intel Macs are neither built nor tested.
 - **UI:** vanilla JavaScript, HTML and CSS in the renderer. No framework, bundler or build step for the UI; scripts load as classic `<script>` tags in order: `icons.js`, `voice.js`, `app.js`.
 - **Dependencies:** none at runtime. Only `electron` and `electron-builder` are devDependencies. Fonts are copied `.woff2` files, not npm packages.
 - **Speech-to-text:** the OpenAI API (`POST /v1/audio/transcriptions`), called only from the main process with Node's built-in `fetch`, `FormData` and `Blob`.
+- **Machines:** the Windows PC (Windows 11, x64, one 5120×1392 ultrawide at 100%) and the owner's MacBook Pro (macOS 26.5.1, Apple M5 Pro, one Retina screen of 3024×1964 px at 2×, 1512×982 pt). The Mac edition was built and tested only on that Mac.
 
 ## Processes and windows
 
-1. **Main process** (`src/main.js`): the app lifecycle, the one main window, the settings and data files, backups, the clipboard, global hotkeys, the image protocol, screenshots and transcription.
+1. **Main process** (`src/main.js`): the app lifecycle, the one main window, the settings and data files, backups, the clipboard, global hotkeys, the image protocol, screenshots and transcription. **On a Mac** also the menu bar.
 2. **Main window renderer** (`src/renderer/*`): the whole UI. Its preload is `src/preload.js`, which exposes `window.recaller`.
 3. **Screenshot overlay window** (`src/overlay/*`): a temporary, frameless, always-on-top window covering one display while the user drags out a region. Its preload is `src/overlay/preload.js`, which exposes `window.shot`.
 
 Both preloads run with `contextIsolation: true`, `sandbox: true` and `nodeIntegration: false`.
 
+**On Windows**, closing the window quits the app. **On a Mac** the app keeps running with its window hidden: the red button and ⌘W hide the window, ⌘Q quits, and a Dock click or the global hotkey brings it back.
+
 ## Source files and responsibilities
 
 ```
 recaller/
-  package.json            name "recaller", productName "Recaller", appId com.akhan.recaller, version, scripts, electron-builder config
+  package.json            name "recaller", productName "Recaller", appId com.akhan.recaller, version, scripts,
+                          electron-builder config (win + nsis; on masos also mac + dmg)
   README.md               user-facing guide (install, usage table, shortcuts, voice, updating, data)
-  build/icon.png          512×512 app icon (monstera leaf on an emerald rounded square), generated
+  build/icon.png          512×512 app icon (monstera leaf on an emerald rounded square), generated; the Windows icon
+  build/icon-mac.png      masos: 1024×1024 Mac icon on Apple's grid (824 px body inset 100 px, radius 185, soft shadow),
+                          generated; electron-builder turns it into the Mac app's .icns
   scripts/
-    run-electron.js       launches Electron with ELECTRON_RUN_AS_NODE removed (used by npm start / test / icon)
-    make-icon.js          renders build/icon.png from the SVG sprite in src/renderer/index.html
+    run-electron.js       launches Electron with ELECTRON_RUN_AS_NODE removed and the repo root as its working
+                          directory (used by npm start / test / icon / capture)
+    make-icon.js          renders build/icon.png from the SVG sprite in src/renderer/index.html;
+                          with --mac (npm run icon:mac) it renders only build/icon-mac.png
   src/
     main.js               app entry (see below)
-    preload.js            window.recaller bridge (IPC wrappers)
+    preload.js            window.recaller bridge (IPC wrappers, listeners, and `platform`)
     store.js              crash-safe JSON: atomic write (tmp + rename with retries), read with .bak fallback, backup copy
     transcribe.js         OpenAI transcription: form building, SSE streaming parser, retries and fallbacks, error codes
     images.js             image store in <userData>/images, recaller-img:// protocol, garbage collection
-    screenshot.js         region snip: hide window, desktopCapturer, overlay window, crop, store
+    screenshot.js         region snip: hide window, desktopCapturer, overlay window, crop, store;
+                          on a Mac also the Screen Recording check
     backups.js            backup folders in <userData>/backups: create/list/prune/daily/readData/imageIds
     overlay/
-      overlay.html        full-screen snip UI (captured screen as background, dim veil, selection box, size label, hint)
+      overlay.html        full-screen snip UI (captured screen as background, dim veil, selection box, size label, hint);
+                          its own CSP meta tag
       overlay.js          pointer and key handling for selecting a region; sends done/cancel
       preload.js          window.shot = { image, ready, done, cancel }
     renderer/
       index.html          DOM shell: SVG sprite (monstera symbol and mask), top bar, stage with board, scroll arrows,
-                          selection bar, toasts, lightbox dialog, settings dialog; CSP meta tag
-      styles.css          all styling: tokens, themes, densities, title fonts, Cooked palettes, components (~1770 lines)
+                          selection bar, toasts, lightbox dialog, settings dialog; CSP meta tag;
+                          Mac labels as data-mac / data-mac-title attributes (masos)
+      styles.css          all styling: tokens, themes, densities, title fonts, Cooked palettes, components
+                          (1820 lines on masos, 1801 in 1.16; the macOS block is at the end)
       icons.js            window.ICONS: inline SVG strings (stroke icons on a 24px grid)
       voice.js            window.Voice: mic capture, voice-activity segmentation, transcribe() wrapper
-      app.js              the whole UI app (~3500 lines, one IIFE; see "Renderer design")
+      app.js              the whole UI app (3675 lines on masos, 3576 in 1.16; one IIFE; see "Renderer design")
       fonts/              Geist, Geist Mono, Instrument Sans, Plus Jakarta Sans, Onest, Sora, Space Grotesk,
                           Manrope, Inter (woff2) plus OFL licence files
-  tests/e2e/              end-to-end suites (see 06_build_test_release.md)
+  tests/e2e/              end-to-end suites (see 06_build_test_release.md); on masos also mac-harness.js,
+                          which keeps every suite quiet on a Mac and does nothing on Windows
   ai_memory/              this handoff
 ```
 
 ### `src/main.js`, section by section
 
 - **Top of file:**
-  - Sets `userData` to `RECALLER_DATA_DIR` if that env var is set, otherwise pins it to `%APPDATA%\Recaller`.
+  - `IS_MAC = process.platform === 'darwin'` fences every line added for the Mac edition. Four older checks from 1.5.0 test `process.platform` directly and were left alone: `titleBarOverlay`, `applyTheme()`, the menu branch and `window-all-closed`.
+  - Sets `userData` to `RECALLER_DATA_DIR` if that env var is set (`path.resolve()`d against the working directory, which `run-electron.js` sets to the repo root). Otherwise it pins it to `path.join(app.getPath('appData'), 'Recaller')`: `%APPDATA%\Recaller` on Windows, `~/Library/Application Support/Recaller` on a Mac.
   - Registers the `recaller-img` privileged scheme; this must happen before `app` is ready.
-- **`THEMES`** holds the window-controls overlay colours per theme: deep `#082a1f` with symbols `#e7f7ee`, soft `#fbfdfc` with symbols `#0c2a1d`. The title bar overlay is 48px high.
+- **`THEMES`** holds the window-controls overlay colours per theme: deep `#082a1f` with symbols `#e7f7ee`, soft `#fbfdfc` with symbols `#0c2a1d`. The title bar overlay is 48px high. On Windows these colour the native minimise, maximise and close buttons. **On a Mac** the window keeps the system traffic lights, so only `color` is used, as the window background.
 - **`DEFAULT_SETTINGS`:**
   - `model: 'gpt-transcribe'`, `language: ''`, `hint: ''`
-  - `hotkey: 'CommandOrControl+Alt+R'`, `shotHotkey: ''`
+  - `hotkey`: `'CommandOrControl+Alt+R'` (Ctrl+Alt+R) on Windows. **On a Mac** `'Control+Alt+R'` (⌃⌥R): the same physical keys, because `CommandOrControl` means ⌘ there and ⌥⌘R is VS Code's Reveal in Finder. Like every default, it applies only when the settings file has no `hotkey` key.
+  - `shotHotkey: ''`
   - `hideAfterCopy: false`, `theme: 'deep'`
   - `apiKey: null`, `bounds: null`, `maximized: false`
   - `lastVersion` is written at runtime.
 - **Settings:**
-  - `loadSettings()` merges defaults with the stored file, keeping unknown keys, and writes a `.bak` copy.
-  - `saveSettings()` writes atomically.
-  - `getApiKey()` decrypts the stored key with `safeStorage` (Windows DPAPI); if none is stored, it falls back to the `OPENAI_API_KEY` env var.
-  - `publicSettings()` is the only settings shape the renderer ever sees. It includes `hasKey`, `keySource` and the key's last 4 characters, but never the key itself.
+  - `loadSettings()` merges defaults with the stored file, keeping unknown keys. When the main file (not its `.bak`) was read, it copies it to `.bak`; this happens once per app start.
+  - `saveSettings()` writes atomically. It runs on every `settings:set`, 400ms after every move or resize, on close, and when a new version first runs.
+  - `getApiKey()` tries, in order: a stored `{ enc }`, decrypted with `safeStorage` when encryption is available (on failure main logs `[settings] could not decrypt API key:` and moves on); a stored `{ plain }`; the `OPENAI_API_KEY` env var.
+  - `setApiKey()` stores `{ enc }` when `safeStorage.isEncryptionAvailable()`, otherwise `{ plain }`, and `null` for an empty key.
+  - `publicSettings()` is the only settings shape the renderer ever sees: `hasKey`, `keySource`, `keyHint` (the key's last 4 characters), `model`, `language`, `hint`, `hotkey`, `hotkeyOk`, `shotHotkey`, `shotHotkeyOk`, `hideAfterCopy`, `theme` and `dataDir`. Never the key itself. `keySource` is `'saved'` whenever the file holds any key object, even one that can't be decrypted, then `'env'`, else `null`. The renderer doesn't use `dataDir`.
 - **Data:**
-  - `loadData()` flushes any pending write first (unless a restore is in progress), reads with `.bak` fallback, and backs up a good file at session start.
-  - Renderer saves arrive through `data:save`. They are debounced 250ms (`scheduleDataWrite`) and written atomically by `flushData`.
-  - Flushes also happen on window close, `before-quit`, `window-all-closed` and Windows `session-end`.
+  - `loadData()` runs on every `data:load`, which is every page load (start, the reload after a restore, a DevTools reload). It flushes any pending write first (unless a restore is in progress), turns `restoring` off, reads with `.bak` fallback, and copies a good main file to `.bak`.
+  - Renderer saves arrive through `data:save` and are ignored while restoring or when `projects` isn't an array. `scheduleDataWrite` is a trailing 250ms debounce (every save restarts the timer), and `flushData` writes atomically.
+  - Flushes on Windows: window `close`, `before-quit`, `window-all-closed` and `session-end` (Windows shutdown or sign-out).
+  - **On a Mac** also on the window's `closed` event and on `will-quit`, because ⌘Q never reaches `window-all-closed` and the page's last save (sent on `beforeunload`) arrives after `close`. The hourly daily-backup timer flushes too. `session-end` never fires on a Mac.
 - **The window:**
-  - Default size 1280×820, minimum 480×400. Saved bounds are restored only if they are still on a visible display.
-  - `titleBarStyle: 'hidden'` with a `titleBarOverlay`, so the native Windows controls sit on the app's top bar.
+  - Default size 1280×820, minimum 480×400. Saved bounds are restored only if they overlap a display's work area by at least 80px across and 40px down.
+  - `titleBarStyle: 'hidden'`. On Windows, `titleBarOverlay` takes the `THEMES` colours, so the native Windows controls sit on the right end of the app's top bar. **On a Mac:** `titleBarOverlay: true`, `trafficLightPosition: { x: 16, y: 16 }` (the three buttons span x 16–70, centred in the 48px top bar) and `acceptFirstMouse: true` (a click on a card while another app is in front both brings Recaller forward and copies the card).
   - `show: false` until `ready-to-show`.
-  - Bounds and maximised state are saved on move, resize and close.
-- **Context menu:** spelling suggestions, "Add to dictionary", and cut/copy/paste/select all in editable fields.
-- **DevTools:** F12 or Ctrl+Shift+I, but only when the app is not packaged.
-- **`summon()` and `toggleWindow()`** show and focus the window, or minimise it if it is already focused.
-- **`screenshotFromAnywhere()`** runs when the global screenshot hotkey fires. It captures, summons the window, and sends `shot:captured` to the page.
-- **`applyHotkeys()`** registers `hotkey` (toggle the window) and `shotHotkey` (screenshot) with `globalShortcut`. It records whether each registration succeeded, and Settings shows that status.
-- **`applyTheme()`** updates the window background and title-bar overlay colours when the theme changes.
+  - Bounds and maximised state are saved 400ms after every move or resize (`rememberBounds()`) and on close. **On a Mac** a full-screen frame is never saved as the window's bounds.
+  - **On a Mac, closing hides.** The `close` handler flushes and saves the bounds as usual. Then, unless the app is quitting (`quitting` is set in `before-quit`, for example by ⌘Q), it cancels the close and hides the window. A full-screen window first leaves full screen and hides on `leave-full-screen`, because hiding it in full screen would leave an empty black Space.
+  - **On a Mac, full screen:** the window sends `app:command` `'fullscreen-on'` or `'fullscreen-off'` to the page on `enter-full-screen`, `leave-full-screen` and every `did-finish-load`. The page then gives the traffic lights' space back to the top bar.
+- **Context menu:** in editable fields, up to 5 spelling suggestions and "Add to dictionary" (for a misspelt word), then Undo, Redo, Cut, Copy, Paste and Select All. That Undo is native text undo, separate from the app's undo history. Selected text outside a field gets a lone Copy. Anything else gets no menu.
+- **DevTools:** F12 or Control+Shift+I, and **on a Mac** also ⌘⌥I (matched on `input.code === 'KeyI'`, because Option changes `input.key`). Only when the app is not packaged. On a Mac keyboard F12 needs fn.
+- **`summon()`** creates the window if there is none; otherwise it restores, shows and focuses it and sends `app:summoned`. **On a Mac** it also calls `app.show()` first (undoing ⌘H or `app.hide()`) and `app.focus({ steal: true })` before focusing, so the hotkey pressed in another app brings Recaller to the front.
+- **`toggleWindow()`** (the show/hide hotkey): when the window is visible, focused and not minimised, Windows minimises it. **On a Mac** it hides the app (`app.hide()`), which hands focus straight back to the previous app, so a paste lands there. Otherwise it calls `summon()`.
+- **`screenshotFromAnywhere()`** runs when the global screenshot hotkey fires. It captures, summons the window, and sends `shot:captured` to the page. **On a Mac:**
+  - a cancelled snip calls `app.hide()` when Recaller wasn't on screen before, handing focus back (never on `BUSY`, which would hide a snip still in progress);
+  - the result is sent with `sendWhenLoaded()`, because a window that `summon()` has just created is still loading. Windows sends it at once.
+- **`applyHotkeys()`** unregisters everything, then registers `hotkey` (toggle the window) and `shotHotkey` (screenshot) with `globalShortcut`. It records whether each registration succeeded (`hotkeyOk`), and Settings shows that status. An accelerator that fails leaves that hotkey off.
+- **`applyTheme()`** sets the window background colour when the theme changes, and on Windows also the title-bar overlay colours (`setTitleBarOverlay` is Windows and Linux only).
+- **The Mac menu bar (`macMenu()`, on a Mac only):**
+  - **Recaller:** About, Settings… (⌘,), Services, Hide Recaller (⌘H), Hide Others, Show All, Quit (⌘Q). Settings… shows the window and sends `app:command` `'settings'`.
+  - **Edit:** Undo (⌘Z) and Redo (⇧⌘Z) are custom items, not roles: they send `app:command` `'undo'` / `'redo'` only while the window is visible and not minimised, so ⌘Z never changes a board that is out of sight. The page picks text undo or its own history. Then the Cut, Copy, Paste, Paste and Match Style and Select All roles.
+  - **Window:** Minimize with **no** ⌘M (⌘M is Dictate in the page), Zoom, Close Window (⌘W, which hides the window through the `close` handler), Bring All to Front.
+  - **Help:** How Recaller Works, which shows the window and sends `'help'`. No accelerator; the page already handles `?`.
+  - `sendWhenLoaded(channel, payload)` sends at once, or on `did-finish-load` while the page is still loading.
+  - `showForCommand()` brings the window up for a menu command: it creates the window if there is none, otherwise `app.show()`, restore, show and focus. It is used instead of `summon()`, whose `app:summoned` would move focus to the search box.
+  - `app.setAboutPanelOptions()` gives the About panel the name Recaller, the version and the credit "Your prompts and notes, one click away."
+  - A source run shows `build/icon-mac.png` in the Dock when that file exists (`app.dock.setIcon`). Its menu bar is headed "Electron", because macOS names the first menu after the running bundle; the packaged app says Recaller.
+  - Windows (and Linux) get no application menu (`Menu.setApplicationMenu(null)`).
 - **Update protection:** `protectData()` runs at startup before the window opens.
-  - If `settings.lastVersion` differs from `app.getVersion()`, it creates an `upgrade` backup and then records the new version.
+  - If `settings.lastVersion` differs from `app.getVersion()`, it creates an `upgrade` backup (skipped when there is no data file yet) and then records the new version, rewriting the whole settings file.
   - It then creates a daily backup if the last one is more than 24 hours old.
+  - **On a Mac** an hourly timer repeats the daily check (after flushing pending data), because a Mac app runs for days without restarting.
 - **`restoreBackup(id)`:**
-  1. Flush pending data.
-  2. Create a `before-restore` backup.
-  3. Set `restoring = true`, so incoming saves are ignored.
-  4. Write the backup's data file over the current one (atomically).
-  5. Reload the page. The next `data:load` turns `restoring` off.
+  1. Read and check the backup's data file. If it can't be read or has no `projects` array, return `{ ok: false, error: "That backup couldn't be read." }` and touch nothing.
+  2. Flush pending data.
+  3. Create a `before-restore` backup (with `restoredFrom: id`).
+  4. Set `restoring = true`, so incoming saves are ignored; clear the write timer and drop `pendingData`.
+  5. Write the parsed backup over the data file, atomically. It is re-serialised with 2-space indentation, not copied byte for byte.
+  6. Reload the page after 50ms. The next `data:load` turns `restoring` off.
 
   Restore replaces notes only; settings are not restored.
+
+  Known hole: steps 3 and 5 aren't inside a try/catch. If either throws, the invoke rejects instead of returning `{ ok: false }`, and the Restore click handler has no catch, so no toast appears. If the write throws, `restoring` also stays true, and every later save is silently dropped until the next page load.
 - **`inOrder(write)`** chains all clipboard writes, which are async in Electron 44, so they finish in the order they were requested.
 - **Lifecycle:**
-  - A single-instance lock; a second launch focuses the existing window.
-  - macOS gets a minimal menu; Windows and Linux get none.
-  - The permission handler grants only `media` (microphone) and `clipboard-sanitized-write`.
+  - A single-instance lock, which is tied to the data folder; a second launch calls `summon()` in the running app.
+  - `app.setAppUserModelId('com.akhan.recaller')` runs on every platform; it only matters on Windows.
+  - Menus: `macMenu()` on a Mac (above); none on Windows and Linux.
+  - A permission request handler and a permission check handler both allow only `media` and `clipboard-sanitized-write`.
+  - **On a Mac** the `app:open-privacy` handler is registered (see the IPC contract).
   - Every web contents denies new windows (http(s) links open in the system browser) and blocks navigation.
+  - `activate` (on a Mac, a Dock click) creates the window if there is none. **On a Mac** it also summons a hidden window.
+  - `before-quit` flushes and, **on a Mac**, sets `quitting`. `will-quit` unregisters the global shortcuts, after a flush **on a Mac**. `window-all-closed` flushes and quits, except on a Mac.
+
+### Mac additions in `src/screenshot.js`
+
+- `systemPreferences` is loaded only on a Mac. The code's comment says that on Windows, loading it sets up a hidden window for colour broadcasts.
+- **Screen Recording check:** at the start of `capture()` (after the `BUSY` check), if `systemPreferences.getMediaAccessStatus('screen')` isn't `'granted'`, it calls `desktopCapturer.getSources()` once with a zero-size thumbnail and returns `{ ok: false, code: 'PERMISSION', error }` without snipping. That call makes macOS list Recaller under Screen Recording and shows macOS's own prompt the first time. The error text is: "Recaller needs permission to record the screen. In System Settings › Privacy & Security › Screen & System Audio Recording, turn Recaller on (or off and on again after an update), then quit and reopen Recaller."
+- **Full screen:** a full-screen main window leaves full screen before it hides (`leaveFullScreen()`, which waits up to 2s), because the snip would otherwise capture an empty black Space. The window comes back windowed.
+- **Focus:** the overlay gets `acceptFirstMouse: true`, and `app.focus({ steal: true })` runs before `overlay.focus()`, so Esc and the first drag work when the snip starts from another app.
+- The empty-capture error says "macOS returned an empty screen capture." (Windows keeps "Windows returned an empty screen capture.").
+- `setVisibleOnAllWorkspaces` is deliberately not used, because it flickers the Dock. Snipping over another app's full-screen Space is untested.
+
+None of this has been verified against a real Screen Recording prompt: the Mac test run skips the real snip.
 
 ## IPC contract
 
@@ -110,18 +171,28 @@ recaller/
 | `loadData()` | `data:load` | invoke | → the parsed data object or `null` |
 | `saveData(data)` | `data:save` | send | full data object; debounced write; ignored while restoring |
 | `copy(text)` | `clipboard:write` | invoke | string → `true` (serialised) |
-| `minimize()` | `window:minimize` | invoke | minimises the window |
+| `minimize()` | `window:minimize` | invoke | minimises the window on Windows; **on a Mac** hides the app (`app.hide()`), like ⌘H |
 | `getSettings()` | `settings:get` | invoke | → public settings object |
 | `setSettings(patch)` | `settings:set` | invoke | patch keys: apiKey, model, language, hint, hotkey, shotHotkey, hideAfterCopy, theme → public settings |
-| `openDataFolder()` | `app:open-data-folder` | invoke | opens `%APPDATA%\Recaller` in Explorer |
-| `listBackups()` | `backups:list` | invoke | → `[{ id, kind, createdAt, appVersion, fromVersion?, toVersion?, projects, notes }]`, newest first |
+| `openDataFolder()` | `app:open-data-folder` | invoke | opens the data folder with `shell.openPath`: `%APPDATA%\Recaller` in Explorer on Windows, `~/Library/Application Support/Recaller` in Finder on a Mac |
+| `listBackups()` | `backups:list` | invoke | → `[{ id, kind, createdAt, appVersion, fromVersion?, toVersion?, restoredFrom?, projects, notes, unreadable? }]`, newest first |
 | `createBackup()` | `backups:create` | invoke | flush, then a `manual` backup → id or `null` |
 | `restoreBackup(id)` | `backups:restore` | invoke | → `{ ok }` or `{ ok: false, error }`; the page reloads on success |
 | `saveImage(bytes)` | `image:save` | invoke | Uint8Array (PNG or JPEG) → `{ ok, image: { id, w, h } }` or `{ ok: false, error }` |
 | `copyImage(id)` | `image:copy` | invoke | writes the PNG as `image/png` to the clipboard → `true`/`false` |
 | `gcImages(keepIds)` | `images:gc` | invoke | deletes unreferenced image files older than 1 hour (backups are also treated as references) |
-| `captureScreen()` | `shot:capture` | invoke | → `{ ok: true, image }`, `{ ok: false, code: 'CANCELLED' \| 'BUSY' \| 'FAILED', error? }` |
+| `captureScreen()` | `shot:capture` | invoke | → `{ ok: true, image }`, `{ ok: false, code: 'CANCELLED' \| 'BUSY' \| 'FAILED', error? }`, and **on a Mac** also `code: 'PERMISSION'` with the Screen Recording text |
 | `transcribe(bytes, mime, context, onEvent)` | `stt:transcribe` | invoke | `{ reqId, bytes, mime, context }` → `{ ok, text }` or `{ ok: false, code, error }` |
+| `openPrivacy(kind)` | `app:open-privacy` | invoke | **Mac only**: the handler is registered only on a Mac, and only Mac-gated code calls it. `'microphone'` or `'screen'` opens that pane of System Settings › Privacy & Security (`x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone` or `?Privacy_ScreenCapture`) → `true`; any other value → `false` |
+
+**Preload listeners and values:**
+
+| Member | Meaning |
+| --- | --- |
+| `onSummoned(fn)` | calls `fn()` on `app:summoned`; returns an unsubscribe function |
+| `onScreenshot(fn)` | calls `fn(result)` on `shot:captured`; returns an unsubscribe function |
+| `onCommand(fn)` | calls `fn(name)` on `app:command`; returns an unsubscribe function. Defined on both platforms, called only by Mac-gated code |
+| `platform` | `process.platform`: `'win32'` on the PC, `'darwin'` on a Mac. `app.js` and `voice.js` read it to set their Mac flag |
 
 **Main → renderer:**
 
@@ -129,7 +200,8 @@ recaller/
 | --- | --- |
 | `stt:event` | `{ reqId, type: 'delta', delta }` or `{ reqId, type: 'reset' }` while a transcription request runs. The preload filters by `reqId` and calls `onEvent` |
 | `app:summoned` | the global hotkey brought the window up; the page focuses search unless the user is busy |
-| `shot:captured` | result of the global screenshot hotkey; the page attaches the image to the active or new composer |
+| `shot:captured` | result of the global screenshot hotkey; the page attaches the image to the active or new composer. **On a Mac** it is sent once the page has loaded, and a `PERMISSION` result shows a toast with an Open Settings button |
+| `app:command` | **Mac only**: a string name. From the menu bar: `'settings'`, `'help'`, `'undo'`, `'redo'`. From the window: `'fullscreen-on'`, `'fullscreen-off'` |
 
 **Overlay window.** Its IPC is scoped to the overlay's web contents with `webContents.ipc`:
 
@@ -143,18 +215,30 @@ recaller/
 ## Security model
 
 - **Renderer isolation:** context isolation and sandboxing, no Node access. Only the whitelisted `window.recaller` API is exposed.
-- **CSP** (index.html): `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: recaller-img:; media-src 'self' blob:; connect-src 'none'`. The page itself cannot make network requests; all network traffic goes through main.
+- **CSP:** two meta tags are the whole policy; nothing in main sets one.
+  - `index.html`: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: recaller-img:; media-src 'self' blob:; connect-src 'none'; object-src 'none'; base-uri 'none'`. The page itself cannot make network requests; all network traffic goes through main.
+  - `overlay.html`: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src blob:; font-src 'self'; object-src 'none'; base-uri 'none'`.
+  - Keep `base-uri 'none'` when editing either one: it has no fallback.
 - **Image protocol:** `recaller-img://img/<32 hex>.png` (full size) and `.../<id>.t.png` (thumbnail). The handler validates the id with a regex, so there is no path traversal. A missing thumbnail falls back to the full image.
-- **API key:** encrypted at rest with `safeStorage` (DPAPI). It is stored as `{ enc: base64 }`, or `{ plain }` only if OS encryption is unavailable. It never reaches the renderer.
-- **Permissions and navigation:** only the microphone and clipboard-write permissions are granted. Navigation and new windows are denied.
+- **API key:** encrypted at rest with `safeStorage`, and never sent to the renderer. The code has no platform branch; the operating system supplies the protection.
+  - **Windows:** DPAPI. The encryption key sits in Chromium's `Local State` file in the data folder.
+  - **On a Mac:** the Keychain (Electron's documented macOS backend). The encryption key is a login-keychain item, which for the packaged app should be named "Recaller Safe Storage". Saving a key may bring a keychain prompt ("Always Allow"), and because each ad-hoc-signed build has a new signature, the prompt may come back after a rebuild. Untested: the test suites use a `{ plain }` test key, so they never touch the keychain, and nothing is recorded from the owner's first run of the packaged app (late on 2026-09-29).
+  - Stored as `{ enc: base64 }`, or `{ plain }` only if OS encryption is unavailable.
+  - A blob encrypted on one computer can't be decrypted on the other, so the key can't move between the PC and the Mac; it has to be pasted again.
+  - Backups copy `recaller-settings.json`, so every backup folder holds the key blob (in plain text if it was saved as `{ plain }`). Never print or share backup settings files.
+- **Permissions and navigation:**
+  - Chromium level: the request and check handlers grant only `media` and `clipboard-sanitized-write`. `media` is granted without looking at the media types, so a camera request would pass too; the renderer only ever asks for audio.
+  - **On a Mac**, macOS adds its own layer. The microphone needs the Info.plist `NSMicrophoneUsageDescription` (macOS asks on first use) and, when refused, the composer offers an Open System Settings button. Screen Recording is checked before every snip (see `screenshot.js` above). The session never saw either prompt (the Mac tests use a fake microphone and skip the real snip), and the owner's first run isn't reported yet.
+  - Navigation and new windows are denied.
+- **Code signing:** the Windows installer is unsigned (SmartScreen may warn). The Mac app is ad-hoc signed, has no hardened runtime and isn't notarised; `spctl` rejects it, as expected for an unnotarised app. A downloaded or AirDropped copy is quarantined, and macOS lets it open only after Open Anyway in System Settings › Privacy & Security. The dmg built on the owner's Mac carries no quarantine attribute. The session never launched the packaged app: the test suites ran its `app.asar` code (with the development Electron), and all passed. The owner first opened it from the dmg late on 2026-09-29.
 
 ## Renderer design (`src/renderer/app.js`)
 
-One IIFE, organised in commented sections, in this order:
+One IIFE. After the top constants comes a short `// ---- macOS (1.16 Mac edition)` block (see "Mac helpers in the renderer"), then the commented sections, in this order (the names are the code's own section headers):
 
 1. utilities
 2. data
-3. undo/redo
+3. undo / redo
 4. search
 5. views
 6. note actions
@@ -162,62 +246,104 @@ One IIFE, organised in commented sections, in this order:
 8. composer
 9. gestures
 10. board scrolling
-11. clicks and keys
+11. clicks & keys on the board
 12. menus
 13. toasts
 14. lightbox
-15. search input
+15. search (the search box's own handlers; the same word as section 4)
 16. settings
 17. global keys
 18. boot
 
 - **State:**
   - `data` is the persisted document (see `03`).
-  - `ui` holds ephemeral state: `search`, `composing` (project id with the new-prompt composer open), `editing` (id of the note being edited), `lastProjectId`, `settings` (the public settings), `selection` (Ctrl+click ids in order) and `anchor` (the last plain-clicked note, used for Explorer-style selection).
+  - `ui` holds ephemeral state: `search`, `composing` (project id with the new-prompt composer open), `editing` (id of the note being edited), `lastProjectId`, `settings` (the public settings), `selection` (the ids picked by Ctrl+click, or ⌘-click on a Mac, in order) and `anchor` (the last plain-clicked note, used for Explorer-style selection).
 - **Rendering: keyed reconciliation, no virtual DOM.**
   - `columns` (Map projectId → column view) and `cards` (Map noteId → card view) keep DOM nodes alive across renders.
   - `render()` rebuilds the order with `syncChildren(parent, nodes)`, which moves only the nodes that changed. This keeps focus, scroll, animations and open editors intact.
-  - Each card view keeps a signature string (text, stage, search, expanded, copy count, images, highlight) and only rewrites its DOM when that changes.
+  - Each card view keeps a signature string (text, search key, expanded, copy count, image ids, highlight id) and only rewrites its DOM when that changes. There is no stage in it: cards exist only in Cooking since 1.6. The time label is rewritten on every render, outside the signature, and the selection ring and badge are set in `syncList`.
   - The Cooked note and the Served text are rendered per column with their own signatures (`augSig`, `finalSig`), which include the search key so matches get highlighted. Their Notes lists come from `partsHtml()`.
   - Column widths: `updateColumn()` sets `style.width` from `colWidth(id)` (reads `data.prefs.colWidths`), except for the column being resized. `render()` ends with `paintWidthReset()`, which enables or disables the top-bar ↔ button.
   - `render()` is skipped while a drag is active.
-- **Body classes (the look switches):** `render()` sets `density-<compact|slim|roomy>`, `title-<font>` and `cooked-<ocean|teal|midnight|graphite>` on `<body>` from `data.prefs` (with fallbacks `slim`, `instrument`, `ocean`); `applyTheme()` sets `theme-<deep|soft>` from the settings file. `index.html` ships `density-slim theme-deep title-instrument cooked-ocean` so the first paint already looks right.
-- **Persistence:** `persist()` sends the whole `data` object to main after every change. `persistSoon()` debounces draft typing by 400ms.
+- **Body classes (the look switches):** `render()` sets `density-<compact|slim|roomy>`, `title-<font>` and `cooked-<ocean|teal|midnight|graphite>` on `<body>` from `data.prefs` (with fallbacks `slim`, `instrument`, `ocean`); `applyTheme()` sets `theme-<deep|soft>` from the settings file. `index.html` ships `density-slim theme-deep title-instrument cooked-ocean` so the first paint already looks right. **On a Mac** `app.js` also adds `is-mac` at startup, and `is-fullscreen` while the window is in full screen.
+- **Persistence:** `persist()` sends the whole `data` object to main right after every change. `persistSoon()` is a trailing 400ms debounce, restarted on every call. Two things use it: draft typing (the new-prompt composer's `onDraft`) and `rememberProject()` (`prefs.lastProjectId`, set by a press inside a column). On Windows nothing flushes that timer when the page unloads (see Shutdown). **On a Mac** a `beforeunload` listener sends the waiting save.
 - **Undo/redo:**
   - Snapshot-based: `checkpoint(label)` stores `JSON.stringify(data.projects)` before every user-visible change. The stack holds at most 80.
   - `applySnapshot()` restores projects but carries over live UI and counter fields: drafts, draft images, collapsed and expanded flags, copy counts, last-copied time and the note `expanded` flag. So undo only rewinds what the user actually did.
   - Toasts carrying Undo are dismissed whenever a new checkpoint is made, so "Undo" always means the latest change.
 - **Composer component:** `createComposer(options)` returns `{ root, focus, startVoice, toggleVoice, screenshot, addImage, value, images, isBusy, destroy }`. It is used for new prompts, editing a card, and the stage editors. It holds all voice, screenshot, paste and drop logic for its textarea.
 - **Cooking header and the New prompt | Dictate bar (1.8):** `createColumn()` renders `.cook-headrow > .cook-head` (chevron, flame, "Cooking", `.cook-count`) above `.col-new`. The column view's `countEl` now points at `.cook-count`. `updateColumn()` toggles `.column.cooking-collapsed` from `project.notesCollapsed` (ignored while searching), and CSS hides `.active-list` / `.active-empty` when it's set. The board click handler toggles the flag; `addNote()`, `moveBetween(…, 'notes')` and `dragEnd()` into `notes` clear it. The two bar halves are both `.new-prompt` buttons (`.col-add` and `.col-mic`), so `querySelector('.new-prompt')` finds New prompt first.
-- **Right-click to edit (1.10):** a board `contextmenu` listener maps the target to `startEdit(id)` (card), `editStage(col, 'used' | 'combined')` (the Cooked note or Served body), or `editStage(col, list, partId)` (a `.final-part` row). It calls `preventDefault()` only when it handles the event, and skips when text is selected or the target is an input or composer, so main's native menu (Copy, or Cut/Copy/Paste) still appears then.
+- **Right-click to edit (1.10):** a board `contextmenu` listener maps the target to `startEdit(id)` (card), `editStage(col, 'used' | 'combined')` (the Cooked note or Served body), or `editStage(col, list, partId)` (a `.final-part` row). It calls `preventDefault()` only when it handles the event, and skips when text is selected or the target is an input or composer, so main's native menu (Copy, or the field menu) still appears then. **On a Mac** a right-click (or Control+click) selects the word under the pointer before `contextmenu` fires. So a capturing `pointerdown` listener records the selection as the button goes down (`selectionAtPress`), the handler checks that instead, and it clears the Mac's word selection when it opens an editor. Control+click therefore edits, like a right-click.
 - **New-prompt composer closes on save (1.10):** its `onSave` calls `addNote()` then `closeComposer('', [])`.
 - **Fixed-size stage texts (1.7):** `.aug-text` / `.final-text` are limited by CSS to `--stage-lines` (6). `measureCards()` → `paintMore()` shows the slim "Show more / Show less" bar (`.aug-more` / `.final-more`, class `stage-more`) when the text overflows. `col.augExpanded` / `col.finalExpanded` are session-only (always `false` at start). The `fits` class only removes the fade; the height limit never depends on measurement.
 - **Scrollers inside columns (1.7):** `SCROLLERS` lists what scrolls on its own (`.col-scroll`, `textarea`, the opened-up texts, the Notes lists). The board wheel handler walks up from the target and leaves the wheel alone if any of them can scroll. `onScrollbar(e)` stops a pointerdown or click on one of their scrollbars from starting a gesture or a copy.
 - **Card hover bar (1.11):** `createCard()` renders only `.act-hl` (highlighter menu) and `.act-used.act-primary` ("↓ Cooked" → `toggleUsed()` → `moveBetween(id, 'used')`). Editing a card is right-click or E/F2 (`startEdit()`).
+- **Focused-card keys** (board `keydown` on a focused `.card`): Enter or Space copies, E or F2 edits, Delete or Backspace deletes, U moves the card to Cooked (`toggleUsed()`), H toggles the amber highlight, and ↑/↓ move focus through every card on the board. On Windows modifiers aren't checked. **On a Mac** a key held with ⌘, ⌃ or ⌥ is left alone so it reaches the menus (⌘H hides the app instead of toggling the highlight); only ⌘⌫ (⌘Delete) deletes the card, like the Finder.
 - **Sorting (1.7):** `sortOldestFirst(projectId)` (⋯ menu) sorts `notes` by `createdAt`, as an undoable step.
-- **Help (1.7):** `<dialog id="help">` in `index.html`. `openHelp()` fills in the user's show/hide key; it opens from `#open-help`, `F1`, or `?` when not typing. The global key handler ignores keys while it's open.
-- **Stage editors (1.6):** `editStage(projectId, list, partId?)` opens a composer for the Cooked note (`list` `'used'`, placed in `.aug-wrap`) or the Served text (`'combined'`, placed in `.final-edit-host`). Without `partId` it edits the whole text and `saveStageEdit()` replaces the list with ONE note (only if the text or images changed). With `partId` it edits that note alone. Both kinds have a trash button since 1.15 (`createComposer`'s `allowDelete` plus a `deleteLabel` tooltip): a part editor's calls `deletePart()`, and the whole-text editor's calls `deleteStageText(projectId, list, openedIds)`, which removes only the notes that were in the text when it opened (toast "Cooked note deleted" / "Served text deleted", from `STAGE_WHOLE`). The open editor is `col.stageEditor = { list, partId, composer }`; `closeStageEditors()` runs before any other editor opens and on undo/redo. `isEditing()` reports whether any editor is open. `movePart(id, ±1)` reorders parts; `clearStage(id, list)` backs the Clear Cooked / Clear Served menu items.
-- **Notes-list rows (`partsHtml()`):** each `.final-part` row has `.fp-up`, `.fp-down`, `.fp-edit`, the send-back button (`.ap-back.fp-back` in Cooked, `.fp-back` in Served) and, since 1.15, `.fp-del` (trash → `deletePart(col.id, list, id)`; `deletePart()` also closes an open editor on that stage first). The board `click` listener routes them; `part.closest('.aug-parts')` tells Cooked from Served. Buttons are skipped by the Cooked note's press gesture, so a click on one never copies or drags the note.
+- **Help (1.7):** `<dialog id="help">` in `index.html`. `openHelp()` fills in the user's show/hide key (through `prettyAccel()`); it opens from `#open-help`, `F1`, or `?` when not typing. The global key handler ignores keys while it's open. **On a Mac** the Help button's tooltip says `(?)`, Help › How Recaller Works in the menu bar opens it too, and F1 needs fn on most Mac keyboards.
+- **Stage editors (1.6):** `editStage(projectId, list, partId?)` opens a composer for the Cooked note (`list` `'used'`, placed in `.aug-wrap`) or the Served text (`'combined'`, placed in `.final-edit-host`).
+  - Without `partId` it edits the whole text. If the text or images changed, `saveStageEdit()` replaces the list with ONE new note followed by any notes that arrived while the editor was open. The new note has a new id and `createdAt`, `copied` 0, no highlight and `usedAt` set to now.
+  - With `partId` it edits that note alone.
+  - Both kinds have a trash button since 1.15 (`createComposer`'s `allowDelete` plus a `deleteLabel` tooltip): a part editor's calls `deletePart()`, and the whole-text editor's calls `deleteStageText(projectId, list, openedIds)`, which removes only the notes that were in the text when it opened (toast "Cooked note deleted" / "Served text deleted", from `STAGE_WHOLE`).
+  - The open editor is `col.stageEditor = { list, partId, composer }`; `closeStageEditors()` runs before any other editor opens and on undo/redo. `isEditing()` reports whether any editor is open. `movePart(id, ±1)` reorders parts; `clearStage(id, list)` backs the Clear Cooked / Clear Served menu items.
+- **Notes-list rows (`partsHtml()`):** each `.final-part` row has `.fp-up`, `.fp-down`, `.fp-edit`, the send-back button (`.ap-back.fp-back` in Cooked, `.fp-back` in Served) and, since 1.15, `.fp-del` (trash → `deletePart(col.id, list, id)`; `deletePart()` also closes an open editor on that stage first). The board `click` listener routes them:
+  - `.fp-up` / `.fp-down` → `movePart()`, which finds the list itself with `locate(id)`;
+  - `.fp-edit` and `.fp-del` use `part.closest('.aug-parts')` to tell Cooked from Served;
+  - the send-back button is routed by class: `.ap-back` is checked before `.fp-back`, so the Cooked button, which has both classes, goes to `moveBetween(id, 'notes')`, and a Served one to `sendBackFromFinal(id)`.
+
+  Buttons are skipped by the Cooked note's press gesture, so a click on one never copies or drags the note. A press on a Cooked row's text (not a button) does start that gesture.
 - **Board frame (1.16, CSS only):** `.stage` (the element holding the backdrop leaves, the board and the arrows) has a margin (2px top, 12px sides and bottom), `border-radius: 14px`, `overflow: hidden` and a transparent 1px border with the `--frame-edge` gradient painted as its last `border-box` background layer. `body`'s background is `--topbar`, so the margin reads as part of the top bar. Things that must escape the frame (the drag ghost, menus, toasts, dialogs) are attached to `body` or are `position: fixed`, so the clipping doesn't affect them.
 - **Board arrows (`#pan-left` / `#pan-right`, "board scrolling" section):** `updatePan()` sets `hidden` when there's nothing more to scroll that way (on board scroll, window resize and after render). Since 1.16 a `pointermove` listener on `.stage` (`board.parentElement`) calls `setPanNear(-1 | 0 | 1)` when the pointer is within `PAN_ZONE` (96px) of the stage's left or right edge, which toggles `.is-near` on the matching arrow; `pointerleave` clears it. CSS keeps an arrow at `opacity: 0; pointer-events: none` unless it has `.is-near` or `:focus-visible`, and hides both under `body.is-dragging` / `body.is-panning`. A click scrolls one column (`columnStep()`); holding for 320ms glides.
 - **Gestures:** a custom pointer-event engine, not HTML5 drag-and-drop.
   - `trackPointer(e, { onMove, onEnd })` listens on `window`. It cancels if a move arrives with no buttons pressed, or if the window loses focus.
   - Card gesture: a press shorter than 240ms without moving copies. Moving 7px or more to the left (mostly horizontally) swipes. Any other movement, or holding for 240ms, drags. A long press that never moved still counts as a click.
+  - Multi-select uses `multiKey(e)`: Ctrl (or Meta) on Windows, ⌘ **on a Mac**. **On a Mac** the board `pointerdown` returns at once for Control+click (left button with `ctrlKey`): no copy, select, drag or pan; the `contextmenu` listener edits instead.
   - The Cooked note has its own gesture (`startAugGesture`): click copies, swipe left moves it down, dragging it onto Served moves it down.
   - Column resize (`startColumnResize`): a pointerdown on `.col-resize` (checked before any other card or header gesture) drags the width, snapping to the default within 6px. It sets `resizing` and `dragActive` so re-renders don't fight it, and on release saves through `setColWidth()`. Double-click (board `dblclick`) calls `resetColumnWidth()`; the top-bar button calls `resetColumnWidths()`, whose toast Undo restores the previous `prefs.colWidths` object. `remeasure(cols)` re-checks the "Show more" buttons after width or density changes.
   - Columns can be dragged by their header to reorder them.
   - Dragging uses a fixed-position ghost clone, a placeholder, FLIP animations (`flip()`), and auto-scroll near the edges of the board and columns.
 - **Startup sequence (`init`):**
-  1. `loadData()`, then `normalize()` it, or build the seed "Welcome" project if nothing loaded.
-  2. Persist only if there was no file, or the file predates `DATA_VERSION`.
-  3. Restore `lastProjectId`.
-  4. `getSettings()` and apply the theme.
-  5. `render()`, then restore scroll positions (not tied to an animation frame).
-  6. Mark the page ready (it fades in), then clean up unreferenced images (`gcImages`).
+  1. `loadData()`. The result `raw` is `null` when there is no file, when neither the file nor its `.bak` can be read or parsed (or it holds a falsy JSON value), or when the call rejects.
+  2. `data = normalize(raw) || seedData()`: the "Welcome" seed when `raw` is null or has no `projects` array. `normalize()` is described precisely in `03` (invariant 2).
+  3. Persist at once when `!raw || !(Number(raw.version) >= DATA_VERSION)`: no file, no readable file, a failed load, or a version that is missing or below 2. An up-to-date file is not rewritten.
+     - **Known hole:** an unreadable data file (with no readable `.bak`) is treated like a first run. The seed is written over it about 250ms later, and step 7's image cleanup, which then sees only the seed's references, deletes image files older than 1 hour that no backup references. The good copies are then only in `backups/`. A file that parses but has no `projects` array also shows the seed; it is overwritten at once if its version is missing or below 2, otherwise by the first change.
+  4. Restore `lastProjectId`.
+  5. `getSettings()` and apply the theme.
+  6. `render()` and `paintHistory()`, then restore scroll positions (not tied to an animation frame).
+  7. Mark the page ready (it fades in), update the arrows, then clean up unreferenced images (`gcImages`).
 - **Shutdown:**
-  - On `beforeunload`, the renderer saves scroll positions if the user scrolled.
-  - Main flushes on close, quit and session end.
-  - Every other change was already sent immediately, so at most the last 250ms of writes are pending, and they are flushed on quit.
+  - On `beforeunload`, `saveScrollNow()` saves scroll positions, but only if the user scrolled in this session and the position differs from the saved one. When it does save, the whole `data` object goes out, including any draft still in memory.
+  - **On a Mac** a second `beforeunload` listener, registered earlier so it runs first, clears `persistSoon()`'s timer and persists. `draftTimer` is never reset after it fires, so once any draft typing or column change has happened in a page's life, every later unload on a Mac sends one extra save; that is harmless.
+  - Windows: `close` flushes main's pending write, the page's last save (if any) arrives, then `window-all-closed` flushes that and the app quits. `before-quit` and `session-end` flush too.
+  - **On a Mac**, ⌘Q runs `before-quit` (flush, `quitting = true`), the window's `close` (flush), the page's `beforeunload` saves, then `closed` and `will-quit`, which both flush again. That order is Electron's documented one; `window-all-closed` is not emitted on ⌘Q. The red button and ⌘W only hide the window, so the page is not unloaded.
+  - What can still be lost on Windows: draft text typed since the last pause of 400ms or more, and a just-changed `lastProjectId`, unless another save (such as the scroll save) carries them.
+  - Tested: the features suite's Mac check types a draft, reloads the page at once and finds the draft saved. A real ⌘Q hasn't been verified.
+
+### Mac helpers in the renderer (`masos`)
+
+- **The flag:** `IS_MAC = api.platform === 'darwin'` near the top of `app.js`. `voice.js` has its own `MAC` from `window.recaller.platform`.
+- **The `// ---- macOS` block** (before section 1). Each helper returns its input, or behaves exactly as before, on Windows:
+  - `kb(label)` turns a Windows key label into Mac symbols in Apple's order: `kb('Ctrl+Shift+S')` → `⇧⌘S`, `kb('Ctrl+Enter')` → `⌘↩`, and `kb('Ctrl+Y')` → `⇧⌘Z` (a Mac redoes with ⇧⌘Z). It understands Ctrl (→ ⌘), Alt (→ ⌥) and Shift (→ ⇧) plus one key. It is used in the Welcome seed tips, the undo and redo titles, the New prompt, Resume draft and Dictate titles, and the composer's screenshot, save and mic titles. Seed tip 6 uses its own `IS_MAC ? '⌘' : 'Ctrl'` ("Hold ⌘ and click several notes").
+  - `modKey(e)`, for the app's shortcuts: `e.metaKey && !e.ctrlKey` on a Mac, so ⌃K, ⌃F, ⌃N and ⌃M stay text-editing keys; `e.ctrlKey || e.metaKey` on Windows. Used by the global keydown handler and the composer's textarea.
+  - `multiKey(e)`, for multi-select clicks: `e.metaKey` on a Mac, where Control+click is a right-click; `e.ctrlKey || e.metaKey` on Windows.
+  - At startup, before anything is drawn: add `is-mac` to `<body>`, copy every `data-mac` attribute into its element's `textContent` and every `data-mac-title` into its `title`.
+- **Draft flush:** the Mac-only `beforeunload` listener next to `persistSoon()` (see Shutdown).
+- **Board:** the Control+click guard in `pointerdown`, `selectionAtPress` for right-clicks, and the focused-card key rule (all above).
+- **Settings:**
+  - `prettyAccel()` keeps the Windows expression (`CommandOrControl` → `Ctrl`, `+` → ` + `). **On a Mac** it calls `macAccel()`: symbols in ⌃⌥⇧⌘ order with no separators, then the key, so `'Control+Alt+R'` shows as `⌃⌥R`. Arrow names become ↑ ↓ ← →, Enter or Return becomes ↩, Esc becomes ⎋, and Plus becomes +.
+  - The shortcut recorder saves Control as `'Control'` and ⌘ as `'Command'` on a Mac (Windows: `'CommandOrControl'` and `'Super'`), names punctuation from `e.code` (`MAC_CODE_KEYS`, because Option changes `e.key`), and asks for "Use at least one of ⌃, ⌥, ⇧ or ⌘".
+  - The key status reads "Saved in your Mac’s keychain. Paste a new key to replace it." instead of "Saved and encrypted on this PC. …". As on Windows it shows for any saved key object, even a `{ plain }` one or one that can't be decrypted.
+- **Permission buttons:**
+  - The composer's screenshot error with code `'PERMISSION'` gets an **Open System Settings** button (`api.openPrivacy('screen')`).
+  - A global snip's `PERMISSION` result shows a 12-second toast with **Open Settings**.
+  - A microphone `DENIED` error gets **Open System Settings** (`api.openPrivacy('microphone')`).
+- **Menu commands (`api.onCommand`, registered only on a Mac):**
+  - `'fullscreen-on'` / `'fullscreen-off'` toggle `body.is-fullscreen`.
+  - `'settings'` opens Settings unless it is already open (repainting it would wipe what's being typed).
+  - `'help'` opens Help.
+  - `'undo'` / `'redo'`: in a text field, `document.execCommand(name)`, the field's own undo; with Settings, Help or the lightbox open, nothing; otherwise the board's `undo()` / `redo()`.
+- **CSS** (the macOS block at the end of `styles.css`): `body.is-mac .topbar { padding-left: 84px }` (14px under `body.is-mac.is-fullscreen`), Mac font stacks on `body.is-mac` (Geist first, then `-apple-system`; Geist Mono first, then `ui-monospace`, "SF Mono", Menlo), and the system font for `kbd`, because none of the bundled fonts has ⌘ ⇧ ⌥ ⌃ ↩. Details in `05`.
+- **Measured on the owner's Mac** (the features suite's `INFO` line): `env(titlebar-area-x)` is 92px, the top bar's padding-left 84px, `getWindowButtonPosition()` `{ x: 16, y: 16 }`, and the logo sits at x 84 with its centre at y 24. Nobody has reported on the real traffic lights yet.
 
 ## `src/renderer/voice.js` (summary; full flow in `04`)
 
@@ -226,6 +352,7 @@ One IIFE, organised in commented sections, in this order:
 - **`stop()`** hands off the final phrase and resolves with how many phrases were sent.
 - **`cancel()`** discards the recording.
 - **`Voice.transcribe(audio, { context, onDelta, onReset })`** calls `window.recaller.transcribe`.
+- **A blocked microphone** (`NotAllowedError` or `SecurityError`) throws code `DENIED`. Windows says "Microphone blocked. Allow it in Windows Settings › Privacy & security › Microphone." **On a Mac**: "Microphone blocked. In System Settings › Privacy & Security › Microphone, turn Recaller on (or off and on again after an update), then try again."
 
 ## `src/transcribe.js` (summary; full flow in `04`)
 
@@ -237,5 +364,5 @@ One IIFE, organised in commented sections, in this order:
   - On a 400 error, one plain retry without the optional parameters.
   - If a streamed result comes back empty, one unstreamed request to confirm.
 - **Timeout:** 90 seconds.
-- **Error codes:** `NO_KEY`, `AUTH` (401), `RATE` (429), `BAD_REQUEST` (400), `SERVER` (5xx), `HTTP`, `NETWORK`, `TIMEOUT`, `STREAM`.
-- **Mock server:** the `RECALLER_OPENAI_BASE` env var overrides the API base URL. The tests use it to point at a local mock.
+- **Error codes:** `NO_KEY`, `AUTH` (401), `RATE` (429), `BAD_REQUEST` (400), `SERVER` (5xx), `HTTP`, `NETWORK`, `TIMEOUT`, `STREAM`. The `stt:transcribe` handler returns `UNKNOWN` for any error without a code (for example a malformed JSON body on a 200 response).
+- **Mock server:** the `RECALLER_OPENAI_BASE` env var replaces the whole API base, `/v1` included, because the code appends only `/audio/transcriptions`; an override must end in `/v1`. The tests use it to point at a local mock.

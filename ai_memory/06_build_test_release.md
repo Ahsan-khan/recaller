@@ -1,86 +1,149 @@
 # 06: Build, test and release
 
-## Prerequisites (owner's machine, as used so far)
+Recaller is one codebase with two downloads. The Windows app (an NSIS installer) is the owner's main install and is built on the Windows PC. The Mac edition (a dmg, added in the seventh session and still uncommitted on branch `masos`) is built on the Mac. Everything here applies to both unless it is marked **Windows** / **On the PC** or **On a Mac**.
 
+## Prerequisites
+
+**Windows PC (sessions 1–5):**
 - Windows 11, Node 24.19, npm 11.17, Git Bash and PowerShell. Python 3.12 is optional; it was only used for patch scripts.
-- `npm install` installs `electron@44` and `electron-builder@26`.
+
+**Mac (seventh session):**
+- A MacBook Pro with an Apple M5 Pro (arm64), macOS 26.5.1, one Retina screen (3024×1964 px at 2×, which is 1512×982 pt).
+- Node 24.21.0 and npm 11.19.0 in `/usr/local/bin`; git 2.50.1 (Apple Git-155), which needs the Xcode Command Line Tools (`xcode-select -p` prints `/Library/Developer/CommandLineTools`); zsh 5.9; Python 3.13 (optional); Rosetta.
+- There is no Homebrew, `gh`, PowerShell or Wine. The GitHub credentials live in GitHub Desktop, and the owner fetches, pulls and pushes themselves.
+- `codesign`, `plutil`, `sips`, `hdiutil`, `spctl`, `xattr` and `file` come with macOS. They are used to check a Mac build (see "Checking a Mac build").
+
+**Both:**
+- `npm install` installs `electron@44` (44.4.5) and `electron-builder@26` (26.15.3). On the Mac, `node_modules/electron/dist` holds the arm64 `Electron.app`; on the PC it holds `electron.exe`.
 - **Electron 44 downloads its binary lazily** the first time `electron` is required. If `node_modules/electron/dist` is missing, run `node node_modules/electron/install.js`.
 - **npm 11 prints "allow-scripts" warnings** about install scripts. They are harmless.
 
 ## The environment trap
 
-The owner's VS Code / Claude Code terminal sets `ELECTRON_RUN_AS_NODE=1`, which makes `electron` behave like plain Node: `require('electron').app` is undefined, and you get "Cannot read properties of undefined (reading 'commandLine')".
+The owner's VS Code / Claude Code terminal sets `ELECTRON_RUN_AS_NODE=1` (on the PC, and on the Mac too), which makes `electron` behave like plain Node: `require('electron').app` is undefined, and you get "Cannot read properties of undefined (reading 'commandLine')".
 
-- `scripts/run-electron.js` removes that variable before launching Electron. All `npm start`, `npm test*`, `npm run icon` and `npm run capture` scripts go through it.
-- If you call Electron directly, use `env -u ELECTRON_RUN_AS_NODE npx electron <file>` in Git Bash, or `Remove-Item Env:ELECTRON_RUN_AS_NODE` in PowerShell.
+- `scripts/run-electron.js` removes that variable before launching Electron. All `npm start`, `npm test*`, `npm run icon`, `npm run icon:mac` and `npm run capture` scripts go through it.
+  - It passes Electron's exit code on as `code ?? 0`, so an Electron that dies from a signal (a crash or a kill) looks like success to npm, and `npm test` carries on to the next suite. Always read each suite's `n/n passed` line.
+- If you call Electron directly, use `env -u ELECTRON_RUN_AS_NODE npx electron <file>` in Git Bash or in zsh on the Mac, or `Remove-Item Env:ELECTRON_RUN_AS_NODE` in PowerShell.
 
 ## Commands (run in `recaller/`)
 
 | Command | What it does |
 | --- | --- |
-| `npm start` | Run from source. Uses the real `%APPDATA%\Recaller` data unless `RECALLER_DATA_DIR` is set |
-| `npm run dist` | Build `dist/Recaller Setup <version>.exe` (NSIS one-click, per-user, desktop and Start-menu shortcuts). Also leaves the unpacked app in `dist/win-unpacked/` |
-| `npm run pack` | Build only `dist/win-unpacked/` (no installer) |
-| `npm run icon` | Regenerate `build/icon.png` from the SVG sprite |
-| `npm test` | Run all three end-to-end suites: multi-copy, then update-safety, then features |
+| `npm start` | Run from source, in a normal window that takes focus. Uses the real data folder (`%APPDATA%\Recaller` on Windows, `~/Library/Application Support/Recaller` on a Mac) unless `RECALLER_DATA_DIR` is set. On start it makes an `upgrade` backup if the saved `lastVersion` differs (then stamps the new version), and a daily backup if the last one is over 24 hours old. It also registers the global show/hide hotkey: Ctrl+Alt+R on Windows and ⌃⌥R on a Mac, unless the settings file has its own `hotkey` (an empty one registers nothing). On the owner's machines, point it at a scratch `RECALLER_DATA_DIR` unless they asked for their real data |
+| `npm run dist` | **Windows:** build `dist/Recaller Setup <version>.exe` (NSIS one-click, per-user, desktop and Start-menu shortcuts). Also leaves the unpacked app in `dist/win-unpacked/`. Run it on the PC: it names no arch, so on an Apple Silicon Mac it would build an arm64 Windows app (in `dist/win-arm64-unpacked/`) that the owner's x64 PC can't run |
+| `npm run dist:win` | The same Windows installer with x64 pinned (`electron-builder --win nsis --x64`), for building it on the Mac. On the PC it gives the same result as `npm run dist`. It was not run in the seventh session |
+| `npm run dist:mac` | **On a Mac:** `electron-builder --mac` builds `dist/Recaller-<version>-arm64.dmg` and the app in `dist/mac-arm64/Recaller.app`: Apple Silicon only, ad-hoc signed, not notarized |
+| `npm run pack` | `electron-builder --dir`: only the unpacked app for the machine you're on, no installer. On the PC that is `dist/win-unpacked/`; on the Mac it is `dist/mac-arm64/Recaller.app` (no dmg; it replaces the one `dist:mac` made). A Windows unpacked build on the Mac needs `npx electron-builder --win --dir --x64` |
+| `npm run icon` | Regenerate `build/icon.png` (512 px, the Windows icon) from the SVG sprite. It writes only that file |
+| `npm run icon:mac` | Regenerate `build/icon-mac.png` (1024 px on Apple's icon grid) for the Mac app. It writes only that file. Made and run on the Mac |
+| `npm test` | Run all three end-to-end suites: multi-copy, then update-safety, then features. They are chained with `&&`, so a failing suite stops the rest |
 | `npm run test:features` / `test:update` / `test:multicopy` | Run one suite |
-| `npm run capture` | Render a sample board to `tests/e2e/.out/*.png` for visual review |
+| `npm run capture` | Render a sample board to `tests/e2e/.out/<OUT>*.png` for visual review. On a Mac, `SCALE=2 npm run capture` renders at Retina 2× (added in the seventh session but not run yet) |
 
 **Environment variables:**
 - `RECALLER_DATA_DIR`: use another data folder.
 - `RECALLER_OPENAI_BASE`: point transcription at a mock server.
 - `APP_MAIN`: which `main.js` the tests load, for example the packaged one.
 - `MODE=real`: run the update-safety suite against a copy of the owner's real data.
+- `OUT`: the file-name prefix for `npm run capture` (default `headers`).
+- `SCALE` (On a Mac, `npm run capture` only): the device scale factor, `2` for a Retina capture. Windows ignores it.
+- **Setting them:** PowerShell needs `$env:X = '…'` first. Git Bash and zsh take them inline, for example `MODE=real npm run test:update`.
 
 ## Build notes
 
 - **Packaging config** (electron-builder, in `package.json`):
-  - `files: ["src/**/*", "build/icon.png", "package.json"]`
-  - `win.target: nsis`
+  - `files: ["src/**/*", "build/icon.png", "package.json"]` (unchanged by the Mac edition; `build/icon-mac.png` is a build resource that becomes the Mac app's `icon.icns`, not a file inside `app.asar`)
+  - `win.target: nsis` (no arch in the config; see `dist` and `dist:win` above)
   - `nsis: { oneClick: true, perMachine: false, createDesktopShortcut: true, createStartMenuShortcut: true, shortcutName: "Recaller", deleteAppDataOnUninstall: false }`
-- **Install location:** `%LOCALAPPDATA%\Programs\recaller\`. The installer launches the app when it finishes.
-- **Unsigned:** the build runs a signtool step, but there is no certificate, so the installer is unsigned and Windows SmartScreen may warn ("More info → Run anyway").
-- **First build downloads:** Electron zip, NSIS, 7zip and resources into electron-builder's cache. A build takes about 1 minute.
-- **Known flake:** the build sometimes exits with code 127 partway (while unpacking Electron or building NSIS), leaving `dist/win-unpacked.tmp` and `.tmp.lock`. Fix: `rm -rf dist/win-unpacked dist/win-unpacked.tmp dist/win-unpacked.tmp.lock`, then build again.
-- **Before each release:** clean the old unpacked output with `rm -rf dist/win-unpacked dist/win-unpacked.tmp dist/win-unpacked.tmp.lock`. Older installers have been kept in `dist\` so far (it's git-ignored); delete them only if the owner wants the space back.
+  - **On a Mac** (seventh session): `mac: { target: [{ target: "dmg", arch: ["arm64"] }], icon: "build/icon-mac.png", category: "public.app-category.productivity", identity: "-", hardenedRuntime: false, darkModeSupport: true, extendInfo: { NSMicrophoneUsageDescription: "Recaller listens only while you dictate a prompt, and sends the recording to OpenAI to turn it into text." } }` and `dmg: { title: "Recaller ${version}" }`.
+    - `identity: "-"` asks for an ad-hoc signature. Apple Silicon won't launch an app with a broken signature, and there is no Developer ID yet. Developer ID signing and notarization can be added to this block later.
+    - `NSMicrophoneUsageDescription` is required: without it macOS kills the app when it opens the microphone.
+    - `appId` (`com.akhan.recaller`), `productName`, the data folder, the NSIS config and `build/icon.png` were not changed.
+- **Install location:** **Windows:** `%LOCALAPPDATA%\Programs\recaller\`. The installer launches the app when it finishes. **On a Mac:** `/Applications/Recaller.app`, dragged there from the dmg.
+- **Signing:**
+  - **Windows:** unsigned. The build runs a signtool step, but there is no certificate, so the installer is unsigned and Windows SmartScreen may warn ("More info → Run anyway").
+  - **On a Mac:** ad-hoc signed, no hardened runtime, not notarized. The build log says `signing … identityName=- identityHash=none` and `skipped macOS notarization`. Gatekeeper rejects the app (`spctl` says "rejected"), which is expected; the install steps below get past it once. The ad-hoc signature changes with every build.
+- **First build downloads:** Electron zip, NSIS, 7zip and resources into electron-builder's cache. A build takes about 1 minute. On the Mac the caches are `~/Library/Caches/electron` and `~/Library/Caches/electron-builder` (dmg-builder, 7zip, icons).
+- **Known flake (seen on the PC):** the build sometimes exits with code 127 partway (while unpacking Electron or building NSIS), leaving `dist/win-unpacked.tmp` and `.tmp.lock`. Fix: `rm -rf dist/win-unpacked dist/win-unpacked.tmp dist/win-unpacked.tmp.lock`, then build again.
+- **Before each release:** clean the old unpacked output with `rm -rf dist/win-unpacked dist/win-unpacked.tmp dist/win-unpacked.tmp.lock`. Older installers have been kept in `dist\` so far (it's git-ignored); delete them only if the owner wants the space back. **On a Mac,** `dist:mac` simply overwrites `dist/mac-arm64/` and the dmg of the same version.
+- **What `dist/` holds on each machine:**
+  - **On the PC** (fifth session): the installers for 1.5.0–1.16.0 (see below).
+  - **On the Mac** (seventh session): `Recaller-1.16.0-arm64.dmg` (129 MB) and its `.blockmap`, `mac-arm64/Recaller.app`, `latest-mac.yml`, `builder-debug.yml` and `.icon-icns/`. Also `_discarded-1.17.0/`: the sixth session's discarded 1.17.0 builds (a dmg, an exe, `mac-arm64/`, `win-unpacked/`), moved there and kept, nothing deleted. Never hand those out, install them, or point `APP_MAIN` at them. There is no Windows build of 1.16.0 on the Mac.
+  - `latest*.yml`, the `.blockmap` files and the `app-update.yml` inside the app are electron-builder's update metadata. Recaller has no auto-updater, so nothing reads them.
 
 ## How the owner installs and updates
 
+**On the Windows PC:**
 1. Give them `dist\Recaller Setup X.Y.Z.exe`. They double-click it; it installs over the previous version (closing the running app if needed) and relaunches.
 2. Their data in `%APPDATA%\Recaller` is untouched, and the new version makes an `upgrade` backup on first start.
-3. **Currently installed:** 1.15.0 in the fifth session (2026-09-26). The 1.16.0 installer (`dist\Recaller Setup 1.16.0.exe`) was built and tested but not yet installed. Installers for 1.5.0–1.16.0 sit in `dist\` (1.10.0's was deleted after a mislabelled rebuild; see `07` #52); only `dist/win-unpacked*` is cleaned before a build. Always check the installed version at session start (see `13`).
+3. **Currently installed:** 1.15.0 in the fifth session (2026-09-26). The 1.16.0 installer (`dist\Recaller Setup 1.16.0.exe`) was built and tested then but not installed; whether the owner installed it later is unknown (they committed 1.16 afterwards). Installers for 1.5.0–1.16.0 sit in the PC's `dist\` (1.10.0's was deleted after a mislabelled rebuild; see `07` #52); only `dist/win-unpacked*` is cleaned before a build. Always check the installed version at session start (see `13`).
+
+**On the Mac:**
+1. Give them `dist/Recaller-X.Y.Z-arm64.dmg`. They open it, drag Recaller onto the Applications link, and open it from Applications. To update, they first quit the running Recaller with ⌘Q (the red button and ⌘W only hide the window), then drag the new copy over the old one and choose Replace.
+2. A dmg built on this Mac carries no quarantine attribute, so it opens straight away. A downloaded or AirDropped copy is quarantined: macOS says it can't verify the developer, and the owner clicks System Settings › Privacy & Security › Open Anyway once. Control-click › Open no longer gets past Gatekeeper on macOS 15 and later.
+3. First use: the first dictation asks for the microphone. The first snip asks for Screen Recording (Recaller shows its own message with an Open System Settings button), and Recaller must then be quit and reopened. Saving the API key may bring a keychain prompt ("Always Allow"). Because the ad-hoc signature changes with every build, macOS may ask for the microphone, Screen Recording and the "Recaller Safe Storage" keychain item again after each update.
+4. Their data lives in `~/Library/Application Support/Recaller` (the same files as on the PC). Updates leave it untouched, and the new version makes an `upgrade` backup on first start.
+5. **Currently installed:** 1.16.0. The seventh session never launched the packaged app. Late on 2026-09-29 (from about 20:43), while the docs were being updated, the owner opened it from the mounted dmg and then copied Recaller.app into `/Applications`; that first run created `~/Library/Application Support/Recaller`, which now holds their real notes. How the install, the permission prompts and the keychain prompt went isn't recorded yet; ask.
+6. **Not done yet** (open in `09`): moving the PC's notes to the Mac would mean copying `recaller-data.json` and `images/` only. The API key is encrypted by Windows (DPAPI) and can't move; it is pasted again.
 
 ## End-to-end test suites (`tests/e2e/`)
 
 The suites drive the real app with synthetic mouse and keyboard input (`webContents.sendInputEvent`). They are not unit tests.
 
 - **How they run:** each suite is an Electron *main* script. It sets `RECALLER_DATA_DIR` to a throwaway folder in `tests/e2e/.out/`, seeds data and settings files, then `require`s the app's `main.js` (the `APP_MAIN` env var, defaulting to `src/main.js`).
-- **Output:** screenshots and data go to `tests/e2e/.out/`, which is git-ignored.
+- **Output:** screenshots and data go to `tests/e2e/.out/`, which is git-ignored. Each script wipes its own folders at the start: features uses `data2/`, `shots2/` and `speech.wav`; update-safety `data3/` (or `data-real/` in real mode, which is never deleted automatically); capture-board `data4/` plus `<OUT>*.png`; multi-copy `data5/`.
+  - **On the Mac,** `.out/` also holds the seventh session's logs (`mac-multicopy.log`, `mac-update.log`, `mac-features.log`, `mac-build.log`, `mac-pkg-all.log`) and leftovers from the discarded sixth-session work: the other `*.log` files (`features.log` and `pkg-*.log` show 137 checks), `mac*.png`, `mic-diag.*` and `data4/`. Those leftovers say nothing about the current suites.
+- **Mac-safe since the seventh session:** every script loads `tests/e2e/mac-harness.js`, which keeps a run out of the owner's way on a Mac and does nothing on Windows (see "On a Mac" below). The suites on `main` and `v1` don't have it: never run those on a Mac.
 
 ### Rules the suites follow (keep them)
 
 - **Never disturb the owner.**
-  - Every window's `show` is replaced with: move off-screen first (about 200px visible at the far edge of the display, away from the mouse), then `showInactive`. Test windows never take focus.
+  - Every window's `show` is replaced with: move it mostly off-screen, then `showInactive`. How much stays visible depends on the suite and the platform:
+    - **Windows:** features and update-safety leave a 200px strip of their 1360×860 window at the far edge of the cursor's display, on the side away from the mouse (features' snip overlay gets a 200px strip too). Multi-copy and capture-board leave 60px (of 1360×860 and 1360×820). Only features looks at other displays: if one exists that doesn't hold the cursor, it puts the whole window at that display's top-left instead.
+    - **On a Mac:** `macRect()` puts every window just past the outer left or right edge of all displays, on the side away from the cursor, at the top of the cursor's display, with 2px left on screen (macOS stops drawing a window that is wholly off screen).
   - Moving the window in `browser-window-created` is not enough, because the app later re-applies its saved position. The move must happen inside the `show` override.
-- **The owner's real mouse can interfere.** If they move it over the visible sliver, the app correctly treats that as the button being released. A resulting one-off failure in a drag or pan check is interference; re-run before debugging.
+  - `focus()` itself is not intercepted. **Windows:** the real snip calls `overlay.focus()` and later `mainWindow.focus()`, so that step can take focus. **On a Mac** the snip is skipped, and `quiet()` makes `app.focus()` and `app.show()` do nothing.
+- **The suites use the real clipboard** (both platforms). Many checks write and read it: features in many places, multi-copy before every case, update-safety when it copies a note. Whatever the owner had copied is lost, and if they copy something mid-run a clipboard check fails. That is interference, not an app bug.
+- **The owner's real mouse can interfere (Windows).** If they move it over the visible sliver, the app correctly treats that as the button being released. A resulting one-off failure in a drag or pan check is interference; re-run before debugging. **On a Mac** the test windows ignore the real mouse (`setIgnoreMouseEvents(true)`).
 - **Off-screen windows don't draw frames.**
   - Wheel and scroll input, and `requestAnimationFrame`, stall.
   - Call `await webContents.capturePage()` to force a frame before reading scroll positions.
   - App code must not depend on animation frames for correctness (the startup code doesn't).
+  - **On a Mac** the 2px left on screen is what keeps a test window drawing at all.
 - **Check syntax first:** run `node --check` on a suite before launching it. A syntax error makes Electron show an "App threw an error" dialog on the owner's screen until it times out.
-- **Real captures are deleted:** the features suite's real screen-snip test captures the owner's actual screen once. The suite deletes the images afterwards. Never view or keep those files.
+- **Real captures are deleted:** the features suite's real screen-snip test (Windows only) captures the owner's actual screen once. The suite deletes the images afterwards, but only when the run finishes normally: after a `HARNESS FAIL` the capture stays in `tests/e2e/.out/data2/images/` until the next features run. Never view or keep those files.
+- **Read the result line.** Grep each suite's log for `n/n passed`. `run-electron.js` reports success even when Electron was killed, and multi-copy and capture-board have no `catch` on their `whenReady` chain: an exception there leaves Electron running (and its window sliver on screen) until it is killed (see `13`).
+- **Scale:** every script forces `force-device-scale-factor=1`, so screenshots are 1× even on the Mac's 2× Retina screen. Only `capture-board.js` takes `SCALE=2`, on a Mac.
+- **The harness can't see the app's version.** Electron is started on a `.js` file, so inside the suites `app.getVersion()` is Electron's (44.4.5) and `app.name` is "Electron". A run against a packaged `app.asar` never says which version it loaded; check that separately (see "Checking a Mac build").
 
-### `features.e2e.js` (134 checks, about 4 minutes)
+### On a Mac: `tests/e2e/mac-harness.js` (seventh session)
+
+- **Exports:** `IS_MAC`; `MOD` (`'meta'` on a Mac, `'control'` on Windows: the app's shortcut and multi-select modifier); `MOD_KEY` (`'Meta'` / `'Control'`, the keyCode for holding it down); `macRect(W, H)`; `quiet()`; `macState` (`{ hides: 0 }`). On Windows every helper is inert: the suites call `macRect()` only when `IS_MAC`, and `quiet()` returns at once.
+- **`quiet()`**, called before `require(APP_MAIN)`, on a Mac only:
+  - hides the Dock icon (`app.dock?.hide()`);
+  - makes every new window ignore the real mouse (`setIgnoreMouseEvents(true)`; `sendInputEvent` still reaches it);
+  - stubs `Menu.prototype.popup`, `shell.openExternal` and `shell.openPath`, so no native menu, System Settings pane or Finder window opens;
+  - makes `app.focus` and `app.show` do nothing and turns `app.hide` into a counter (`macState.hides`), so the test app can never take focus or hide itself.
+- **⌘ for Ctrl:** the suites send `MOD` wherever they sent Ctrl on Windows (multi-select clicks, ⌘↩, ⌘Z, ⌘Y, ⌘N), and multi-copy holds `MOD_KEY` down. Check names still say Ctrl.
+- **Features on a Mac:** it adds `AudioServiceSandbox` to `disable-features` (the sandboxed audio service can't read the fake-mic WAV), skips the real screen snip (3 checks, one `SKIP` line), and adds 8 Mac-only checks (listed below).
+- **`MODE=real` on a Mac** copies `~/Library/Application Support/Recaller` (`app.getPath('appData')`). If the data or settings file is missing, it prints `HARNESS FAIL: no … in …` and exits cleanly, with no dialog. (Before the seventh session it read only `process.env.APPDATA`, which is unset on a Mac, and threw at load.)
+- **The `HARNESS FAIL: no app at …` hint** "(APP_MAIN must be a Windows path)" now prints only on Windows.
+- **Permission:** the owner approved running the Mac-safe suites on their Mac in the seventh session ("Yes, run them"). They still overwrite the clipboard.
+- **Counts:** Windows 12 + 21 + 134 (unchanged). Mac 12 + 21 + 139 (134 − 3 skipped + 8 Mac checks). Seventh session, on source on the Mac: 12/12, 21/21 (synthetic) and 139/139, all 8 Mac checks passing.
+- **Windows after the Mac edition:** the Windows side was not run in the seventh session (the Mac can't run the Windows app). That Windows behaves exactly as 1.16.0 rests on every Mac difference being fenced (`07` #65) and a hunk-by-hunk review, plus a plain-Node run of `main.js` against a mocked Electron with the platform set to `win32`, whose log of Electron calls matched 1.16's apart from stack-trace line numbers (run before the last reviewer fixes, which are all Mac-only). The first real check is `npm test` on the PC: 12 + 21 + 134.
+
+### `features.e2e.js` (134 checks on Windows, about 4 minutes; 139 on a Mac)
 
 **Setup:**
 - **Seed data:** seven projects in the old v1 format, which also exercises loading old data.
-- **Settings:** a plain test API key (`sk-test-harness-1234`) and no global hotkeys.
+- **Settings:** a plain test API key (`sk-test-harness-1234`) and no global hotkeys. A plain key never goes through `safeStorage`, so the suite never touches the Mac keychain.
 - **Mock OpenAI server** on 127.0.0.1:
   - records every request (URL, auth header, model, stream flag, prompt, file part);
   - replies "Phrase one.", "Phrase two.", and so on;
   - streams server-sent events (`transcript.text.delta` word by word every 90ms, then `transcript.text.done`) when `stream=true`;
   - a `fail500` mode returns 503.
-- **Fake microphone:** Chromium flags `--use-fake-device-for-media-stream`, `--use-fake-ui-for-media-stream` and `--use-file-for-fake-audio-capture=<speech.wav>`. The WAV is generated at 48kHz mono: 0.4s silence, then twice [1.8s of voice-like harmonic tone with syllable modulation, then a 1.1s pause], then 1.4s of silence, looped. This makes the app's pause detection cut real phrases.
+- **Fake microphone:** Chromium flags `--use-fake-device-for-media-stream`, `--use-fake-ui-for-media-stream` and `--use-file-for-fake-audio-capture=<speech.wav>`. The WAV (`tests/e2e/.out/speech.wav`, 16-bit PCM, 48kHz mono) holds 0.4s of silence, 1.8s of voice-like harmonic tone with syllable modulation, a 1.1s pause, another 1.8s of tone, then 1.4s of silence: 6.5s, which Chromium plays in a loop. (The code comment's "[1.8s voice, 1.1s pause] × 2" is slightly off: the second burst is followed only by the 1.4s silence.) This makes the app's pause detection cut real phrases. No real microphone is opened. **On a Mac** `AudioServiceSandbox` is disabled so the audio service can read the file.
 
 **Coverage:**
 - **Layout:**
@@ -99,11 +162,11 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
   - swipe deletes;
   - undo via Ctrl+Z, the toolbar button and the toast;
   - redo with Ctrl+Y.
-- **Drag:**
+- **Drag** (3 checks):
   - drag into Cooked (joins into the note);
-  - the move toast and its Undo;
-  - dropping on a collapsed Cooked header;
-  - vertical reorder.
+  - the move shows an "Added to Cooked" toast with Undo;
+  - Undo on the toast moves it back.
+  - Nothing else drags cards: no check drops a card on a collapsed Cooked header or reorders cards by dragging, though the app supports both (untested). (Served parts are reordered with the ↑ ↓ buttons, and the Cooked note dragged onto Served, below.)
 - **Stages** (built in a spare column):
   - the labels read Cooked and Served; the old card move-back button is gone;
   - three typed prompts;
@@ -131,13 +194,13 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **1.7 checks:**
   - new prompts land at the bottom;
   - the Served text is held to 6 lines, and Show more opens it without writing `augExpanded`;
-  - an empty Cooked is a transparent, dashed outline;
-  - the Cooked band is a muted slate (low-saturation check);
+  - an empty Cooked has a transparent background and no helper sentence at rest (the border style is read but not asserted);
+  - Cooked is a light section, Ocean blue by default (since 1.13): no dark header band, a pale block (every colour channel above 200) and a blue accent (hue between 190 and 235);
   - the ? button and F1 open the help, and Esc closes it;
   - ⋯ → Sort prompts oldest first sorts by `createdAt`, and Ctrl+Z restores the order.
 - **1.8 checks:** New prompt and Dictate are equal halves with full labels; prompts sit under "Cooking · n" and the column title has no count; clicking Cooking folds and unfolds it (saved as `notesCollapsed`, removed when unfolded); a new prompt unfolds a folded Cooking.
 - **Highlight:** the menu offers four colours and shows the "Check again" tag; Ctrl+Z removes it; H toggles it.
-- **Ctrl+click:** two notes in click order with a blank line between; badges 1 and 2 and the bar; Ctrl+click again removes; Esc clears; "Move to Cooked" joins them in, and Ctrl+Z undoes it.
+- **Ctrl+click** (⌘-click on a Mac): two notes in click order with a blank line between; badges 1 and 2 and the bar; Ctrl+click again removes; Esc clears; "Move to Cooked" joins them in, and Ctrl+Z undoes it.
 - **Live dictation:**
   - the mic starts from the column;
   - text appears while still recording;
@@ -160,7 +223,17 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **Settings:** the Compact density narrows columns; the Soft theme can be picked and is saved.
 - **Column widths:** the ↔ button starts disabled; dragging two column edges resizes them (+90px, −40px) and saves `prefs.colWidths`; the button enables; it resets every column and removes the key; Undo on its toast restores; double-clicking an edge resets one column.
 - **Columns:** reorder, then undo.
-- **Real screen snip** (last): the overlay opens and Recaller hides; the snip attaches and Recaller returns; a full PNG and a thumbnail are stored.
+- **Mac only** (8 checks, seventh session; they run just before the snip, and each puts back what it changes):
+  - the logo clears the traffic lights and is centred on them (`getWindowButtonPosition()` is {x: 16, y: 16}; `.brand` starts at x ≥ 16 + 54 + 8 and its centre is within 3px of y 24);
+  - key names use ⌘: the search box reads ⌘K, every Help key uses ⌘ (F1 reads ?), the Settings button's title has ⌘, and the Undo title has ⌘Z;
+  - Control+click on a card opens its editor, without copying or selecting it;
+  - a real right-click (`button: 'right'`) on the Served text opens its editor, not the Copy menu;
+  - the menu bar has 4 menus, Window › Minimize has no ⌘M, and Edit › Undo (clicked with `Menu.getApplicationMenu().getMenuItemById('undo').click()`) undoes the typing in an open editor and leaves the board's history alone;
+  - "Hide Recaller after copying" calls `app.hide()` (counted by the harness) instead of minimising;
+  - ⌘H on a focused card leaves its highlight alone (sent as a DOM `keydown`: a real ⌘H that the page leaves alone would reach the menu and hide the test app);
+  - a draft typed right before a reload (standing in for ⌘Q) is saved.
+  - An `INFO` line logs `env(titlebar-area-x)` (92px), the top bar's padding-left (84px) and `getWindowButtonPosition()`, for tuning.
+- **Real screen snip** (last; Windows only): the overlay opens and Recaller hides; the snip attaches and Recaller returns; a full PNG and a thumbnail (`<id>.png` and `<id>.t.png` in the test data's `images/`) are stored. **On a Mac** it is skipped with `SKIP  real screen snip (3 checks): on a Mac it needs Screen Recording permission and would capture your screen`.
 - **Persistence:** v2 format, images on notes, density preference.
 - **No renderer console errors.**
 
@@ -178,7 +251,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **On launch:**
   - the notes file is byte-for-byte unchanged, with the same modified time;
   - every existing setting keeps its value (window bounds are excluded, because the test moves the window);
-  - `lastVersion` is updated;
+  - `lastVersion` is updated (inside the harness it becomes Electron's 44.4.5; see the rules above);
   - an upgrade backup exists and is identical to the old data;
   - a daily backup exists.
 - **On screen:** every project and note is shown; the theme, density and colours are kept (including the unknown one); the resized column is 300px and the others keep the density width; the draft, collapsed states, last-used project, and draft text and image are all restored.
@@ -186,16 +259,18 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **After a real edit:** the file equals the original except for the edited counters and the allowed empty `combined: []` lists.
 - **Scroll positions** come back after a reload (within ±4px).
 - **Restore** brings deleted notes back, the pre-restore state is itself backed up, and the backups are listed in Settings.
+- **`MODE` spelling matters:** only `synthetic` (the default) runs the 12 extra checks. Any other value except `real` (a typo such as `MODE=Real`) seeds the synthetic data but runs only the 9 shared checks and reports 9/9.
 
 **`MODE=real`:**
-- **What it runs on:** a *copy* of `%APPDATA%\Recaller` (data, settings, images) in `tests/e2e/.out/data-real`. It prints counts only, never note text.
+- **What it runs on:** a *copy* of the real data folder (`%APPDATA%\Recaller` on Windows; on a Mac `~/Library/Application Support/Recaller`) in `tests/e2e/.out/data-real`: the data file, the settings file and `images/` (not the backups). It prints counts only, never note text.
 - **Checks:** byte-identical after launch; settings unchanged; backup made; every project and note shown; theme and density kept.
 - **Afterwards:** delete `tests/e2e/.out/data-real` (it holds the owner's notes and encrypted key).
 - **If the owner's real file changes during the run**, that is them using the installed app, not the test.
+- **On a Mac** it is untested. The Mac data folder holds the owner's real notes since their first run (late on 2026-09-29), so run it only with their OK. Without a data or settings file it stops with `HARNESS FAIL: no … in …`.
 
 ### `multi-copy.e2e.js` (12 checks, about 30s)
 
-It tests Ctrl+click as a real person would:
+It tests Ctrl+click as a real person would (on a Mac, ⌘-click with ⌘ held down):
 - Ctrl held down first, then clicks 150ms apart;
 - rapid clicks with no pause;
 - slow 450ms presses;
@@ -211,11 +286,18 @@ It tests Ctrl+click as a real person would:
 
 ### `capture-board.js`
 
-It renders a fixed sample (stages with their Notes lists open, highlights, a long two-line column name, an empty Served, one resized column) and writes `tests/e2e/.out/<OUT>.png` (the whole window including the top bar), `<OUT>-zoom.png` (2× the left area), `<OUT>-menu.png` (the ⋯ menu with its swatches) and `<OUT>-settings.png`. Use it to check visual changes; set `OUT` to name the files.
+It renders a fixed sample (stages with their Notes lists open, highlights, a long two-line column name, an empty Served, one resized column) and writes:
+- `tests/e2e/.out/<OUT>.png`: the top 1360×780 of the 1360×820 window, top bar included;
+- `<OUT>-zoom.png`: the left area at 2×;
+- `<OUT>-menu.png`: the ⋯ menu with its swatches;
+- `<OUT>-settings.png`: the top 400px of Settings;
+- `<OUT>-help.png`: the help dialog.
+
+Use it to check visual changes. `OUT` names the files (default `headers`). **On a Mac,** `SCALE=2` renders at Retina 2×, which is what the owner's Mac screen shows. Its Mac changes (`quiet()`, `macRect()`, `SCALE`) were not run in the seventh session, so the first Mac capture is also its first test.
 
 ### Running the suites against the packaged build (do this before every release)
 
-PowerShell:
+**Windows,** PowerShell:
 ```
 $env:APP_MAIN = "$PWD\dist\win-unpacked\resources\app.asar\src\main.js"
 npm test
@@ -224,32 +306,83 @@ Remove-Item -Recurse -Force tests\e2e\.out\data-real
 Remove-Item Env:APP_MAIN
 ```
 
-Git Bash (note `pwd -W`: `$PWD` is a POSIX path like `/c/Users/...` that Electron on Windows can't load, and `cygpath -w` fails on a path through the `.asar` file):
+**Windows,** Git Bash (note `pwd -W`: `$PWD` is a POSIX path like `/c/Users/...` that Electron on Windows can't load, and `cygpath -w` fails on a path through the `.asar` file):
 ```
 export APP_MAIN="$(pwd -W)/dist/win-unpacked/resources/app.asar/src/main.js"
 npm test && MODE=real npm run test:update; rm -rf tests/e2e/.out/data-real; unset APP_MAIN
 ```
 
+**On a Mac,** zsh (a plain `$PWD` path works; `pwd -W` doesn't exist there, prints "bad option: -W", and leaves `APP_MAIN` as `/dist/…`, so each suite stops with a quiet `HARNESS FAIL`):
+```
+export APP_MAIN="$PWD/dist/mac-arm64/Recaller.app/Contents/Resources/app.asar/src/main.js"
+npm test; unset APP_MAIN
+```
+Add `MODE=real npm run test:update` (then `rm -rf tests/e2e/.out/data-real`) only with the owner's OK: the Mac has real data since their first run. Seventh session: 12/12, 21/21 and 139/139 against the packaged 1.16.0 `app.asar` (log: `tests/e2e/.out/mac-pkg-all.log`). The Mac can't test the Windows build.
+
 Every suite checks that `APP_MAIN` exists and otherwise prints `HARNESS FAIL: no app at …` and exits. Without that guard, a bad path makes Electron pop an "App threw an error" dialog on the owner's screen (this happened once in the 1.6.0 session).
 
+### Checking a Mac build
+
+Run these from the repo root after `npm run dist:mac`. They only read (the mount is read-only and hidden from Finder), and none of them launches the app. Seventh-session results are in brackets.
+
+1. **Signature:** `codesign -dv dist/mac-arm64/Recaller.app 2>&1` [`Identifier=com.akhan.recaller`, `Format=app bundle with Mach-O thin (arm64)`, `Signature=adhoc`, `TeamIdentifier=not set`]. Then `codesign --verify --deep --strict --verbose=2 dist/mac-arm64/Recaller.app` [ends with "valid on disk" and "satisfies its Designated Requirement"].
+2. **Info.plist:** `plutil -extract <key> raw dist/mac-arm64/Recaller.app/Contents/Info.plist` for `CFBundleIdentifier` [com.akhan.recaller], `CFBundleShortVersionString` [1.16.0], `NSMicrophoneUsageDescription` [must be present], `LSMinimumSystemVersion` [13.0], `LSApplicationCategoryType` [public.app-category.productivity] and `NSRequiresAquaSystemAppearance` [false, so dark mode follows the system].
+3. **Icon:** `sips -g pixelWidth -g pixelHeight dist/mac-arm64/Recaller.app/Contents/Resources/icon.icns` [1024 × 1024, the Mac icon; 512 would suggest the Windows icon was used].
+4. **Contents:** electron-builder strips `scripts`, `build` and `devDependencies` from the packaged `package.json`, so that one file differs by design. This compares every other file in the archive with the working tree and prints the packaged version (single quotes, so an interactive zsh leaves the `!` alone):
+   ```
+   node -e 'const a=require("@electron/asar"),fs=require("fs");const p="dist/mac-arm64/Recaller.app/Contents/Resources/app.asar";const files=a.listPackage(p,{isPack:false}).map((f)=>f.slice(1)).filter((f)=>f!=="package.json"&&"size" in a.statFile(p,f));const diff=files.filter((f)=>!fs.existsSync(f)||!a.extractFile(p,f).equals(fs.readFileSync(f)));console.log(files.length,"files compared, different:",diff.join(", ")||"none","| version",JSON.parse(a.extractFile(p,"package.json")).version)'
+   ```
+   [34 files compared (all of `src/`, that is the 15 source files plus the fonts and their licences, and `build/icon.png`), none different, version 1.16.0. The archive holds only `src/`, `build/icon.png` and `package.json`.]
+5. **The dmg:** `hdiutil verify dist/Recaller-X.Y.Z-arm64.dmg` [checksum VALID]. To look inside without Finder: `mkdir -p "$TMPDIR/recaller-dmg" && hdiutil attach -readonly -nobrowse -mountpoint "$TMPDIR/recaller-dmg" dist/Recaller-X.Y.Z-arm64.dmg`, then `ls -l "$TMPDIR/recaller-dmg"` [Recaller.app and an Applications link], then `hdiutil detach "$TMPDIR/recaller-dmg"`.
+6. **Gatekeeper:** `spctl --assess --type execute -vv dist/mac-arm64/Recaller.app` [prints "rejected" and exits with 3: expected for an ad-hoc, unnotarized app]. `xattr -l dist/Recaller-X.Y.Z-arm64.dmg` [no `com.apple.quarantine`, because it was built here, not downloaded].
+7. **Architecture:** `file dist/mac-arm64/Recaller.app/Contents/MacOS/Recaller` ["Mach-O 64-bit executable arm64"].
+8. **Don't open the app yourself.** It would open a real window on the owner's screen and may raise keychain or permission prompts. The owner opens it.
+
 ## Release checklist
+
+### Windows (on the PC)
 
 1. Make the change. Keep the invariants in `03`.
 2. Run `node --check` on every edited JavaScript file.
 3. Look at it: `npm run capture` (or a scratch render), and view the PNGs. For taste changes, render options side by side.
 4. Run the relevant suites on source, and add checks for new behaviour to `features.e2e.js`.
-5. Bump `version` in `package.json` **as its own step** (never chained behind `&&`), then confirm it with `grep '"version"' package.json` (see `07` #52).
-6. Update the user guide in `README.md` (the "This builds …" line and any changed rows), `ai_memory/08_changelog.md`, and every other affected `ai_memory` file (counts in `06`, `09`, `13` and `tests/e2e/README.md`; status line in `ai_memory/README.md`).
+5. Bump `version` in `package.json` **as its own step** (never chained behind `&&`), then confirm it with `grep '"version"' package.json` (see `07` #52). Both editions share this version.
+6. Update the user guide in `README.md` (the "This builds …" line and any changed rows), `ai_memory/08_changelog.md`, and every other affected `ai_memory` file (counts in `06`, `09`, `13` and `tests/e2e/README.md`, Windows and Mac; status line in `ai_memory/README.md`).
 7. Clean `dist/win-unpacked*`, then `npm run dist` (retry once if it exits with 127). Confirm the build log line `building target=nsis file=dist\Recaller Setup X.Y.Z.exe` shows the new version.
 8. Run all suites against the packaged app, including `MODE=real`, then delete `tests/e2e/.out/data-real`. Use `$(pwd -W)` for `APP_MAIN` in Git Bash. A single failure that passes on re-run is usually timing or the owner's mouse; re-run before debugging, and say so in the report.
 9. Hand the owner the installer path, and explain what changed and how to use it (short, one line per item they asked for).
 10. Don't commit; the owner commits each version themselves.
 
+### Mac (on the Mac)
+
+1. Work on `masos` until the owner decides otherwise. Keep every Mac difference fenced (`IS_MAC`, `body.is-mac`, the `mac` / `dmg` build sections) so that Windows stays exactly as it is (`07` #65).
+2. Run `node --check` on every edited JavaScript file.
+3. Look at it: `SCALE=2 npm run capture` shows what the Retina screen shows (not run on the Mac yet); view the PNGs.
+4. Run the suites on source: 12 + 21 + 139, with one `SKIP` line. Put checks for Mac-only behaviour inside the `if (IS_MAC)` block of `features.e2e.js`.
+5. If the version changes, bump it as its own step and confirm it (Windows step 5). The Mac edition of 1.16.0 kept 1.16.0 so that the two downloads match.
+6. Update `README.md` and the affected `ai_memory` files (Windows step 6).
+7. Run `npm run icon:mac` only if the icon changed. It rewrites `build/icon-mac.png`, and it exits with code 1 ("icon:mac: no usable capture") instead of leaving a bad file.
+8. `npm run dist:mac`. Confirm the log lines `signing … identityName=- identityHash=none`, `skipped macOS notarization` and `building target=DMG arch=arm64 file=dist/Recaller-X.Y.Z-arm64.dmg`.
+9. Check the build ("Checking a Mac build" above), then run the suites against the packaged `app.asar` (the zsh recipe above). Use `MODE=real` only with the owner's OK (it copies their real Mac notes), and delete `tests/e2e/.out/data-real` afterwards.
+10. Hand the owner `dist/Recaller-X.Y.Z-arm64.dmg` with the install steps above, and say plainly what is untested (real key presses, the permission and keychain prompts, the first install).
+11. Don't commit or push; the owner does it through GitHub Desktop. When they commit the Mac edition, three new untracked files must go with it: `build/icon-mac.png`, `tests/e2e/mac-harness.js` and `ai_memory/14_macos.md` (but not Finder's `.DS_Store` in the repo root).
+12. A matching Windows installer is built on the PC (Windows steps 7–8). `npm run dist:win` can build it on the Mac (untested there; confirm `archs=x64` in its `building target=nsis` log line), but the Mac can't run its suites.
+
 ## Git status (important)
 
-- **Repository:** since 2026-09-24 Recaller is its own repo at `C:\Users\User\Documents\recaller` (moved out of `Documents\iresine\recaller`), remote `origin` = https://github.com/Ahsan-khan/recaller.
-- **Branches:** `main` has the 1.5.0 commit (`3876950`). `v1` is the working branch: the owner commits each version there with a short message ("initial commits" = 1.6, `ee2572a` "v1" = 1.7, then "1.8", "1.9", "1.10", "1.11", "1.12" = `290c74d`, "1.13" = `0f7ceea`, "1.14" = `8776a32`, "1.15" = `7f101e6`) and pushes. In the fifth session the 1.16.0 work was uncommitted in the working tree.
-- **Line endings:** `app.js`, `styles.css`, the suites and the Markdown files are LF in the working tree; `index.html` is CRLF. Git warns "LF will be replaced by CRLF" on diff; that is harmless. Keep each file's existing endings when patching.
-- **When committing is requested:** follow the owner's pattern (commit on `v1` with the version as the message) unless told otherwise, and add the attribution the environment requires. Push only when asked.
+- **Repository:** remote `origin` = https://github.com/Ahsan-khan/recaller.
+  - On the PC: since 2026-09-24 Recaller is its own repo at `C:\Users\User\Documents\recaller` (moved out of `Documents\iresine\recaller`).
+  - On the Mac: `/Users/ahsan/Documents/GitHub/recaller`, cloned on 2026-09-28.
+- **Branches** (as of the seventh session, 2026-09-29):
+  - `v1` = `origin/v1` = `664212a` "1.16". This is where the owner commits each version, with a short message: "Initial commit … (v1.5.0)" = `3876950`, "initial commits" = `296fd32` (1.6), "v1" = `ee2572a` (1.7), then "1.8" = `093c434`, "1.9" = `147b16d`, "1.10" = `2a04390`, "1.11" = `e1f8275`, "1.12" = `290c74d`, "1.13" = `0f7ceea`, "1.14" = `8776a32`, "1.15" = `7f101e6` and "1.16" = `664212a` (2026-09-26, committed together with the fifth session's `ai_memory`). The old note that 1.16.0 was uncommitted is out of date.
+  - `main` = `origin/main` = `dd5a3b0` "Merge pull request #1 from Ahsan-khan/v1" (2026-09-29). Its tree is identical to `664212a`, so `main` holds 1.16.0. Before that merge `main` was `296fd32` (1.6.0); the old note "main has the 1.5.0 commit" was wrong.
+  - `masos` = `origin/masos` = `dd5a3b0`. The owner made it from `main` on 2026-09-29 and published it, for the Mac app. "masos" is their own spelling; keep it. The whole Mac edition is **uncommitted** in the Mac's working tree: changes to `package.json`, `scripts/make-icon.js`, `src/`, `tests/e2e/`, `README.md` and `ai_memory/`, and three untracked new files (`build/icon-mac.png`, `tests/e2e/mac-harness.js`, `ai_memory/14_macos.md`). `main` and `v1` were not touched.
+  - `stash@{0}` "On v1: Discarded changes since 1.16 push (1.17.0 macOS work) — 2026-09-29" is the sixth session's discarded Mac attempt. The owner chose to start from scratch, so the Mac edition was built without it; it was never applied or popped. Leave it alone unless they ask; popping it would also bring back README and `ai_memory` files full of stale 1.17.0 statements.
+- **Commit names:** commits made on the PC say "AKhan"; the Mac's git identity is "Ahsan-khan <ahsan.k@live.com>".
+- **Line endings:** there is no `core.autocrlf` and no `.gitattributes`, and the repository stores LF.
+  - **On the PC** `app.js`, `styles.css`, the suites and the Markdown files are LF in the working tree, but `index.html` is CRLF (most likely Windows git's own conversion; not checked). Git warns "LF will be replaced by CRLF" on diff; that is harmless.
+  - **On the Mac** every file is LF in the working tree, `index.html` included, and git prints no such warnings.
+  - Keep each file's existing endings when patching: on the Mac a patch script must keep `index.html` LF.
+- **When committing is requested:** follow the owner's pattern for Windows versions (commit on `v1` with the version as the message) unless told otherwise; the Mac edition lives on `masos`. Add the attribution the environment requires. Push only when asked. **On the Mac,** don't fetch, pull or push at all: the credentials live in GitHub Desktop, and the owner does it.
 - **Ignored:** `.gitignore` ignores `node_modules/`, `dist/` and `tests/e2e/.out/`.
-- **GitHub CLI:** `gh` isn't on PATH; use `C:\Program Files\GitHub CLI\gh.exe`.
+- **GitHub CLI:** on the PC `gh` isn't on PATH; use `C:\Program Files\GitHub CLI\gh.exe`. The Mac has no `gh`.

@@ -3,12 +3,27 @@
 // let the user drag a region on a full-screen overlay. The crop is taken from
 // the original capture, so it is pixel-exact.
 
-const { BrowserWindow, desktopCapturer, screen } = require('electron');
+const { app, BrowserWindow, desktopCapturer, screen } = require('electron');
 const path = require('node:path');
 const images = require('./images');
 
+const IS_MAC = process.platform === 'darwin';
+// Mac only: on Windows, loading systemPreferences sets up a hidden window for colour broadcasts.
+const systemPreferences = IS_MAC ? require('electron').systemPreferences : null;
+const SCREEN_PERMISSION = 'Recaller needs permission to record the screen. In System Settings › Privacy & Security › ' +
+  'Screen & System Audio Recording, turn Recaller on (or off and on again after an update), then quit and reopen Recaller.';
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let busy = false;
+
+// Mac only: resolves once the window is out of full screen (or after 2s, whatever happens).
+function leaveFullScreen(win) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, 2000);
+    win.once('leave-full-screen', () => { clearTimeout(timer); resolve(); });
+    win.setFullScreen(false);
+  });
+}
 
 function pickRegion(display, capture) {
   return new Promise((resolve) => {
@@ -26,6 +41,7 @@ function pickRegion(display, capture) {
       hasShadow: false,
       alwaysOnTop: true,
       enableLargerThanScreen: true,
+      ...(IS_MAC ? { acceptFirstMouse: true } : {}), // Mac: the first drag works while another app is active
       backgroundColor: '#000000',
       webPreferences: {
         preload: path.join(__dirname, 'overlay', 'preload.js'),
@@ -48,6 +64,7 @@ function pickRegion(display, capture) {
     const show = () => {
       if (overlay.isDestroyed() || overlay.isVisible()) return;
       overlay.show();
+      if (IS_MAC) app.focus({ steal: true }); // a snip started from another app still gets Esc and the first drag
       overlay.focus();
       overlay.once('blur', () => finish(null)); // alt-tab away = cancel
     };
@@ -68,11 +85,19 @@ function pickRegion(display, capture) {
 
 async function capture(mainWindow) {
   if (busy) return { ok: false, code: 'BUSY', error: 'A screenshot is already in progress.' };
+  if (IS_MAC && systemPreferences.getMediaAccessStatus('screen') !== 'granted') {
+    // Asking once lists Recaller under Screen Recording (and shows macOS's own prompt the first time).
+    desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 0, height: 0 } }).catch(() => {});
+    return { ok: false, code: 'PERMISSION', error: SCREEN_PERMISSION };
+  }
   busy = true;
   const restore = mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible();
   try {
     const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
     if (restore) {
+      // Mac: hiding a full-screen window leaves an empty black Space (and the snip would capture that),
+      // so leave full screen first.
+      if (IS_MAC && mainWindow.isFullScreen()) await leaveFullScreen(mainWindow);
       mainWindow.hide();
       await sleep(260); // let Windows finish removing the window from the screen
     }
@@ -83,7 +108,9 @@ async function capture(mainWindow) {
     });
     const source = sources.find((s) => s.display_id === String(display.id)) || sources[0];
     const shot = source?.thumbnail;
-    if (!shot || shot.isEmpty()) throw new Error('Windows returned an empty screen capture.');
+    if (!shot || shot.isEmpty()) {
+      throw new Error(IS_MAC ? 'macOS returned an empty screen capture.' : 'Windows returned an empty screen capture.');
+    }
 
     const rect = await pickRegion(display, shot);
     if (!rect) return { ok: false, code: 'CANCELLED' };

@@ -7,13 +7,14 @@ const path = require('node:path');
 const fs = require('node:fs');
 const http = require('node:http');
 const { app, BrowserWindow, clipboard, screen } = require('electron');
+const { IS_MAC, MOD, macRect, quiet, macState } = require('./mac-harness'); // Mac-safe run; inert on Windows
 
 const SCRATCH = path.join(__dirname, '.out'); // test data, screenshots, logs (git-ignored)
 fs.mkdirSync(SCRATCH, { recursive: true });
 const DATA_DIR = path.join(SCRATCH, 'data2');
 const SHOTS = path.join(SCRATCH, 'shots2');
 const APP_MAIN = process.env.APP_MAIN || path.join(__dirname, '..', '..', 'src', 'main.js');
-if (!fs.existsSync(APP_MAIN)) { console.error(`HARNESS FAIL: no app at ${APP_MAIN} (APP_MAIN must be a Windows path)`); process.exit(1); }
+if (!fs.existsSync(APP_MAIN)) { console.error(`HARNESS FAIL: no app at ${APP_MAIN}${IS_MAC ? '' : ' (APP_MAIN must be a Windows path)'}`); process.exit(1); }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 fs.rmSync(DATA_DIR, { recursive: true, force: true });
@@ -126,12 +127,14 @@ app.commandLine.appendSwitch('use-fake-device-for-media-stream');
 app.commandLine.appendSwitch('use-fake-ui-for-media-stream');
 app.commandLine.appendSwitch('use-file-for-fake-audio-capture', WAV);
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
-app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
+// Mac: the sandboxed audio service can't read the fake-mic WAV
+app.commandLine.appendSwitch('disable-features', IS_MAC ? 'CalculateNativeWinOcclusion,AudioServiceSandbox' : 'CalculateNativeWinOcclusion');
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-background-timer-throttling');
 
 let placed = 0;
 function offscreenRect(W = 1360, H = 860) {
+  if (IS_MAC) return macRect(W, H);
   const c = screen.getCursorScreenPoint();
   const displays = screen.getAllDisplays();
   const other = displays.find((d) => !(c.x >= d.bounds.x && c.x < d.bounds.x + d.bounds.width && c.y >= d.bounds.y && c.y < d.bounds.y + d.bounds.height));
@@ -154,6 +157,7 @@ server.listen(0, '127.0.0.1', () => {
       w.once('show', () => w.setBounds(offscreenRect(1200, 700)));
     }
   });
+  quiet();
   require(APP_MAIN);
   app.whenReady().then(run).catch((err) => { console.error('HARNESS FAIL', err); app.exit(1); });
 });
@@ -214,11 +218,11 @@ async function run() {
   await clickSel('.column[data-id="p1"] .col-add');
   await sleep(200);
   await type('Temporary prompt');
-  key('Enter', ['control']);
+  key('Enter', [MOD]);
   await sleep(400);
   const afterSave = await js(`[!!document.querySelector('.column[data-id="p1"] .col-compose .composer'), document.querySelector('.column[data-id="p1"] .col-new').hidden]`);
   check('saving a new prompt closes the editor and shows the buttons again', !afterSave[0] && !afterSave[1] && (await colTexts('p1')).pop() === 'Temporary prompt', JSON.stringify(afterSave));
-  key('Z', ['control']); // take "Temporary prompt" out again
+  key('Z', [MOD]); // take "Temporary prompt" out again
   await sleep(300);
 
   // hovering a prompt offers just two actions: highlight, and the main one, "↓ Cooked" (edit is right-click / E)
@@ -249,12 +253,12 @@ async function run() {
   await clickSel('.column[data-id="p3"] .new-prompt');
   await sleep(200);
   await type('Quick one');
-  key('Enter', ['control']);
+  key('Enter', [MOD]);
   await sleep(400);
   key('Escape');
   await sleep(250);
   check('a new prompt opens a folded Cooking so you can see it', !(await js(`document.querySelector('.column[data-id="p3"]').classList.contains('cooking-collapsed')`)) && (await colTexts('p3')).pop() === 'Quick one');
-  key('Z', ['control']); // remove "Quick one" again
+  key('Z', [MOD]); // remove "Quick one" again
   await sleep(300);
   // long project name: wraps to two lines and never runs under the options button
   await js(`document.querySelector('.column[data-id="p3"] .col-name').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`);
@@ -264,7 +268,7 @@ async function run() {
   const nameBox = await rect('.column[data-id="p3"] .col-name');
   const menuBox = await rect('.column[data-id="p3"] .col-menu');
   check('long project names wrap to two lines, clear of the options button', nameBox.h > 30 && nameBox.h < 44 && nameBox.x + nameBox.w <= menuBox.x + 1, `name ${Math.round(nameBox.w)}×${Math.round(nameBox.h)}, gap ${Math.round(menuBox.x - (nameBox.x + nameBox.w))}`);
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(250);
   const headBg = await js(`getComputedStyle(document.querySelector('.column[data-id="p1"] .col-head')).backgroundImage`);
   const head2Bg = await js(`getComputedStyle(document.querySelector('.column[data-id="p2"] .col-head')).backgroundImage`);
@@ -314,10 +318,10 @@ async function run() {
   await sleep(600);
   check('swipe left deletes', (await colTexts('p2')).length === before - 1);
   check('undo button enabled after delete', !(await js(`document.querySelector('#undo').disabled`)));
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(400);
   check('Ctrl+Z restores deleted note', (await colTexts('p2')).some((t) => t.startsWith('Write alt text')));
-  key('Y', ['control']);
+  key('Y', [MOD]);
   await sleep(300);
   check('Ctrl+Y redoes the delete', !(await colTexts('p2')).some((t) => t.startsWith('Write alt text')));
   await clickSel('#undo');
@@ -365,7 +369,7 @@ async function run() {
     await clickSel('.column[data-id="px1"] .new-prompt');
     await sleep(150);
     await type(t);
-    key('Enter', ['control']);
+    key('Enter', [MOD]);
     await sleep(200);
     key('Escape');
     await sleep(150);
@@ -401,7 +405,7 @@ async function run() {
   const final2 = await finalOf('px1');
   check('Move to Served adds the whole Cooked note to the end of the Served text', final2 === `${final1}\n\n${aug2}`, JSON.stringify(final2));
   // a third batch dragged onto Served
-  await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Delta four'); key('Enter', ['control']); await sleep(200); key('Escape'); await sleep(150);
+  await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Delta four'); key('Enter', [MOD]); await sleep(200); key('Escape'); await sleep(150);
   await toAug(); await sleep(300);
   const an2 = await rect('.column[data-id="px1"] .aug-note');
   const fh = await rect('.column[data-id="px1"] .final-head');
@@ -439,7 +443,7 @@ async function run() {
   })()`);
   check('Served footer: stats, Notes and edit do not overlap', footOverlaps.length === 0, footOverlaps.join(', '));
   // Cooked parts: a prompt can be pulled back out
-  await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Epsilon five'); key('Enter', ['control']); await sleep(200); key('Escape'); await sleep(150);
+  await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Epsilon five'); key('Enter', [MOD]); await sleep(200); key('Escape'); await sleep(150);
   await toAug(); await sleep(300);
   const partText = await augOf('px1');
   await js(`document.querySelector('.column[data-id="px1"] .aug-parts-btn').click()`);
@@ -483,7 +487,7 @@ async function run() {
   await sleep(300);
   check('a single Served part opens in an editor with just its text', (await composerValue()) === 'Delta four' && await js(`!!document.querySelector('.column[data-id="px1"] .final-edit-host .composer')`), JSON.stringify(await composerValue()));
   await type(' edited');
-  key('Enter', ['control']);
+  key('Enter', [MOD]);
   await sleep(400);
   const editedFinal = finalNow.replace(/Delta four$/, 'Delta four edited');
   check('saving it changes only that part; the others stay separate', (await finalOf('px1')) === editedFinal && (await partsOf('px1', '.final-parts')).length === 5, JSON.stringify((await finalOf('px1')).slice(-30)));
@@ -491,12 +495,12 @@ async function run() {
   await sleep(300);
   const wholeFinal = await composerValue();
   await type(' Done.');
-  key('Enter', ['control']);
+  key('Enter', [MOD]);
   await sleep(400);
   check('the Served pencil edits the whole text, saved as one note', wholeFinal === editedFinal && (await finalOf('px1')) === `${editedFinal} Done.` && (await partsOf('px1', '.final-parts')).length === 1);
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(300);
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(350);
   check('Ctrl+Z undoes both edits', (await finalOf('px1')) === finalNow && (await partsOf('px1', '.final-parts')).length === 5);
   await toAug(); await sleep(300); // Epsilon five → Cooked
@@ -504,7 +508,7 @@ async function run() {
   await sleep(300);
   const partValue = await composerValue();
   await type(' plus');
-  key('Enter', ['control']);
+  key('Enter', [MOD]);
   await sleep(400);
   check('a part of the Cooked note can be edited on its own too', partValue === 'Epsilon five' && (await augOf('px1')) === 'Epsilon five plus', JSON.stringify(await augOf('px1')));
   // right-click edits: a prompt card, the Cooked note, the Served text, and a single Served part
@@ -538,17 +542,17 @@ async function run() {
   await sleep(300);
   check('the Cooked pencil still edits the whole note (Esc cancels)', wholeAug === 'Epsilon five plus' && !(await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-editing')`)) && (await augOf('px1')) === 'Epsilon five plus');
   // a prompt that lands in Cooked while its editor is open is kept, after the edited text
-  await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Zeta six'); key('Enter', ['control']); await sleep(200); key('Escape'); await sleep(150);
+  await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Zeta six'); key('Enter', [MOD]); await sleep(200); key('Escape'); await sleep(150);
   await clickSel('.column[data-id="px1"] .aug-edit');
   await sleep(300);
   await toAug(); await sleep(300); // Zeta six → Cooked, editor still open
   await js(`document.querySelector('.column[data-id="px1"] .aug-wrap .composer textarea').focus()`);
   await type(' again');
-  key('Enter', ['control']);
+  key('Enter', [MOD]);
   await sleep(400);
   check('a prompt added while the Cooked editor is open is not lost on save', (await augOf('px1')) === 'Epsilon five plus again\n\nZeta six', JSON.stringify(await augOf('px1')));
-  key('Z', ['control']); await sleep(300); // the edit
-  key('Z', ['control']); await sleep(300); // the move
+  key('Z', [MOD]); await sleep(300); // the edit
+  key('Z', [MOD]); await sleep(300); // the move
   await js(`document.querySelector('.column[data-id="px1"] .active-list .card').focus()`);
   key('Delete'); await sleep(600); // Zeta six out of the way again
 
@@ -564,17 +568,17 @@ async function run() {
   const menuItems = await menuPick('px1', 'Clear Served');
   check('the project menu offers Clear Cooked and Clear Served, with counts', menuItems.includes('Clear Cooked (1)') && menuItems.includes('Clear Served (5)'), menuItems.join(' | '));
   check('Clear Served empties the Served text and leaves Cooked alone', (await finalOf('px1')) === '' && (await augOf('px1')) === 'Epsilon five plus' && (await texts('.toast')).some((t) => t.includes('Cleared Served')));
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(350);
   check('Ctrl+Z brings the Served text back', (await finalOf('px1')) === finalNow);
   await menuPick('px1', 'Clear Cooked');
   check('Clear Cooked empties the Cooked note and leaves Served alone', (await augOf('px1')) === '' && (await finalOf('px1')) === finalNow);
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(350);
 
   // ---------------------------------------------------------------- deleting inside Cooked and Served (1.15)
   const augRow = (i) => `document.querySelectorAll('.column[data-id="px1"] .aug-parts .final-part')[${i}]`;
-  await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Eta seven'); key('Enter', ['control']); await sleep(200); key('Escape'); await sleep(150);
+  await clickSel('.column[data-id="px1"] .new-prompt'); await sleep(150); await type('Eta seven'); key('Enter', [MOD]); await sleep(200); key('Escape'); await sleep(150);
   await toAug(); await sleep(300); // Eta seven → Cooked, after Epsilon five plus
   const augBefore = await augOf('px1');
   if ((await js(`document.querySelector('.column[data-id="px1"] .aug-parts-btn').getAttribute('aria-pressed')`)) !== 'true') {
@@ -600,7 +604,7 @@ async function run() {
   await js(`${augRow(0)}.querySelector('.fp-del').click()`);
   await sleep(350);
   check('the trash on a Cooked row deletes just that note (with an Undo toast)', augBefore === 'Epsilon five plus\n\nEta seven' && (await augOf('px1')) === 'Eta seven' && (await partsOf('px1', '.aug-parts')).length === 1 && (await texts('.toast')).some((t) => t.includes('Note deleted')), JSON.stringify(await augOf('px1')));
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(350);
   check('Ctrl+Z puts the deleted note back in its place in Cooked', (await augOf('px1')) === augBefore, JSON.stringify(await augOf('px1')));
   // the trash in the whole-text editor (right-click the Cooked note) deletes the whole Cooked note
@@ -610,14 +614,14 @@ async function run() {
   await js(`document.querySelector('.column[data-id="px1"] .aug-wrap .composer .comp-delete')?.click()`);
   await sleep(350);
   check('the Cooked editor\'s trash deletes the whole Cooked note and leaves Served alone', delTitle === 'Delete the whole cooked note' && (await js(`document.querySelector('.column[data-id="px1"] .used').classList.contains('is-empty')`)) && !(await js(`!!document.querySelector('.composer')`)) && (await finalOf('px1')) === finalNow && (await texts('.toast')).some((t) => t.includes('Cooked note deleted')), JSON.stringify(delTitle));
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(350);
   check('Ctrl+Z brings the whole Cooked note back, parts and all', (await augOf('px1')) === augBefore && (await partsOf('px1', '.aug-parts')).length === 2);
   // Served rows have the same trash
   await js(`${finalRow(1)}.querySelector('.fp-del').click()`);
   await sleep(350);
   check('the trash on a Served row deletes just that note', (await partsOf('px1', '.final-parts')).length === 4 && !(await finalOf('px1')).includes('Beta two') && (await augOf('px1')) === augBefore, JSON.stringify((await finalOf('px1')).slice(0, 40)));
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(350);
   check('Ctrl+Z restores the Served note', (await finalOf('px1')) === finalNow);
   await js(`${augRow(1)}.querySelector('.fp-del').click()`); // Eta seven out of the way again
@@ -643,7 +647,7 @@ async function run() {
   key('Escape');
   await sleep(150);
   check('18 column colours to pick from, and a new one applies', swatchNames.length === 18 && navy === '#1e3a8a', `${swatchNames.length} colours, px1 → ${navy}`);
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(300);
 
   await js(`document.querySelector('#board').scrollLeft = 0`);
@@ -661,7 +665,7 @@ async function run() {
   const tag = await js(`document.querySelector('.column[data-id="p2"] .active-list .card-wrap').classList.contains('is-hl') && document.querySelector('.column[data-id="p2"] .active-list .card-hl-tag').textContent`);
   check('highlight a note from its hover menu (4 colours)', hlItems.length === 4 && tag === 'Check again', `${hlItems.join(', ')} → ${tag}`);
   await shot('03d-highlight');
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(300);
   check('Ctrl+Z removes the highlight', !(await js(`document.querySelector('.column[data-id="p2"] .active-list .card-wrap').classList.contains('is-hl')`)));
   await js(`document.querySelector('.column[data-id="p2"] .active-list .card').focus()`);
@@ -672,7 +676,7 @@ async function run() {
   await sleep(250);
 
   // ---------------------------------------------------------------- Ctrl+click multi-copy
-  const ctrlClick = async (r) => { mouse('mouseMove', r.cx, r.cy, { modifiers: ['control'] }); mouse('mouseDown', r.cx, r.cy, { modifiers: ['control'] }); await sleep(40); mouse('mouseUp', r.cx, r.cy, { modifiers: ['control'] }); await sleep(250); };
+  const ctrlClick = async (r) => { mouse('mouseMove', r.cx, r.cy, { modifiers: [MOD] }); mouse('mouseDown', r.cx, r.cy, { modifiers: [MOD] }); await sleep(40); mouse('mouseUp', r.cx, r.cy, { modifiers: [MOD] }); await sleep(250); };
   const aText = (await colTexts('p1'))[0];
   const bText = (await colTexts('p2'))[1];
   await clipboard.writeText('');
@@ -695,7 +699,7 @@ async function run() {
   for (let t = 0; t < 20 && !movedAug.includes(moving); t++) { await sleep(100); movedAug = await augOf('p2'); }
   const selLabel = await js(`document.querySelector('#sel-used').textContent`);
   check('selection bar "Move to Cooked" joins the notes into it', movedAug.includes(moving) && !(await colTexts('p2')).includes(moving) && selLabel === 'Move to Cooked', JSON.stringify({ moving: moving.slice(0, 30), aug: movedAug.slice(0, 60), selLabel }));
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(350);
   check('and Ctrl+Z puts them back', (await colTexts('p2')).includes(moving));
 
@@ -729,7 +733,7 @@ async function run() {
   check('previous text sent as context prompt', (r1.prompt || '').includes('Phrase one'), JSON.stringify(r1.prompt));
   check('recording stopped and textarea editable', !(await js(`document.querySelector('.composer').classList.contains('is-recording') || document.querySelector('.composer textarea').readOnly`)));
   await type(' Keep it simple.');
-  key('Enter', ['control']);
+  key('Enter', [MOD]);
   await sleep(400);
   const newest = (await colTexts('p1')).pop();
   check('Ctrl+Enter saves dictated note', /^Phrase one\. typed Phrase two\..* Keep it simple\.$/.test(newest || ''), JSON.stringify(newest));
@@ -780,7 +784,7 @@ async function run() {
   check('pasted image attaches to composer', (await js(`document.querySelectorAll('.composer .attach').length`)) === 1);
   await type('Why is this chart wrong?');
   await shot('06-composer-with-image');
-  key('Enter', ['control']);
+  key('Enter', [MOD]);
   await sleep(500);
   check('note saved with image thumbnail', (await js(`document.querySelectorAll('.column[data-id="p3"] .active-list .card-img img').length`)) === 1);
   const thumbLoaded = await js(`(() => { const i = document.querySelector('.column[data-id="p3"] .card-img img'); return i && i.complete && i.naturalWidth; })()`);
@@ -836,9 +840,9 @@ async function run() {
   await clickSel('.column[data-id="p3"] .final-text');
   await sleep(300);
   check('clicking the Served text still copies the text alone', (await clipboard.readText()) === augTextNow && !(await hasPng()));
-  key('Z', ['control']); // Move to Served
+  key('Z', [MOD]); // Move to Served
   await sleep(250);
-  key('Z', ['control']); // Move to Cooked
+  key('Z', [MOD]); // Move to Cooked
   await sleep(250);
   await clickSel('.column[data-id="p3"] .used-head');
   await sleep(250);
@@ -976,7 +980,7 @@ async function run() {
   mouse('mouseUp', col2.x + col2.w * 0.8, h1.cy + 10);
   await sleep(450);
   const order1 = await js(`[...document.querySelectorAll('.column')].map(c => c.dataset.id).slice(0, 2).join(',')`);
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(350);
   const order2 = await js(`[...document.querySelectorAll('.column')].map(c => c.dataset.id).slice(0, 2).join(',')`);
   check('column reorder, then undo restores order', order1 === 'p2,p1' && order2 === 'p1,p2', `${order1} → ${order2}`);
@@ -990,36 +994,158 @@ async function run() {
   await js(`[...document.querySelectorAll('.menu .menu-item')].find((b) => b.textContent.startsWith('Sort prompts oldest first')).click()`);
   await sleep(700);
   const afterSort = createdOrder();
-  key('Z', ['control']);
+  key('Z', [MOD]);
   await sleep(700);
   check('Sort prompts oldest first reorders by date, and Ctrl+Z undoes it', !ascending(beforeSort) && ascending(afterSort) && JSON.stringify(createdOrder()) === JSON.stringify(beforeSort), `${beforeSort.length} prompts`);
 
   await shot('11-final-board');
 
-  // ---------------------------------------------------------------- real screen snip (last: it captures the actual screen; not viewed)
-  await clickSel('.column[data-id="p1"] .col-add');
-  await sleep(250);
-  await clickSel('.composer .shot-btn');
-  let overlay = null;
-  for (let t = 0; t < 50 && !overlay; t++) {
-    await sleep(100);
-    overlay = BrowserWindow.getAllWindows().find((w) => w !== win && w.isVisible());
-  }
-  check('screenshot overlay opens (Recaller hides)', Boolean(overlay) && !win.isVisible());
-  if (overlay) {
+  // ---------------------------------------------------------------- macOS only: the Mac edition's own behaviour
+  // Each check puts back what it changes. The reload comes last, where it can't upset the checks after it.
+  if (IS_MAC) {
+    const { Menu } = require('electron');
+    const clearComposer = () => js(`(() => { const t = document.querySelector('.composer textarea'); if (t) { t.value = ''; t.dispatchEvent(new Event('input')); } })()`);
+
+    // the logo clears the traffic lights (three buttons, 54 pt from x) and is level with their centre (16 pt tall: y + 8)
+    const lights = win.getWindowButtonPosition();
+    const brand = await rect('.brand');
+    const titleBar = await js(`(() => { const p = document.createElement('div'); p.style.cssText = 'position: fixed; visibility: hidden; left: env(titlebar-area-x, -1px)'; document.body.appendChild(p); const areaX = getComputedStyle(p).left; p.remove(); return { areaX, padLeft: getComputedStyle(document.querySelector('.topbar')).paddingLeft }; })()`);
+    console.log(`INFO  Mac title bar, for tuning: env(titlebar-area-x) ${titleBar.areaX}, top bar padding-left ${titleBar.padLeft}, getWindowButtonPosition() ${JSON.stringify(lights)}`);
+    check('Mac: the logo clears the traffic lights and is vertically centred with them', Boolean(lights) && brand.x >= lights.x + 54 + 8 && Math.abs(brand.cy - (lights.y + 8)) <= 3, `logo x ${Math.round(brand.x)}, centre y ${Math.round(brand.cy)} | lights ${JSON.stringify(lights)}`);
+
+    // key names: ⌘K in the search box, ⌘ all through Help (where F1 is ?), ⌘, on Settings and ⌘Z on Undo
+    const macKeys = await js(`({ search: document.querySelector('.search kbd').textContent, help: [...document.querySelectorAll('#help kbd:not(#help-hotkey)')].map((k) => k.textContent), settings: document.querySelector('#open-settings').title, undo: document.querySelector('#undo').title })`);
+    check('Mac: key names use ⌘ (search box, Help, Settings and Undo)', macKeys.search === '⌘K' && macKeys.help.every((t) => t.includes('⌘') || t === '?') && macKeys.settings.includes('⌘,') && macKeys.undo.includes('⌘Z'), JSON.stringify(macKeys));
+
+    // Control+click (the real Control key, not MOD) is a right-click on a Mac: it edits, and neither copies nor selects
+    await js('window.getSelection().removeAllRanges()');
+    await clipboard.writeText('');
+    const cc = await rect('.column[data-id="p2"] .active-list .card', 0);
+    mouse('mouseMove', cc.cx, cc.cy, { modifiers: ['control'] }); mouse('mouseDown', cc.cx, cc.cy, { modifiers: ['control'] });
+    await sleep(40);
+    mouse('mouseUp', cc.cx, cc.cy, { modifiers: ['control'] });
     await sleep(300);
-    const omouse = mouseOn(overlay.webContents);
-    omouse('mouseMove', 40, 40, { modifiers: [] }); omouse('mouseDown', 40, 40);
-    await drag(40, 40, 360, 240, 8, 16, (x, y) => omouse('mouseMove', x, y, { modifiers: ['leftButtonDown'] }));
-    omouse('mouseUp', 360, 240);
+    const ctrlRc = await js(`({ editor: !!document.querySelector('.column[data-id="p2"] .card-wrap.is-editing .composer'), selected: document.querySelectorAll('.card-wrap.is-selected').length, bar: !document.querySelector('#selection-bar').hidden })`);
+    ctrlRc.clip = await clipboard.readText();
+    key('Escape');
+    await sleep(250);
+    check('Mac: Control+click on a card opens its editor, without copying or selecting it', ctrlRc.editor && !ctrlRc.selected && !ctrlRc.bar && ctrlRc.clip === '', JSON.stringify(ctrlRc));
+
+    // a real right-click on the Served text: the Mac selects the word under it before contextmenu, and the editor must still open
+    const scroll0 = await js(`[document.querySelector('#board').scrollLeft, document.querySelector('.column[data-id="px1"] .col-scroll').scrollTop]`);
+    await js(`document.querySelector('.column[data-id="px1"] .final-text').scrollIntoView({ block: 'center', inline: 'center' })`);
+    await sleep(300);
+    await js('window.getSelection().removeAllRanges()');
+    const served = await finalOf('px1');
+    const st = await rect('.column[data-id="px1"] .final-text');
+    mouse('mouseMove', st.cx, st.cy, { modifiers: [] }); mouse('mouseDown', st.cx, st.cy, { button: 'right' });
+    await sleep(40);
+    mouse('mouseUp', st.cx, st.cy, { button: 'right' });
+    await sleep(300);
+    const rightRc = [await js(`document.querySelector('.column[data-id="px1"] .final').classList.contains('is-editing')`), await composerValue()];
+    key('Escape');
+    await sleep(250);
+    await js(`document.querySelector('#board').scrollLeft = ${scroll0[0]}; document.querySelector('.column[data-id="px1"] .col-scroll').scrollTop = ${scroll0[1]}`);
+    await sleep(200);
+    check('Mac: a real right-click on the Served text opens its editor, not the Copy menu', rightRc[0] && rightRc[1] === served && (await finalOf('px1')) === served, JSON.stringify({ editing: rightRc[0], text: String(rightRc[1]).slice(0, 30) }));
+
+    // the menu bar: 4 menus; Window › Minimize has no ⌘M (that is Dictate in the page, and a minimize role would
+    // bring it along); Edit › Undo while typing in an editor undoes the typing and leaves the board's history alone
+    const menu = Menu.getApplicationMenu();
+    const windowMenu = menu?.items.find((i) => String(i.role).toLowerCase() === 'window');
+    const minimize = windowMenu?.submenu?.items.find((i) => i.label === 'Minimize');
+    const history0 = await js(`[document.querySelector('#undo').title, document.querySelector('#redo').title]`);
+    await js(`document.querySelector('.column[data-id="px0"] .col-add').click()`);
+    await sleep(250);
+    await type('undoable');
+    const typedIn = await composerValue();
+    menu?.getMenuItemById('undo')?.click();
+    await sleep(300);
+    const undoneTo = await composerValue();
+    const history1 = await js(`[document.querySelector('#undo').title, document.querySelector('#redo').title]`);
+    await clearComposer();
+    key('Escape');
+    await sleep(250);
+    check('Mac: 4 menus; Window › Minimize has no ⌘M; Edit › Undo in an editor undoes the typing, not the board', menu?.items.length === 4 && Boolean(minimize) && !minimize.accelerator && !minimize.role && typedIn === 'undoable' && undoneTo === '' && JSON.stringify(history1) === JSON.stringify(history0), JSON.stringify({ menus: menu?.items.map((i) => i.label), minimize: minimize ? minimize.accelerator || minimize.role || 'no key' : 'missing', typedIn, undoneTo }));
+
+    // "Hide Recaller after copying" hides the app (app.hide, counted by the harness) instead of minimizing it
+    const setHide = async (on) => {
+      await js(`document.querySelector('#open-settings').click()`);
+      await sleep(300);
+      await js(`(() => { const c = document.querySelector('#set-hide'); if (c.checked !== ${on}) c.click(); })()`);
+      await sleep(300);
+      key('Escape');
+      await sleep(250);
+    };
+    const hideLabel = await js(`document.querySelector('#set-hide').closest('label').textContent.trim()`);
+    await setHide(true);
+    const hides0 = macState.hides;
+    await clipboard.writeText('');
+    await js(`document.querySelector('.column[data-id="p1"] .active-list .card').focus({ preventScroll: true })`);
+    key('Enter'); // copies the focused card
+    await sleep(700);
+    const hid = macState.hides - hides0;
+    const hideClip = await clipboard.readText();
+    await setHide(false);
+    const hideOff = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-settings.json'), 'utf8')).hideAfterCopy === false;
+    check('Mac: "Hide Recaller after copying" hides the app (app.hide) instead of minimizing it', hid === 1 && !win.isMinimized() && hideClip.length > 0 && hideOff, JSON.stringify({ hideLabel, hid, minimized: win.isMinimized(), clip: hideClip.slice(0, 20), hideOff }));
+
+    // ⌘H on a focused card is left to the menu (Hide Recaller) and doesn't toggle the highlight. Sent as a DOM
+    // event: a real ⌘H that the page leaves alone goes on to the menu, which would hide this test app.
+    const hlWrap = `document.querySelector('.column[data-id="p2"] .active-list .card-wrap')`;
+    const hl0 = await js(`${hlWrap}.classList.contains('is-hl')`);
+    const cmdHLeft = await js(`(() => { const c = ${hlWrap}.querySelector('.card'); c.focus({ preventScroll: true }); return c.dispatchEvent(new KeyboardEvent('keydown', { key: 'h', code: 'KeyH', metaKey: true, bubbles: true, cancelable: true })); })()`);
+    await sleep(300);
+    const hl1 = await js(`${hlWrap}.classList.contains('is-hl')`);
+    check('Mac: ⌘H on a focused card leaves its highlight alone (the menu hides the app)', hl1 === hl0 && cmdHLeft, JSON.stringify({ before: hl0, after: hl1, leftForMenu: cmdHLeft }));
+
+    // a draft typed right before a reload (as before ⌘Q) is kept: the page goes before its 400 ms save runs
+    await js(`document.querySelector('.column[data-id="px0"] .col-add').click()`);
+    await sleep(250);
+    await type('Draft kept on quit');
+    const draftTyped = await composerValue();
+    wc.reload();
+    await new Promise((r) => wc.once('did-finish-load', r));
+    await sleep(1200);
+    const draftSaved = savedProject('px0').draft;
+    const draftDot = await js(`document.querySelector('.column[data-id="px0"] .col-add').classList.contains('has-draft')`);
+    check('Mac: a draft typed right before a reload (or ⌘Q) is saved', draftTyped === 'Draft kept on quit' && draftSaved === draftTyped && draftDot, JSON.stringify({ draftTyped, draftSaved, draftDot }));
+    await js(`document.querySelector('.column[data-id="px0"] .col-add').click()`); // and px0 has no draft again
+    await sleep(250);
+    await clearComposer();
+    key('Escape');
+    await sleep(250);
   }
-  let attached = 0;
-  for (let t = 0; t < 40 && !attached; t++) { await sleep(100); attached = await js(`document.querySelectorAll('.composer .attach').length`); }
-  check('snip attaches to the composer and Recaller comes back', attached === 1 && win.isVisible());
-  const imgFiles = fs.readdirSync(path.join(DATA_DIR, 'images'));
-  check('snip stored as full PNG + thumbnail', imgFiles.filter((f) => f.endsWith('.t.png')).length >= 2 && imgFiles.filter((f) => !f.endsWith('.t.png')).length >= 2, imgFiles.length + ' files');
-  key('Escape');
-  await sleep(200);
+
+  // ---------------------------------------------------------------- real screen snip (last: it captures the actual screen; not viewed)
+  if (IS_MAC) {
+    // macOS would ask for Screen Recording permission first, and the snip would capture the owner's screen
+    console.log('SKIP  real screen snip (3 checks): on a Mac it needs Screen Recording permission and would capture your screen');
+  } else {
+    await clickSel('.column[data-id="p1"] .col-add');
+    await sleep(250);
+    await clickSel('.composer .shot-btn');
+    let overlay = null;
+    for (let t = 0; t < 50 && !overlay; t++) {
+      await sleep(100);
+      overlay = BrowserWindow.getAllWindows().find((w) => w !== win && w.isVisible());
+    }
+    check('screenshot overlay opens (Recaller hides)', Boolean(overlay) && !win.isVisible());
+    if (overlay) {
+      await sleep(300);
+      const omouse = mouseOn(overlay.webContents);
+      omouse('mouseMove', 40, 40, { modifiers: [] }); omouse('mouseDown', 40, 40);
+      await drag(40, 40, 360, 240, 8, 16, (x, y) => omouse('mouseMove', x, y, { modifiers: ['leftButtonDown'] }));
+      omouse('mouseUp', 360, 240);
+    }
+    let attached = 0;
+    for (let t = 0; t < 40 && !attached; t++) { await sleep(100); attached = await js(`document.querySelectorAll('.composer .attach').length`); }
+    check('snip attaches to the composer and Recaller comes back', attached === 1 && win.isVisible());
+    const imgFiles = fs.readdirSync(path.join(DATA_DIR, 'images'));
+    check('snip stored as full PNG + thumbnail', imgFiles.filter((f) => f.endsWith('.t.png')).length >= 2 && imgFiles.filter((f) => !f.endsWith('.t.png')).length >= 2, imgFiles.length + ' files');
+    key('Escape');
+    await sleep(200);
+  }
 
   // ---------------------------------------------------------------- persistence
   await sleep(600);

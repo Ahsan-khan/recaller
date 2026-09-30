@@ -1799,3 +1799,22 @@ body.theme-deep .sel-hint { color: var(--ink-3); }
 .title-opt small { font-size: 10.5px; font-weight: 600; color: rgba(255, 255, 255, 0.72); }
 .title-opt[aria-checked="true"] { outline-color: var(--primary); }
 .title-opt[aria-checked="true"] small::after { content: " ✓"; }
+
+/* ------------------------------------------------------------------ macOS (body.is-mac, 1.16 Mac edition) */
+
+/* app.js adds .is-mac on a Mac only, so nothing below reaches Windows. The top bar starts after the
+   traffic lights (x 16–70); in full screen they are gone. The right padding formula gives 12px here. */
+body.is-mac .topbar { padding-left: 84px; }
+body.is-mac.is-fullscreen .topbar { padding-left: 14px; }
+
+/* The system font after Geist, in place of Segoe. Declared on body itself, where the body.title-*
+   classes resolve var(--font-head), so column titles pick it up too. Full lists on purpose: a
+   variable that refers to itself is invalid. */
+body.is-mac {
+  --font-ui: "Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-head: "Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* key caps: the bundled fonts have no ⌘ ⇧ ⌥ ⌃ ↩; the system font draws them like macOS menus do */
+body.is-mac kbd { font-family: -apple-system, BlinkMacSystemFont, var(--font-ui); letter-spacing: 0.04em; }

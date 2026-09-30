@@ -1,91 +1,74 @@
 # 08: Changelog
 
-Dates are 2026-09-23 to 2026-09-26. Versions 1.0.0 to 1.5.0 were built in one long session; 1.6.0–1.13.0 in a second session on 2026-09-24; 1.14.0 in a third; 1.15.0 in a fourth on 2026-09-26; 1.16.0 in a fifth, the same day. Versions refer to `package.json` and the installer `dist/Recaller Setup <version>.exe`.
+Newest first. Dates run from 2026-09-23 to 2026-09-29. Versions 1.0.0 to 1.5.0 were built in one long session; 1.6.0–1.13.0 in a second session on 2026-09-24; 1.14.0 in a third; 1.15.0 in a fourth on 2026-09-26; 1.16.0 in a fifth, the same day. A sixth session (2026-09-28 to 29, on the owner's new Mac) built a 1.17.0 that the owner discarded, and a seventh (2026-09-29, on the Mac) built the Mac edition of 1.16.0. Versions refer to `package.json` and the installers: `dist/Recaller Setup <version>.exe` for Windows and, for the Mac edition, `dist/Recaller-<version>-arm64.dmg`.
 
-## 1.0.0 (first build)
+## 1.16.0 for Mac (branch `masos`, uncommitted)
 
-- **Platform:** Electron app with vanilla JavaScript and no bundler; NSIS installer with desktop and Start-menu shortcuts; generated monstera icon.
-- **Layout:** projects as columns on one horizontal board, and prompts as cards.
-- **Projects:** create, rename (double-click), recolour, reorder (drag the header or use the menu), delete with Undo.
-- **Notes:**
-  - Click to copy, with a ripple and a "Copied" chip; copy counts are kept.
-  - Swipe left to delete, with an Undo toast.
-  - Hold and drag into a **Used** section (collapsible) or to another project; the Used section was a list of cards.
-  - Card editing, keyboard shortcuts, and search with highlighting (Enter copies the top match).
-- **Voice:** OpenAI transcription (the default was gpt-transcribe) with a single request after stopping recording, and Retry on failure. The API key is encrypted with DPAPI.
-- **Other:**
-  - Global show/hide hotkey Ctrl+Alt+R.
-  - Drafts kept when the composer closes.
-  - Optional "minimise after copying".
-  - Window bounds remembered; single-instance lock.
-  - Atomic data writes with a `.bak` copy.
-- **Look:** a light "monstera" theme with the Fraunces serif for titles and wide 340px columns.
+Seventh session, 2026-09-29, on the MacBook Pro. The owner asked for "a similar mac os app" while keeping "the windows app as it is", as "two different files for windows and mac", like software offered online. This is the same 1.16.0 app with Mac habits, built fresh as they asked ("Start from scratch"): nothing from the discarded 1.17.0 below was used. Every Mac difference is fenced (`IS_MAC` in the JavaScript, `body.is-mac` in the CSS, the `mac` and `dmg` build sections), so the Windows app behaves exactly as before and this branch still builds the identical Windows installer. The version stays 1.16.0, so the two downloads match: `Recaller Setup 1.16.0.exe` and `Recaller-1.16.0-arm64.dmg`. `main` and `v1` were not touched; the work is uncommitted on `masos`, and the owner commits it themselves. The full description is in `14_macos.md`; the reasons are in `11` #49 onward.
 
-## 1.1.0
+- **Keys and clicks:**
+  - ⌘ instead of Ctrl for every app shortcut: ⌘K, ⌘N, ⌘M, ⌘↩, ⇧⌘S, ⌘Z and ⇧⌘Z, ⇧⌘N, ⌘, (`modKey()`). The ⌃ keys stay text-editing keys, so ⌃K, ⌃F and ⌃N no longer jump to search or open a composer on a Mac.
+  - ⌘-click picks several cards to copy at once (`multiKey()`).
+  - Control+click is a right-click on a Mac, so it edits. The board ignores Control+left-click in `pointerdown`, and the context click uses the selection read at the press, because a Mac selects the word under a right-click before `contextmenu` fires.
+  - On a focused card, ⌘, ⌃ and ⌥ keys are left to the menus, so ⌘H hides the app instead of highlighting. ⌘⌫ deletes the card, as in the Finder.
+  - Labels show Mac symbols: the search box's ⌘K, tooltips, the Help keys (with ? in place of F1), the Welcome tips and the "⌘-click" hints (`kb()`, plus `data-mac` / `data-mac-title` attributes in `index.html`).
+  - Settings shows hotkeys as symbols (⌃⌥R). The recorder saves ⌃ as `Control` and ⌘ as `Command`, names punctuation from the physical key (Option changes the typed character), and asks for "at least one of ⌃, ⌥, ⇧ or ⌘".
+- **Window:**
+  - The traffic lights sit at (16, 16), centred in the 48px top bar, and the top bar starts after them (padding-left 84px, so the logo is at x 84). In full screen the lights are gone and the top bar takes that space back (`body.is-fullscreen`).
+  - A click on a card while another app is in front copies it at once (`acceptFirstMouse`).
+  - The red button and ⌘W hide the window, and ⌘Q quits. A Dock click brings the window back.
+  - The global show/hide hotkey defaults to ⌃⌥R (`Control+Alt+R`), the same keys as Ctrl+Alt+R on the PC. The default applies only when no hotkey is saved yet. When Recaller is in front it hides the app (`app.hide()`), so the previous app gets the focus back and a paste lands there. **Hide Recaller after copying** (called "Minimize Recaller after copying" on Windows) hides the app the same way.
+  - Closing the window or starting a snip while in full screen first leaves full screen, because hiding a full-screen window leaves an empty black Space. A full-screen frame isn't saved as the window size.
+- **Menu bar:**
+  - **Recaller:** About (name, version and "Your prompts and notes, one click away."), Settings… ⌘,, Services, Hide, Hide Others, Show All, Quit.
+  - **Edit:** Undo ⌘Z, Redo ⇧⌘Z, Cut, Copy, Paste, Paste and Match Style, Select All. Undo and Redo go to the page (`app:command`): in a text field they undo the typing; elsewhere they step the board's history, except while Settings, Help or the lightbox is open. They do nothing while the window is hidden or minimised.
+  - **Window:** Minimize (with no ⌘M, which stays Dictate), Zoom, Close Window ⌘W, Bring All to Front.
+  - **Help:** How Recaller Works.
+  - Settings… opens Settings, and leaves one that's already open alone.
+- **Permissions:**
+  - Microphone: `NSMicrophoneUsageDescription` in `Info.plist` ("Recaller listens only while you dictate a prompt, and sends the recording to OpenAI to turn it into text."). A blocked microphone gets a Mac message with an **Open System Settings** button.
+  - Screen Recording: checked before each snip. Without it the snip stops with a message and **Open System Settings** (a toast with **Open Settings** for the global snip), and macOS shows its own prompt the first time.
+  - A new IPC, `app:open-privacy` (`microphone` or `screen`), opens the matching System Settings pane.
+  - The empty-capture error says "macOS returned an empty screen capture." on a Mac.
+- **API key:** Electron's `safeStorage` encrypts it with a key kept in the Mac keychain. Settings says "Saved in your Mac’s keychain. Paste a new key to replace it."
+- **Look:** unchanged. The system font follows Geist in the fallback lists (SF Mono and Menlo for mono), and key caps use the system font, which has ⌘ ⇧ ⌥ ⌃ ↩. There is no Retina tuning yet.
+- **Reliability fixes (Mac only):**
+  - A draft still waiting on its 400ms save is saved when the page unloads, so ⌘Q keeps the last keystrokes.
+  - The main process also flushes on `will-quit` and on the window's `closed`, because ⌘Q never reaches `window-all-closed`.
+  - The daily backup is checked every hour, because a Mac app runs for days.
+  - A global snip is delivered only once the page has loaded (`sendWhenLoaded`), and a cancelled global snip hands the focus back.
+  - Dev only: ⌘⌥I toggles DevTools, and the Dock shows `build/icon-mac.png`.
+- **Build:**
+  - `npm run dist:mac` makes `dist/Recaller-1.16.0-arm64.dmg`: Apple Silicon only, macOS 13 or later, ad-hoc signed (`identity: "-"`), no hardened runtime, not notarized.
+  - `npm run dist:win` builds the Windows installer from a Mac with x64 pinned (a bare `--win nsis` on Apple Silicon makes an arm64 exe). It hasn't been run yet.
+  - `npm run icon:mac` renders `build/icon-mac.png`: 1024px on Apple's icon grid (an 824px body, radius 185, a soft shadow) with the Windows icon's gradient and leaf. It renders in a hidden window, scales the 2× capture down to 1024px, and fails loudly rather than letting the Mac app fall back to the Windows icon.
+  - `npm run dist`, `npm run pack`, the NSIS settings and `build/icon.png` are unchanged.
+- **Tests:**
+  - `tests/e2e/mac-harness.js` makes every suite Mac-safe and does nothing on Windows. Each test window is a 2px sliver past the outer screen edge, away from the pointer. There is no Dock icon, and the real mouse passes through the windows. No native menu, System Settings or Finder window can open. `app.focus` and `app.show` do nothing, `app.hide` is only counted, and ⌘ is sent wherever Windows sends Ctrl.
+  - The features suite skips the real screen snip on a Mac (3 checks) and adds 8 Mac-only checks: the logo clears the traffic lights; key names use ⌘; Control+click edits without copying or selecting; a real right-click on the Served text edits; there are 4 menus, Minimize has no ⌘M, and Edit › Undo undoes typing, not the board; hide after copying hides the app; ⌘H leaves a highlight alone; a draft typed just before a reload is saved. It also disables `AudioServiceSandbox` so the fake microphone works.
+  - Counts: Windows 12 + 21 + 134, unchanged. Mac 12 + 21 + 139 (134 − 3 + 8).
+- **Verified on the Mac:**
+  - From source: multi-copy 12/12, update-safety 21/21, features 139/139, with all 8 Mac checks passing and the real snip skipped. Measured: `env(titlebar-area-x)` 92px, top-bar padding-left 84px, `getWindowButtonPosition()` {x: 16, y: 16}, and the logo at x 84 with its centre at y 24.
+  - Against the packaged `app.asar` (`APP_MAIN=dist/mac-arm64/Recaller.app/Contents/Resources/app.asar/src/main.js`): 12/12, 21/21 and 139/139 (`tests/e2e/.out/mac-pkg-all.log`).
+  - The build: `dist/Recaller-1.16.0-arm64.dmg` (129 MB) and `dist/mac-arm64/Recaller.app`. codesign: `Signature=adhoc`, valid on disk, satisfies its Designated Requirement, arm64 only. electron-builder 26 signed it ad hoc (`identityName=- identityHash=none`) and skipped notarization. `spctl` says "rejected", as expected for an app that isn't notarized. `hdiutil verify` reports a VALID checksum. The dmg holds Recaller.app and an Applications link, and has no quarantine attribute, because it was built here, not downloaded.
+  - `Info.plist`: `CFBundleIdentifier` com.akhan.recaller, `CFBundleShortVersionString` 1.16.0, `NSMicrophoneUsageDescription` set, `LSMinimumSystemVersion` 13.0, `LSApplicationCategoryType` productivity, `NSRequiresAquaSystemAppearance` false. The app's `icon.icns` is 1024px, made from the Mac icon.
+  - The `app.asar` holds only `src`, `build/icon.png` and `package.json`, and its 15 source files are byte-identical to the tested working tree.
+- **Not done, or untested:**
+  - The session never launched the packaged Recaller.app, because it would open a real window on the owner's screen; the suites load its `app.asar` in the development Electron. Its app menu should read "Recaller" (from source it reads "Electron").
+  - The owner opened it themselves at the very end (late on 2026-09-29, from the mounted dmg) and copied it into `/Applications`. Nothing about that first run is recorded: real key presses, the real traffic lights, the app menu's name, and the microphone, Screen Recording and keychain prompts are all still unreported.
+  - Intel Macs, and snipping over another app's full-screen Space.
+  - The Windows exe wasn't rebuilt: Windows stays the 1.16.0 the owner has, and it can't be run on the Mac anyway.
 
-- **Screenshots:** a region-snip overlay (drag an area, click for the whole screen, Esc to cancel).
-  - Images can also be pasted or dropped.
-  - Image storage in `images\` with the `recaller-img://` protocol, thumbnails, a lightbox, and click-to-copy images.
-- **Undo/redo:** snapshot-based (Ctrl+Z / Ctrl+Y and toolbar buttons). Toast Undo became the same history.
-- **Voice:** live phrase-by-phrase dictation.
-  - Voice-activity segmentation with overlapping recorders.
-  - Streamed transcription.
-  - The previous text is sent as context.
-  - A red Stop pill with timer and level bars.
-  - Save during recording finishes, then saves.
-  - Retry and Discard on errors.
-  - Silent segments skipped.
-- **Look:** a modern emerald redesign.
-  - Dotted canvas; distinct palette per column; tinted headers.
-  - A separate Used tray colour.
-  - The `+` and mic moved into column headers.
-- **Navigation:** horizontal scroll arrows, wheel-to-horizontal, drag-to-pan and middle-drag pan.
-- **Slim columns (268px),** with a Compact/Slim/Roomy setting.
-- **Global "screenshot to note" hotkey** (off by default).
-- **Data format:** v2 (`images`, `draftImages`, `prefs.density`). v1 projects were recoloured once (this step was removed in 1.3.0).
+## 1.17.0 (discarded, never released)
 
-## 1.2.0
+- The sixth session (2026-09-28 to 29, on the owner's new Mac) answered "okay make it so i can install on macos as well" and "i want to be able to install on both btw" with a 1.17.0 that added a Mac edition. A dmg and a Windows exe were built and tested; neither was installed or opened.
+- On 2026-09-29 the owner discarded everything since the 1.16 push, in a separate short session ("i made some changes to my project that i dont want to keep anymore", "since my last push"). No reason was given. It is kept as `stash@{0}` ("On v1: Discarded changes since 1.16 push (1.17.0 macOS work) — 2026-09-29"), and its builds were moved to `dist/_discarded-1.17.0/` (git-ignored; nothing deleted).
+- None of it is in the code. The Mac edition above was built from scratch, as the owner asked; the stash was not read, applied or popped for it. Leave the stash alone unless the owner asks. Never `git stash pop` it: it also changes `README.md` and all 14 `ai_memory` files, and would overwrite them with its 1.17.0 notes. Don't hand out or install the `_discarded-1.17.0` builds.
 
-- **Augmented section** under Used: all Used notes joined into one text with a blank line between them, plus "Copy all". (Its meaning changed in 1.4.0 and 1.5.0.)
-- **Deep theme,** the new default: a dark forest canvas, solid colour headers and a dark top bar matched to the Windows title bar. Soft theme remains optional.
-- **Ctrl+click multi-copy** with numbered badges and a selection bar ("Move to Used", "Clear").
-- **Palette** changed to spread-out hues: emerald, sky, sun, orchid, lime, blossom, teal, bark.
+## 1.16.0 (Windows; committed as "1.16" and merged into `main`)
 
-## 1.3.0
-
-- **Update safety:**
-  - Loading is lossless (unknown fields kept, user choices never rewritten).
-  - No write on startup; the userData path is pinned.
-  - Settings get a `.bak` copy; `deleteAppDataOnUninstall: false`.
-  - `lastVersion` recorded, with an automatic **upgrade backup** before a new version runs and **daily backups**.
-  - Settings → Backups offers list, back up now and restore; restore saves a "before restore" backup first.
-  - Image cleanup respects backups.
-- **Remembered state:** scroll positions, expanded cards, the last-used column.
-- **Fonts:** switched to Geist (UI) and Geist Mono (numbers and labels).
-  - Column headings became larger and bolder with neutral tracking; section labels became darker.
-  - Then: a column-title font picker (Sora, the default; Space Grotesk; Inter Display; Manrope; Geist; Sora Caps), and the text-shadow was removed.
-- **Startup** no longer depends on animation frames.
-
-## 1.3.1
-
-- **Ctrl+click fixes:**
-  - The Explorer-style anchor (a plain click followed by Ctrl+clicks includes the first note).
-  - The selection clears on window blur, Esc anywhere, or a click on empty canvas.
-  - Clipboard writes are serialised.
-
-## 1.4.0
-
-- **Highlighting:** four colours (Check again, Important, Idea, Ready) from the card's hover menu, or H.
-- **Stage swap:** the middle stage was labelled **Augmented** and a new bottom stage **Used** was added as the final combined text (data `combined`). At first, Augmented showed individual cards, and swiping one left added it to Used.
-- **New prompt bar:** a full-width bar under each header, and the header keeps only ⋯. Long names wrap to two lines.
-- **Editing while recording:** the textarea stays editable, and dictation follows the user's edits without moving the caret.
-- **Stage colours:** new prompts white, Augmented indigo, Used deep green.
-- **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
-- **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
-
-## 1.16.0 (current)
-
-- **The board sits in a frame:** the owner asked for "a slight border … to organize everything … very sleek, very modern … aesthetic", and then clarified they meant the whole board space ("the board frame"), not the arrow. The board is now a rounded panel (radius 14px) inset from the window: 2px under the top bar and 12px from the left, right and bottom. The margin around it is the top bar's colour (`body` background = `--topbar`), so the top bar and the margin read as one dark shell holding the board. The frame edge is a 1px gradient: bright mint at the top-left corner (a soft sheen), settling to an even emerald all the way round (`--frame-edge`), plus a faint 3px emerald glow outside and a hairline highlight inside the top edge. The top bar's own bottom border and shadow were removed; the frame draws that edge now. In Soft theme the same frame is a deep-green hairline on a white shell. The board's scrollbar track is inset 12px so the thumb clears the rounded corners.
+- **Status:** the owner committed and pushed it on `v1` as "1.16" (`664212a`, 2026-09-26), together with the fifth session's `ai_memory` update, and merged `v1` into `main` on 2026-09-29 (PR #1, merge commit `dd5a3b0`, whose tree is identical to `664212a`). This is still the current Windows version; the Mac edition above is the same version. Whether 1.16.0 was installed on the PC isn't recorded (1.15.0 was installed when the fifth session ended).
+- **The board sits in a frame:** the owner asked for "a slight border … to organize everything … very sleek, very modern … aesthetic", and then clarified they meant the whole board space ("the board frame"), not the arrow. The board is now a rounded panel (radius 14px) inset from the window: 2px under the top bar and 12px from the left, right and bottom. The margin around it is the top bar's colour (`body` background = `--topbar`), so the top bar and the margin read as one dark shell holding the board. The frame edge is a 1px gradient: bright mint at the top-left corner (a soft sheen), settling to an even emerald all the way round (`--frame-edge`), plus a faint 3px emerald glow outside and a hairline highlight inside the top edge. The top bar's shadow was removed and its bottom border made transparent (it still takes 1px); the frame draws that edge now. In Soft theme the same frame is a deep-green hairline on a white shell. The board's scrollbar track is inset 12px so the thumb clears the rounded corners.
   - Eight edge styles were rendered side by side on a real board first (a plain hairline, a gradient sheen, a recessed vignette, a wider emerald hairline, then a mint hairline, an emerald glow, a stronger sheen and a double frame). The first four were too faint to read as a border at 100% scale; the shipped edge combines the even emerald of the glow with the sheen's bright corner.
   - The first build of 1.16.0 (never installed) had only the arrow changes below; the installer was rebuilt with the frame under the same version.
 - **The ‹ › board arrows keep out of the way:** the owner found the › arrow "kind of annoying" because it was always there (on a wide board there is nearly always more to the right). Each arrow now stays hidden until the pointer comes within 96px of its edge of the board, then fades and slides in (0.2s). It hides again when the pointer moves away or leaves the board, and while dragging a card or panning the canvas. Keyboard focus (Tab) still shows it. The old rule still applies on top: no arrow when there's nothing more to scroll that way.
@@ -102,7 +85,7 @@ Dates are 2026-09-23 to 2026-09-26. Versions 1.0.0 to 1.5.0 were built in one lo
   - **Served** got the same two (row trash; "Served text deleted · Undo" from its editor), since the Notes rows and editors are shared.
   - All of it is undoable (Ctrl+Z, or Undo on the toast). Nothing asks for confirmation.
 - Help panel ("Delete" and "Edit anything") and README explain it. The Notes button tooltip says "reorder, edit, send back or delete one".
-- **Tests:** features 130 checks (new: every Cooked row has a trash; a row fits its five buttons with room for text at slim width; the row trash deletes one note and Ctrl+Z puts it back in place; the Cooked editor's trash deletes the whole note, leaves Served alone and Ctrl+Z restores it with its parts; the Served row trash deletes one note and undoes).
+- **Tests:** features 130 checks, 9 of them new (121 → 130): every Cooked row has a trash; a row fits its five buttons with room for text at slim width; the row trash deletes one note, and Ctrl+Z puts it back in place; the Cooked editor's trash deletes the whole note and leaves Served alone, and Ctrl+Z restores it with its parts; the Served row trash deletes one note, and Ctrl+Z restores it; deleting the last Cooked row leaves the other note. The Served Notes-list check now also expects the delete button.
 - Verified: features 130/130 on source; 12 + 21 + 130 on the packaged build (the installer build needed one retry after the usual exit 127), 9/9 on a copy of the real data.
 
 ## 1.14.0
@@ -153,7 +136,8 @@ A calmer board with many columns, using no extra space (empty columns got shorte
 ## 1.8.0
 
 - **Kitchen stage names:** the three stages are now **Cooking** (new prompts) → **Cooked** (was Combined) → **Served** (was Final), in every label, tooltip, toast, menu item, undo label, the help panel, Settings and the welcome tips. The data names are unchanged (`notes`, `used`, `combined`).
-- **Cooking header:** the prompts get a stage header like the other two: "⌄ 🔥 COOKING · n", light in the column's colour. Clicking it folds the prompt cards away (saved as `project.notesCollapsed`, only while folded). A search, a new prompt, a prompt sent back or a prompt dropped in unfold it. The prompt count moved here from the pill in the column title, which gives long names more room.
+- **Cooking header:** the prompts get a stage header like the other two: "⌄ 🔥 COOKING · n", light in the column's colour. Clicking it folds the prompt cards away (saved as `project.notesCollapsed`, only while folded). A new prompt, a prompt sent back or a prompt dropped in unfolds it (they delete the flag). A search only shows the folded cards while it has terms; the flag stays, so Cooking folds again when the search is emptied. The prompt count moved here from the pill in the column title, which gives long names more room.
+- **Empty Cooking text:** an empty prompt list now says "Nothing cooking yet. Click New prompt or Dictate." (1.7 said "No prompts yet. Click New prompt to add one.")
 - **New prompt | Dictate:** the bar is split into two equal halves, **(+) New prompt** and **(🎙) Dictate**, instead of a wide button plus a small mic square, because the owner starts about half their prompts by voice. A draft shows as **Draft** with an amber dot. Narrow columns read **New**.
 - **Tests:** features 107 checks (new: equal halves and full labels, the Cooking header and moved count, folding Cooking, a new prompt unfolding it; the stage-name checks now expect Cooked/Served).
 
@@ -162,11 +146,11 @@ A calmer board with many columns, using no extra space (empty columns got shorte
 - **Combined looks grown-up:** the bright violet band, lavender note and violet buttons became a muted slate-navy band (#47526b → #384259), a pale cool-grey block (#e6e9ef) and a near-white note. The owner called the violet "weird" and "girly"; the dark green canvas stays.
 - **Quiet empty stages:** an empty Combined (and an empty Final) is now a dashed outline with its label, not a solid block. It fills in while you drag.
 - **New prompts go to the bottom** of the prompt list (and a prompt sent back from Combined lands at the bottom too), so a column reads oldest → newest and flows down into Combined. Saving scrolls the new card into view. Existing columns keep their order; **⋯ → Sort prompts oldest first** lines them up (undoable).
-- **Fixed-size Combined and Final:** both start at 6 lines with a fade. A slim full-width **Show more / Show less** bar under the text opens them to at most min(56vh, 480px), scrolling inside. The opened state is no longer saved, so they always start small (the old `usedExpanded` / `augExpanded` flags stay in the file but aren't read). The Notes lists are capped at 220px and scroll.
+- **Fixed-size Combined and Final:** both start at 6 lines with a fade. A slim full-width **Show more / Show less** bar under the text opens them to at most min(56vh, 480px), scrolling inside. A search whose terms all appear in one of these texts opens it the same way, and no further. The opened state is no longer saved, so they always start small (the old `usedExpanded` / `augExpanded` flags stay in the file but aren't read). The Notes lists are capped at 220px and scroll.
 - **Friendlier:**
   - A **?** button in the top bar (also `F1`, or `?` when not typing) opens "How Recaller works": the three stages, handy moves and shortcuts (it shows the user's own show/hide key).
   - Settings is split into sections: Appearance, Voice, Shortcuts & behaviour, Your data.
-  - The empty prompt list says "No prompts yet. Click New prompt to add one."
+  - The empty prompt list says "No prompts yet. Click New prompt to add one." (replaced in 1.8)
   - The Combined/Final footers have room for their word counts again.
 - **Fixed a growing-text bug (present since 1.2):** once a Combined or Final text had fitted, its `fits` class lifted the height limit for good. So as notes were added it grew without limit, until the page was reloaded and re-measured. `fits` now only drops the fade.
 - **Fixes:** the mouse wheel over an opened-up Combined/Final text (or a long Notes list) scrolls that text instead of the board; grabbing one of their scrollbars no longer starts a drag or a copy.
@@ -189,7 +173,7 @@ A calmer board with many columns, using no extra space (empty columns got shorte
 - **Known issues fixed:**
   - The old "Clear used" emptied the wrong stage. The menu now has **Clear Combined (n)** and **Clear Final (n)**, both undoable.
   - The dead card "move back" button, the swipe-to-Used path and its CSS were removed.
-  - Search now also marks matches inside the Combined and Final texts, and opens a matching text up to its full length.
+  - Search now also marks matches inside the Combined and Final texts, and opens a matching text up to its full length (since 1.7, only as far as Show more opens it).
   - Parts inside Combined and Final can be reordered (the mixed-order issue from 1.4).
 - **Welcome tips** (first run only) mention the new names and resizing.
 - **Tests:** features now has 96 checks and update-safety 21 (a saved column width survives an update). Every suite refuses a missing `APP_MAIN` with a console message instead of an Electron error dialog.
@@ -205,3 +189,84 @@ A calmer board with many columns, using no extra space (empty columns got shorte
 - **Setting "Join notes with":** Blank line (the default) or New line. It applies to Augmented, Used and Ctrl+click copies.
 - **Layout fixes:** the Move to Used button is full width under the note, so it never overlaps the label; stats stay on one line.
 - **Tests** moved into the repo (`tests/e2e/`), with `npm test` scripts. This handoff folder `ai_memory/` was added.
+
+## 1.4.0
+
+- **Highlighting:** four colours (Check again, Important, Idea, Ready) from the card's hover menu, or H.
+- **Stage swap:** the middle stage was labelled **Augmented** and a new bottom stage **Used** was added as the final combined text (data `combined`). At first, Augmented showed individual cards, and swiping one left added it to Used.
+- **New prompt bar:** a full-width bar under each header, and the header keeps only ⋯. Long names wrap to two lines.
+- **Editing while recording:** the textarea stays editable, and dictation follows the user's edits without moving the caret.
+- **Stage colours:** new prompts white, Augmented indigo, Used deep green.
+- **Copy all** moved into the Used header, and changes to "Copied" instead of showing a floating chip (the chip had overlapped text).
+- **Scroll positions** are saved only when the user scrolls, so a clamped restore never overwrites them.
+
+## 1.3.1
+
+- **Ctrl+click fixes:**
+  - The Explorer-style anchor (a plain click followed by Ctrl+clicks includes the first note).
+  - The selection clears on window blur, Esc anywhere, or a click on empty canvas.
+  - Clipboard writes are serialised.
+
+## 1.3.0
+
+- **Update safety:**
+  - Loading is lossless (unknown fields kept, user choices never rewritten).
+  - No write on startup; the userData path is pinned.
+  - Settings get a `.bak` copy; `deleteAppDataOnUninstall: false`.
+  - `lastVersion` recorded, with an automatic **upgrade backup** before a new version runs and **daily backups**.
+  - Settings → Backups offers list, back up now and restore; restore saves a "before restore" backup first.
+  - Image cleanup respects backups.
+- **Remembered state:** scroll positions, expanded cards, the last-used column.
+- **Fonts:** switched to Geist (UI) and Geist Mono (numbers and labels).
+  - Column headings became larger and bolder with neutral tracking; section labels became darker.
+  - Then: a column-title font picker (Sora, the default; Space Grotesk; Inter Display; Manrope; Geist; Sora Caps), and the text-shadow was removed.
+- **Startup** no longer depends on animation frames.
+
+## 1.2.0
+
+- **Augmented section** under Used: all Used notes joined into one text with a blank line between them, plus "Copy all". (Its meaning changed in 1.4.0 and 1.5.0.)
+- **Deep theme,** the new default: a dark forest canvas, solid colour headers and a dark top bar matched to the Windows title bar. Soft theme remains optional.
+- **Ctrl+click multi-copy** with numbered badges and a selection bar ("Move to Used", "Clear").
+- **Palette** changed to spread-out hues: emerald, sky, sun, orchid, lime, blossom, teal, bark.
+
+## 1.1.0
+
+- **Screenshots:** a region-snip overlay (drag an area, click for the whole screen, Esc to cancel).
+  - Images can also be pasted or dropped.
+  - Image storage in `images\` with the `recaller-img://` protocol, thumbnails, a lightbox, and click-to-copy images.
+- **Undo/redo:** snapshot-based (Ctrl+Z / Ctrl+Y and toolbar buttons). Toast Undo became the same history.
+- **Voice:** live phrase-by-phrase dictation.
+  - Voice-activity segmentation with overlapping recorders.
+  - Streamed transcription.
+  - The previous text is sent as context.
+  - A red Stop pill with timer and level bars.
+  - Save during recording finishes, then saves.
+  - Retry and Discard on errors.
+  - Silent segments skipped.
+- **Look:** a modern emerald redesign.
+  - Dotted canvas; distinct palette per column; tinted headers.
+  - A separate Used tray colour.
+  - The `+` and mic moved into column headers.
+- **Navigation:** horizontal scroll arrows, wheel-to-horizontal, drag-to-pan and middle-drag pan.
+- **Slim columns (268px),** with a Compact/Slim/Roomy setting.
+- **Global "screenshot to note" hotkey** (off by default).
+- **Data format:** v2 (`images`, `draftImages`, `prefs.density`). v1 projects were recoloured once (this step was removed in 1.3.0).
+
+## 1.0.0 (first build)
+
+- **Platform:** Electron app with vanilla JavaScript and no bundler; NSIS installer with desktop and Start-menu shortcuts; generated monstera icon.
+- **Layout:** projects as columns on one horizontal board, and prompts as cards.
+- **Projects:** create, rename (double-click), recolour, reorder (drag the header or use the menu), delete with Undo.
+- **Notes:**
+  - Click to copy, with a ripple and a "Copied" chip; copy counts are kept.
+  - Swipe left to delete, with an Undo toast.
+  - Hold and drag into a **Used** section (collapsible) or to another project; the Used section was a list of cards.
+  - Card editing, keyboard shortcuts, and search with highlighting (Enter copies the top match).
+- **Voice:** OpenAI transcription (the default was gpt-transcribe) with a single request after stopping recording, and Retry on failure. The API key is encrypted with DPAPI.
+- **Other:**
+  - Global show/hide hotkey Ctrl+Alt+R.
+  - Drafts kept when the composer closes.
+  - Optional "minimise after copying".
+  - Window bounds remembered; single-instance lock.
+  - Atomic data writes with a `.bak` copy.
+- **Look:** a light "monstera" theme with the Fraunces serif for titles and wide 340px columns.
