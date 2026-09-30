@@ -9,7 +9,7 @@ Terms used below:
 - **Cooked** (Combined in 1.6–1.7, Augmented before 1.6): the middle stage (data field `used`), shown as ONE combined note.
 - **Served** (Final in 1.6–1.7, Used before 1.6): the bottom stage (data field `combined`), the final combined text.
 
-§1–§24 describe the Windows app, 1.16.0, which is the owner's main install. The Mac edition of the same version (uncommitted work on branch `masos`) works the same way except where an "(on a Mac: …)" note says otherwise. §25 describes every Mac flow.
+§1–§24 describe the Windows app, 1.16.0, which is the owner's main install. The Mac edition of the same version (committed and pushed on branch `masos`, not merged into `main`) works the same way except where an "(on a Mac: …)" note says otherwise. §25 describes every Mac flow.
 
 ## 1. Screen layout (top to bottom, left to right)
 
@@ -463,7 +463,7 @@ Esc, ×, or **Got it** closes it. While it's open, the app's own shortcuts are i
 
 ## 25. On a Mac
 
-The Mac edition of 1.16.0 is the same app, built from the same code on branch `masos`. It is uncommitted work as of 2026-09-29; main and v1 hold the Windows 1.16. Every Mac difference is fenced (`IS_MAC` in the JavaScript, `body.is-mac` in the CSS, the `mac` and `dmg` build sections), so the Windows app behaves exactly as before. The data format and folder layout are the same. The build is for Apple Silicon only (arm64), needs macOS 13 or later, is ad-hoc signed and is not notarized. This section describes what the user sees and does; `14_macos.md` has how each difference works in the code, the build, the tests and the open list.
+The Mac edition of 1.16.0 is the same app, built from the same code on branch `masos`. The owner committed and pushed it there on 2026-09-29 as "mac build" (`16961eb` + `9536853`); it is not merged into main, and main and v1 hold the Windows 1.16. Every Mac difference is fenced (`IS_MAC` in the JavaScript, `body.is-mac` in the CSS, the `mac` and `dmg` build sections), so the Windows app behaves exactly as before. The data format and folder layout are the same. The build is for Apple Silicon only (arm64), needs macOS 13 or later, is ad-hoc signed and is not notarized. This section describes what the user sees and does; `14_macos.md` has how each difference works in the code, the build, the tests and the open list.
 
 **What has been checked:** the three e2e suites pass on this Mac, run from source and against the packaged app's `app.asar`: 12 + 21 + 139. On a Mac the features suite skips the 3 real-snip checks and adds 8 Mac checks. **What isn't verified yet:** the real keys (⌃⌥R included), the real traffic lights, and the real microphone, Screen Recording and keychain prompts. The session never launched the packaged `Recaller.app`. Late on 2026-09-29 the owner copied it into `/Applications` and then opened the copy inside the mounted dmg (still running from there at the end of the session), and nothing about that run is recorded. There is no Intel build, and snips over another app's full-screen Space are untested. Wherever this section says nobody has tried something, read it as "not verified by a session and not reported by the owner yet".
 

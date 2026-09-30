@@ -215,7 +215,7 @@ The `#monstera` symbol has three paths: a stroked stem, the leaf fill, and a mid
 
 ## macOS (the Mac edition only)
 
-The Mac edition of 1.16.0 (uncommitted work on branch `masos`, 2026-09-29) keeps the same design. Everything Mac-only in the CSS is one block at the end of `styles.css`, under `body.is-mac`. `app.js` adds that class on a Mac only, before the first render, so none of it reaches Windows. (The rest of the Mac edition is in `14_macos.md`.)
+The Mac edition of 1.16.0 (branch `masos`, committed and pushed on 2026-09-29, not merged into `main`) keeps the same design. Everything Mac-only in the CSS is one block at the end of `styles.css`, under `body.is-mac`. `app.js` adds that class on a Mac only, before the first render, so none of it reaches Windows. (The rest of the Mac edition is in `14_macos.md`.)
 
 - **The top bar:**
   - `body.is-mac .topbar { padding-left: 84px; }` starts the brand after the traffic lights (they end at x 70, plus 14px);

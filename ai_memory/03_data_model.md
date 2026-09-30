@@ -1,6 +1,6 @@
 # 03: Data model, storage and update safety
 
-The Windows app (1.16.0 on `main` and `v1`) and the Mac edition of 1.16.0 (uncommitted on branch `masos`) read and write exactly the same files. Mac-only behaviour is marked **On a Mac**.
+The Windows app (1.16.0 on `main` and `v1`) and the Mac edition of 1.16.0 (committed and pushed on branch `masos`, not merged into `main`) read and write exactly the same files. Mac-only behaviour is marked **On a Mac**.
 
 ## Where data lives
 
@@ -256,6 +256,6 @@ The on-screen names changed three times; the data field names never did, so exis
 - **1.12.0** added `prefs.cookedColor` (only when picked).
 - **1.13.0** changed the allowed `cookedColor` values to ocean/teal/midnight/graphite. Stored 1.12 values are not rewritten; they draw as ocean.
 - **1.14.0–1.16.0** added no fields (1.16 only changed the board arrows). 1.14 shows the images already stored on `used` / `combined` notes; 1.15 deletes notes from those lists (the same splice as deleting a card).
-- **The 1.16.0 Mac edition** (branch `masos`, uncommitted, 2026-09-29) added no data fields and doesn't change the format. Its only settings difference is the default `hotkey` (`"Control+Alt+R"` on a Mac). It adds flushes (`closed`, `will-quit`, the page's `beforeunload` draft save) and the hourly daily-backup check, all on a Mac only.
+- **The 1.16.0 Mac edition** (branch `masos`, committed and pushed as "mac build" on 2026-09-29) added no data fields and doesn't change the format. Its only settings difference is the default `hotkey` (`"Control+Alt+R"` on a Mac). It adds flushes (`closed`, `will-quit`, the page's `beforeunload` draft save) and the hourly daily-backup check, all on a Mac only.
 
 `DATA_VERSION` has been 2 since 1.1.0. Every change since then was additive or display-only, so no migration code exists beyond the one-time v1 → v2 rewrite.

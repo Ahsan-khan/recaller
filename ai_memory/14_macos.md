@@ -9,7 +9,7 @@ This file is the guide for anyone continuing Recaller on the Mac:
 
 The rest of this folder describes the shared app. Read this file before changing anything for the Mac. Related: `08` ("1.16.0 for Mac"), `11` (why each Mac choice was made) and `09` (the open list).
 
-**Status (seventh session, 2026-09-29):** the Mac edition of 1.16.0 is built and verified. It is **uncommitted** work on branch `masos`. The session itself never opened the packaged app.
+**Status (seventh session, 2026-09-29):** the Mac edition of 1.16.0 is built and verified. The owner **committed and pushed** it on branch `masos` as "mac build" (`16961eb` + `9536853`). A follow-up commit, "fix" (`f86cf19`, also pushed), took Finder's `.DS_Store` back out of git (see "Files" below). It is not merged into `main`. The session itself never opened the packaged app.
 
 **Late update:** at about 20:43 on 2026-09-29, while this handoff was being written, the owner copied Recaller.app (1.16.0) into `/Applications` (20:43:22) and then opened the copy on the mounted dmg (20:43:25), not the one in Applications. That first run created `~/Library/Application Support/Recaller`, which now holds their real Mac notes. At the end of the session, that dmg copy was still the running Recaller. Nothing about how it went is recorded. So where this file says something is untested or not tried by a person, read "not verified by a session and not reported by the owner yet", and ask them.
 
@@ -30,7 +30,7 @@ The rest of this folder describes the shared app. Read this file before changing
   - Mac: `Recaller-1.16.0-arm64.dmg`, built on the Mac in this session, in `dist/`.
 - **Branch `masos`.** "masos" is the owner's spelling; keep it.
   - The owner created it from `main` (`dd5a3b0`) on 2026-09-29 and published it (`origin/masos`).
-  - All the Mac work is uncommitted in its working tree. The owner commits and pushes themselves.
+  - The owner committed and pushed all the Mac work there late on 2026-09-29 (see "Files" below). The owner commits and pushes themselves.
   - `main` and `v1` hold the Windows 1.16.0 and were not touched.
 - **One codebase.** masos reuses the Windows code and can still build the identical Windows installer.
 
@@ -69,13 +69,21 @@ Every Mac difference is gated, so the Windows app behaves exactly as before: the
   - `src/renderer/app.js`, `index.html`, `styles.css` and `voice.js`;
   - the four suites (`features.e2e.js`, `update-safety.e2e.js`, `multi-copy.e2e.js`, `capture-board.js`) and `tests/e2e/README.md`;
   - the docs: the root `README.md` and every file in `ai_memory/`.
-- **New, staged (`A` in `git status`) but not yet committed:** `build/icon-mac.png`, `tests/e2e/mac-harness.js` and this file, `ai_memory/14_macos.md`. Commit all three with the rest:
+- **New:** `build/icon-mac.png`, `tests/e2e/mac-harness.js` and this file, `ai_memory/14_macos.md`. All three went into the first "mac build" commit with the rest, and they belong with it:
   - the changed suites `require('./mac-harness')` and won't start without it, on Windows too;
   - `dist:mac` needs the icon;
   - the rest of `ai_memory` points here.
-- **Before committing:** the owner staged the whole Mac edition at about 21:13 on 2026-09-29.
-  - Any file that `git status -s` shows as `MM` or `AM` was edited after that, so its newer text isn't staged. Stage it again (or commit from the working tree) first.
-  - Finder's `.DS_Store` in the repo root was staged too (`A  .DS_Store`). It must not be committed: untick it in GitHub Desktop, or run `git restore --staged .DS_Store`. Adding `.DS_Store` to `.gitignore` would stop it coming back; that is the owner's call.
+- **Committed and pushed:** at 21:45 on 2026-09-29 the owner committed the Mac edition on `masos` as two commits, both called "mac build":
+  - `16961eb` (21:45:34): the snapshot they had staged at about 21:13. It also included Finder's `.DS_Store` by accident.
+  - `9536853` (21:45:53): the fixes made after that staging: the docs, plus the stricter capture check in `scripts/make-icon.js` (section 4, "The icon") and a comment in `mac-harness.js`.
+  - Both were pushed. A read-only check (`git ls-remote origin`) found GitHub's `masos` at `9536853`, with `main` (`dd5a3b0`) and `v1` (`664212a`) unchanged, and the working tree matched the pushed commit exactly.
+  - The pushed app code is byte-identical to the tested dmg: all 33 files under `src/` match its `app.asar`, and `build/icon-mac.png` is the same file. The only `package.json` differences are the `scripts`, `build` and `devDependencies` fields, which electron-builder strips from the packaged copy.
+  - `masos` is not merged into `main`; that is the owner's call. When they want it: a pull request from `masos` into `main`, after running the suites once on the Windows PC (expect 12 + 21 + 134).
+- **`.DS_Store` cleanup:** at the owner's "fix it", after they asked whether their pushes looked good:
+  - `git rm --cached .DS_Store` took Finder's file out of git. It stays on disk.
+  - `.DS_Store` was added as a new last line of `.gitignore`, so git and GitHub Desktop no longer offer it.
+  - The owner committed both as "fix" (`f86cf19`, 21:51:53) and pushed it straight away, so `masos` = `origin/masos` = `f86cf19`.
+  - The doc updates that record all this came after "fix" and aren't in it. The owner commits and pushes them.
 
 ### How it came about
 

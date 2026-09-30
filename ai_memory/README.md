@@ -7,8 +7,9 @@ Status as of **2026-09-29**, seventh session (on the owner's Mac):
   - It is committed on `v1` as "1.16" (`664212a`), together with the fifth session's `ai_memory`, and merged into `main` (`dd5a3b0`, PR #1).
   - Its installer (`dist\Recaller Setup 1.16.0.exe`) was built and tested on the PC in the fifth session.
   - The PC had 1.15.0 installed then. Whether 1.16.0 has been installed since isn't recorded.
-- **The Mac edition of 1.16.0 was built and verified** on branch `masos` in this session. It is **uncommitted** there.
-  - The build is `dist/Recaller-1.16.0-arm64.dmg`, ad-hoc signed and not notarized.
+- **The Mac edition of 1.16.0 was built and verified** on branch `masos` in this session. The owner **committed and pushed** it there as "mac build" (`16961eb` + `9536853`, 21:45 on 2026-09-29). It is not merged into `main`.
+  - The build is `dist/Recaller-1.16.0-arm64.dmg`, ad-hoc signed and not notarized. The pushed app code is byte-identical to the app inside it.
+  - **`.DS_Store`:** Finder's file went into the first commit by accident. At the owner's "fix it" it was taken out of git (it stays on disk) and added to `.gitignore`; the owner committed and pushed that as "fix" (`f86cf19`). Details under "Where things are".
   - The session itself never opened the packaged app.
   - **Late update:** at about 20:43 on 2026-09-29, while this handoff was being written, the owner copied Recaller.app (1.16.0) into `/Applications` and, a few seconds later, opened the copy inside the mounted dmg, not the one in Applications. That first run created `~/Library/Application Support/Recaller`, which now holds their real Mac notes. When this session ended, the dmg copy was still the running Recaller and the "Recaller 1.16.0" disk was still mounted; the advice was to quit it with ⌘Q, eject the disk and open Recaller from Applications (`10`, message 41). Nothing else about the run is recorded (Gatekeeper, the permission and keychain prompts, the keys, the look), so ask. Where these files call a Mac behaviour untested or "not tried by a person", read it as "not verified by a session and not reported by the owner yet" (see `14`).
 - **Tests:**
@@ -106,10 +107,10 @@ AI agents should read `13` first, then continue with the order above. Read `14` 
 - **Branches:**
   - `main` holds 1.16.0, through the PR #1 merge of `v1` (`dd5a3b0`, 2026-09-29). Its tree is identical to `664212a`. Before that merge it was `296fd32` "initial commits" (1.6.0), whose parent `3876950` is 1.5.0.
   - `v1` is the Windows working branch. The owner commits each version there with a short message and pushes: "1.8", "1.9", … "1.12" = `290c74d`, "1.13" = `0f7ceea`, "1.14" = `8776a32`, "1.15" = `7f101e6`, "1.16" = `664212a`.
-  - `masos` is the Mac edition. The owner created it from `main` (`dd5a3b0`) on 2026-09-29 and published it. The Mac work is uncommitted there.
-    - **Staged:** the owner staged all of it at about 21:13 on 2026-09-29. `git status` shows changed files as `M`, and the three new files (`build/icon-mac.png`, `tests/e2e/mac-harness.js` and `ai_memory/14_macos.md`) as `A`.
-    - **Edited since:** any file shown as `MM` or `AM` has newer text than its staged copy. Stage it again (or commit from the working tree) before committing.
-    - **`.DS_Store`:** Finder's `.DS_Store` in the repo root was staged too (`A  .DS_Store`) and must not be committed. Before committing, untick it in GitHub Desktop or run `git restore --staged .DS_Store`. Adding `.DS_Store` to `.gitignore` would stop it coming back; that is the owner's call.
+  - `masos` is the Mac edition. The owner created it from `main` (`dd5a3b0`) on 2026-09-29 and published it.
+    - **Committed and pushed:** at 21:45 that evening the owner committed the Mac edition there as two commits, both "mac build": `16961eb` (the snapshot they had staged at about 21:13, which also took in Finder's `.DS_Store` by accident) and `9536853` (the fixes made after that staging, mostly docs). Both were pushed: a read-only check (`git ls-remote origin`) found GitHub's `masos` at `9536853`, and `main` and `v1` unchanged there. The pushed app code is byte-identical to the tested dmg (`14`, "Files").
+    - **`.DS_Store` cleanup:** at the owner's "fix it", `git rm --cached .DS_Store` took Finder's file out of git (it stays on disk), and `.DS_Store` was added as a new last line of `.gitignore`. The owner committed both as "fix" (`f86cf19`, 21:51) and pushed it, so `masos` = `origin/masos` = `f86cf19`. The doc updates that record this came after "fix"; the owner commits and pushes them.
+    - **Not merged into `main`:** that is the owner's call. When they want it: a pull request from `masos` into `main`, after running the suites once on the PC (expect 12 + 21 + 134).
   - `stash@{0}` ("On v1: Discarded changes since 1.16 push (1.17.0 macOS work) — 2026-09-29") is the sixth session's discarded Mac attempt. The Mac edition was built without it: the build never read, applied or popped it. Leave it alone unless the owner asks.
 - **Source:** `src/`.
 - **Tests:** `tests/e2e/`. Run them with `npm test`; on a Mac, read `14` first.

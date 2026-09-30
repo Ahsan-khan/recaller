@@ -380,10 +380,25 @@ Seventh session (2026-09-29, on the MacBook Pro, branch `masos`). All of its mes
 
 > all documentation updated?
 
+> everything done running?
+
 [Status questions, each answered with a fresh check rather than from memory:
 - While the docs agents worked: which files had changed, and when the consistency pass would run.
 - "anything running?": nothing from the session was running (no test Electron, no build, no workflow). Only the owner's own Recaller was open, launched at 20:43 from the mounted `Recaller 1.16.0` dmg rather than from `/Applications`. The advice: quit, eject the dmg, and open Recaller from Applications. The mounted `Tracer.dmg` from the owner's `tracer` project also explained the earlier crash reports.
 - "all documentation updated?": a final sweep found three things that had changed after the docs pass, all now corrected:
   - the `macRect()` multi-display fix (`09`, `14`, `06`, `11`, `12`);
   - this message log;
-  - the Tracer origin (`01`, `07`, `10`).]
+  - the Tracer origin (`01`, `07`, `10`).
+- "everything done running?": nothing from the session was running. Only the owner's own Recaller was open, still the copy inside the mounted dmg.]
+
+## Message 42
+
+> check my latest pushes to github, everything looks good?
+
+[Checked read-only, with no fetch: `git log`, `git show --stat` and `git ls-remote origin`, plus a comparison of the pushed `src/` with the dmg's `app.asar`. The owner had committed the Mac edition on `masos` at 21:45 on 2026-09-29, as two commits both called "mac build": `16961eb` (21:45:34), the snapshot they had staged at 21:13, and `9536853` (21:45:53), the fixes made after that staging, mostly to the docs. Both were pushed. GitHub's `masos` was `9536853`; `main` (`dd5a3b0`) and `v1` (`664212a`) were unchanged there, and the working tree matched the pushed commit exactly. The pushed app code is byte-identical to the tested dmg: all 33 files under `src/` match its `app.asar`, and `build/icon-mac.png` is the same file. `package.json` differs only in the `scripts`, `build` and `devDependencies` fields, which electron-builder strips from the packaged copy. Nothing sensitive was committed (no notes or settings files, API keys, builds, `dist/` or `node_modules`). All good except one thing: `16961eb` had also committed Finder's `.DS_Store` by accident. The reply offered to take it out of git and git-ignore it, leaving the commit and push to the owner. It also suggested a pull request from `masos` into `main` for whenever they want the Mac edition there, after running the suites once on the PC.]
+
+## Message 43
+
+> fix it
+
+[A yes to that offer. `git rm --cached .DS_Store` took Finder's file out of git (it stays on disk), and ".DS_Store" was added as a new last line of `.gitignore`. Both were staged for the owner, who committed them as "fix" (`f86cf19`, 21:51:53, only those two changes) and pushed it; a read-only `git ls-remote origin` at 21:58 showed GitHub's `masos` at `f86cf19`. This update of the docs came after that commit, so it is left for the owner to commit and push. `masos` is still not merged into `main`; that's the owner's call.]
