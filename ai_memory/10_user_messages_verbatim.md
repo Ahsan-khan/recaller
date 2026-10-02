@@ -402,3 +402,129 @@ Seventh session (2026-09-29, on the MacBook Pro, branch `masos`). All of its mes
 > fix it
 
 [A yes to that offer. `git rm --cached .DS_Store` took Finder's file out of git (it stays on disk), and ".DS_Store" was added as a new last line of `.gitignore`. Both were staged for the owner, who committed them as "fix" (`f86cf19`, 21:51:53, only those two changes) and pushed it; a read-only `git ls-remote origin` at 21:58 showed GitHub's `masos` at `f86cf19`. This update of the docs came after that commit, so it is left for the owner to commit and push. `masos` is still not merged into `main`; that's the owner's call.]
+
+---
+
+Eighth session (2026-09-29 to 2026-10-01, on the MacBook Pro, branch `masos`). Times are the Mac's local time (EDT). All of its messages up to this update are below.
+
+## Message 44 (2026-09-29, 22:05)
+
+> Read everything and every file in /Users/ahsan/Documents/GitHub/recaller/ai_memory. make sure you learn every file so we can continue on building
+
+[All fifteen files were read, and a read-only audit checked them against the code.]
+
+## Message 45 (22:32 and 22:35)
+
+> ?
+
+> keep showing me progress
+
+## Message 46: accounts on Google Cloud (22:53)
+
+> Update it so I can create accounts. For user and set up the infrastructure on Google Cloud. Everything should be on GCP, so all the... So all the data is stored, like all the columns, file names, acccount info everything is stored.
+
+[This became 1.17.0: email and password accounts, and local-first sync of the board to Google Cloud (project `recaller-cloud`). The design and what was built are in `15_accounts_and_sync.md`.]
+
+## Message 47: the owner's answers to four questions (22:59)
+
+> Anyone can sign up
+
+[The question: who should be able to have an account?]
+
+> Email + password
+
+[The question: how should people sign in?]
+
+> Local-first, synced (Recommended)
+
+[The question: how should Recaller behave offline or when signed out? The option read: "Works exactly as now without internet or an account, keeps local backups, and syncs every change to GCP and your other computer when signed in. The cloud always holds the full copy."]
+
+> Have GCP + billing: set it up
+
+[The question: where are you with Google Cloud? The project `recaller-cloud` was then made on the owner's billing account, in us-east1. "(Recommended)", here and in later answers, was the assistant's tag on the option the owner picked.]
+
+## Message 48 (23:26 to 23:28)
+
+> keep showing me progress
+
+> are you using terraform?
+
+> yes use best practice terraform setup
+
+[The infrastructure moved into Terraform: `infra/terraform/bootstrap` keeps the state bucket, and `prod` adopted every resource that already existed (`infra/README.md`).]
+
+## Message 49: the owner's answers to four more questions (2026-09-30, 17:06)
+
+> Both Windows and Mac (Recommended)
+
+[The question: accounts change the Windows app too (earlier the owner had asked to keep it as it was); ship accounts on both? So 1.17.0 is for both.]
+
+> Per computer (Recommended)
+
+[The question: should the look (title font and Cooked colour) follow the account, or stay per computer? Only "Join notes with" syncs.]
+
+> Open now (Recommended)
+
+[The question: anyone with a copy of the app can create an account; how should sign-ups start? So `signup_enabled = true`.]
+
+> ahsan@ponders.ai
+
+[The question: what should the privacy note's contact line say?]
+
+## Message 50 (status, 17:33 to 20:22)
+
+> whats happening now
+
+> what now
+
+> how long will it take
+
+> why is it taking so long i dont get it
+
+> so at the end will i get a fully fucntional app that any user can use on any os?
+
+> okay continue
+
+> na no extras
+
+> keep updating me
+
+[Each status question was answered with a fresh look at the running work. To "any os": Windows and Apple Silicon Macs, with an Intel or universal Mac build, a Linux build, auto-update and a hosted privacy page offered as extras. "na no extras" declined all of them for 1.17 (`15`, the owner's answers; `09`).]
+
+## Message 51 (21:24)
+
+> Yes, run them (Recommended)
+
+[The question: may the test suites run on this Mac several times? Their windows are 2-pixel slivers with no Dock icon and no focus, but each run overwrites the clipboard. They ran, the new sync suite included.]
+
+## Message 52 (2026-10-01, 04:20 and 05:13)
+
+> go
+
+> speed it up
+
+["go" resumed the work after the agents' monthly spend limit had stopped it. After "speed it up", independent work ran side by side.]
+
+## Message 53 (14:15)
+
+> okay i did npm run rules:smoke
+>
+> what now
+
+[By then the owner had applied the deploy's saved plan (the rules went live at 13:54) and run `auth-settings.sh` and the smoke test. Read-only checks confirmed the deploy (`15`, status).]
+
+## Message 54 (14:41, with the smoke test's output pasted and two screenshots)
+
+> the verification email went to spam
+>
+> does it auto backup? I dont want to keep clicking it, like i want it to be auto synced
+>
+> how much will this cost me total per month
+
+[The pasted output: 43 passed and 2 failed, both from one rules gap (an upload over a stored picture was accepted), fixed in the repo (`15`, section 0, item 34). The screenshots: Firebase's Project settings with no "Public-facing name" field, and the verification email in Gmail's Spam ("Verify your email for recaller-cloud", from `noreply@recaller-cloud.firebaseapp.com`). The answers: the name and Spam steps (`infra/README.md`, "Email delivery"); sync and the local backups are automatic, with nothing to press (the app now says so); about 0.00 CAD a month for the owner alone (`15`, 2.3). Clicking the email's link also showed which key the email pages use (`07` #99).]
+
+## Message 55 (20:10)
+
+> so the ai memory docs are updated ?
+
+[Checked with a sweep for stale statements and for the day's facts. The sweep found this message log a session behind, so it was brought up to date.]
