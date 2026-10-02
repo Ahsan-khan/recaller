@@ -2,7 +2,7 @@
 
 Function and variable names below are real; search for them in the files. Line numbers drift, names don't.
 
-The recipes apply to both platforms unless marked **On a Mac** or **On Windows**. The Windows app is 1.16.0 on `main` and `v1`; the Mac edition of 1.16.0 is on branch `masos`, committed and pushed as "mac build" (`16961eb` + `9536853`, 2026-09-29) and not merged into `main`. Every Mac difference must stay fenced so Windows behaves exactly as before (see "Add a Mac-only behaviour"). Before any Mac work, read `14_macos.md`, which describes the whole Mac edition.
+The recipes apply to both platforms unless marked **On a Mac** or **On Windows**. The Windows app is 1.16.0 on `main` and `v1`; the Mac edition of 1.16.0 is on branch `masos`, committed and pushed as "mac build" (`16961eb` + `9536853`, 2026-09-29) and not merged into `main`. Every Mac difference must stay fenced so Windows behaves exactly as before (see "Add a Mac-only behaviour"). Before any Mac work, read `14_macos.md`, which describes the whole Mac edition. 1.17.0 (accounts and sync, both platforms) is built on `masos` and not committed yet; before touching it, read the last recipe, "Work on accounts and sync safely".
 
 ## Before any change
 
@@ -11,6 +11,7 @@ The recipes apply to both platforms unless marked **On a Mac** or **On Windows**
   - **On Windows** (PowerShell): `$env:RECALLER_DATA_DIR = "$env:TEMP\recaller-dev"; npm start`
   - **On a Mac** (zsh): `RECALLER_DATA_DIR="$TMPDIR/recaller-dev" npm start` (details in the next recipe). The PowerShell form sets nothing in zsh.
   - `npm start` without it uses the real data folder: `%APPDATA%\Recaller` on Windows, `~/Library/Application Support/Recaller` on a Mac.
+  - Since 1.17: with `RECALLER_DATA_DIR` set (and no mock), accounts are off, so a dev run never reaches Google Cloud. Without it, and once `src/cloud/project.json` exists, a dev run would show the real account section; keep the sign-in in memory (the default from source) and see "Work on accounts and sync safely" below.
   - If the installed Recaller is running and both use the same data folder, the single-instance lock hands focus to the installed app and the dev copy quits.
 - DevTools, in a dev run only (disabled when packaged): F12 or Control+Shift+I; **on a Mac** also ⌘⌥I (F12 needs fn on a Mac keyboard). The Mac menu bar has no View or Developer menu.
 - After editing JavaScript: `node --check <file>`.
@@ -93,6 +94,12 @@ The recipes apply to both platforms unless marked **On a Mac** or **On Windows**
    - The test must still see the file untouched right after launch.
 6. **Version:** bump `DATA_VERSION` only for a real format change. Any migration must be lossless, run once, and rely on the automatic upgrade backup.
 7. **Both platforms** read and write the same file, so a field must mean the same thing on Windows and on a Mac. Never store a path, a key name or anything else platform-specific in the data file.
+8. **Sync (1.17) decides where the field goes:**
+   - A new note or project field **syncs by itself**: unknown fields travel under their own names (or in `_json`), and patches keep them. Nothing to do, but remember both computers then share it.
+   - A field that belongs to **one computer** (a view flag, a per-screen size) must not sync: name it with the `local` prefix, or add it to the per-device key lists in `src/renderer/sync-apply.js` (`LOCAL_PROJECT_KEYS`, `LOCAL_NOTE_KEYS`, read through `isLocalKey`), which `src/sync/model.js` shares. Then it goes only into the device record's `view`.
+   - A new `prefs` key stays on each computer unless it is added to the head's `board` like `joiner`, which takes changes in the engine, `model.js`, `merge.js` and `sync-apply.js`.
+   - A field holding pictures must also be known to the picture upload in `src/sync/engine.js`, or the other computer will show broken images.
+   - The rules allow at most 200 fields per item, and the client quarantines a note over about 900 KB.
 
 ## Make a change undoable
 
@@ -109,6 +116,7 @@ The recipes apply to both platforms unless marked **On a Mac** or **On Windows**
 4. Add the row to the IPC table in `ai_memory/02_architecture.md`.
 5. Network calls belong in main only; the page's CSP blocks them.
 6. **Mac only?** Register the handler inside `if (IS_MAC)`, as `app:open-privacy` is, and call the preload function only from Mac-gated code. The preload function itself may be unconditional (`openPrivacy`, `onCommand`). Allow-list string arguments with `Object.hasOwn`, as `PRIVACY_PANES` does.
+7. **Accounts or sync?** Add the handler to `registerIpc()` in `src/cloud/index.js`, not `main.js`: wrap it like the others (a fallback result, never a throw), validate the payload there, return only what a `Result` or `AccountState` may hold, and never send a token, the config or an email in a log line. Account operations go through `exclusive()` (one at a time, `BUSY` otherwise).
 
 ## Add a Mac-only behaviour
 
@@ -235,7 +243,7 @@ The same npm scripts work on a Mac. `tests/e2e/mac-harness.js` keeps a run out o
 
 1. **Ask the owner first.** They agreed to the Mac-safe runs on 2026-09-29 ("Yes, run them"). Every run still overwrites their clipboard.
 2. `node --check` every suite you changed.
-3. Run in the background and grep the log for `passed`: `npm run test:multicopy`, `npm run test:update`, `npm run test:features`, or `npm test` for all three (multi-copy, then update-safety, then features).
+3. Run in the background and grep the log for `passed`: `npm run test:multicopy`, `npm run test:update`, `npm run test:features`, and since 1.17 `npm run test:accounts-on` (the same three with accounts on and nobody signed in, failing on any request); or `npm test` for everything (the unit tests, the three suites, accounts-on, then sync).
 4. **Expected** (2026-09-29, on source and against the packaged `app.asar` alike): multi-copy 12/12, update-safety 21/21, features 139/139. Features also prints `SKIP  real screen snip (3 checks)` and an `INFO` line with the title-bar measurements. The packaged run's log is `tests/e2e/.out/mac-pkg-all.log`. On Windows the suites count 12 + 21 + 134; they last ran there on 1.16.0 in the fifth session, and not yet on the `masos` code.
 5. **What the harness does on a Mac** (all four scripts call `quiet()` before `require(APP_MAIN)` and place windows with `macRect()`):
    - no Dock icon (`app.dock.hide()`);
@@ -260,3 +268,31 @@ The same npm scripts work on a Mac. `tests/e2e/mac-harness.js` keeps a run out o
 9. **Retina capture:** `SCALE=2 npm run capture` renders the sample board at 2× (Mac only; the default is 1×).
 10. **If a run hangs:** multi-copy and `capture-board.js` have no `.catch` on `app.whenReady()`, so an exception leaves Electron running (with its 2px sliver) instead of printing `HARNESS FAIL`. Kill it by its full path (see "Run from source on a Mac").
 11. **Still untested on a Mac** (by the suites, and not reported from the owner's first run late on 2026-09-29): real key presses and the real traffic lights, the menu bar driven from the keyboard, a real snip and real dictation (with their Screen Recording and microphone prompts), the keychain, the packaged `Recaller.app` itself (the suites load only its `app.asar`), full-screen Spaces and Intel Macs. The `masos` code hasn't been run on Windows either.
+
+## Work on accounts and sync safely (1.17)
+
+Read `15_accounts_and_sync.md` first: its status, section 0 ("As built") and the section for the area you're changing. Then work from the inside out: pure logic, then the engine with the mock and the peer, then the app.
+
+1. **Never the real cloud.**
+   - Don't set `RECALLER_GCP_REAL=1`, and don't run `npm start` with `src/cloud/project.json` present unless `RECALLER_DATA_DIR` points at a throwaway folder (with it and without the mock, accounts are off).
+   - Don't read or print `src/cloud/project.json`, `infra/gcp/project.json`, Terraform state or a saved plan (`07` #87, #89).
+   - `terraform`, `gcloud`, `npm run rules:test`, `npm run rules:smoke` and the manual two-computer check are the owner's, run only when they ask and are present.
+2. **Pure logic** (`src/sync/keys.js`, `model.js`, `diff.js`, `merge.js`, `src/renderer/sync-apply.js`, `src/cloud/codec.js`): add a case to the matching file in `tests/unit/`, then `node --test tests/unit/merge.test.js` (one file) or `npm run test:unit` (all). Every row of the merge tables in `15` 5.7 has a test; keep it that way.
+3. **The engine, the account and the clients:** write the scenario in `tests/unit/engine.test.js` (or `account.test.js`, `clients.test.js`) with the mock and two headless peers:
+   - `createGcpMock()` from `tests/mock-gcp`, and `createPeer({ dir, fetchImpl: mock.fetch, time, platform })` from `tests/support/peer.js`, one per computer, on one fake clock (`createFakeTime()`, from the same file);
+   - drive them as a person would (`peer.page.addNote(…)`, `peer.signIn(…)`, `peer.kill()` then `peer.boot()` for a crash), then `settle([a, b], time)` and compare the boards, the shadows and `mock.docs(uid)`;
+   - the mock's controls make the hard cases: `fail({ service, status, lost })`, `bumpHeadBetweenGetAndCommit()`, `denyDoc(path)`, `pauseAfter(step)`, `remote(uid)` for the other computer's commits, `expireIdTokens()`;
+   - `peer.onCall(phase, label)` crashes a peer at any `await`;
+   - the fuzz test runs about a minute by default; `FUZZ_SEED=n` replays one seed, and `FUZZ_SEEDS=50 FUZZ_STEPS=2000 node --test tests/unit/fuzz.test.js` is the full run of `15` 7.4.
+4. **The rules:** change `infra/firebase/firestore.rules` or `storage.rules` and the twin in `tests/mock-gcp/rules.js` together, add the case to `tests/rules/cases.js`, and run `npm run test:unit` (the twin runs every case). The owner then runs `npm run rules:test` on Google's engine before any deploy, and the deploy goes through Terraform (`infra/README.md`, "Security rules"). One ruleset serves every released version, so new rules must keep accepting what older versions write.
+5. **The facade, main and the page:** `node --check` every edited file, then `npm run test:sync`: the real app as computer A against the mock, the peer as computer B, 43 checks, Mac-safe, never the keychain. Read its `n/n passed` line (a crashed Electron exits as a pass), and look at `.out/sync-shots/` for the account states. To look at the account UI in other states, copy `tests/e2e/capture-board.js` into `tests/e2e/.out/`, and start the mock there before `require(APP_MAIN)` the way `sync.e2e.js` does (`RECALLER_GCP_BASE`, `RECALLER_TOKEN_STORE=test-file`, `RECALLER_SYNC_FAST=1`).
+6. **Then the older suites,** which must not move: 12 + 21 + 134 on Windows, 12 + 21 + 139 on a Mac. They run with accounts off; a change to them means signed-out behaviour changed, which it must not. Then `npm run test:accounts-on`: the same three with accounts on and nobody signed in, failing if the app sends any request.
+7. **Keep the invariants** (`15`, 5.1 and 5.17):
+   - the engine never writes the data file; only the page's `persist()` does;
+   - the shadow advances only for states on disk (per committed chunk, or after the acknowledging save);
+   - no clock orders anything (revisions and keys only);
+   - a change from the cloud never alters something under an open editor, drag, menu or Undo toast;
+   - signed out: no `sync/` folder, no network, no timers, no quit delay;
+   - hooks never throw into `main.js`, and logs carry codes only: never a message, an email, note text or a token.
+8. **Strings and platforms:** the account UI's strings live in `src/renderer/account.js` (`15`, section 6) and the sync toasts in `app.js`'s sync block. Both platforms run the same code; only labels differ ("this PC" or "this Mac", the keychain line), through `IS_MAC`.
+9. **Write it down:** a deliberate change to the spec gets a code comment naming the spec section and an entry in `15` section 0.

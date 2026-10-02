@@ -17,7 +17,7 @@ npm install
 npm run dist
 ```
 
-This builds `dist/Recaller Setup 1.16.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
+This builds `dist/Recaller Setup 1.17.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
 
@@ -97,9 +97,141 @@ Recording splits your speech at natural pauses. Each phrase is sent and streamed
 
 Notes are stored in `%APPDATA%\Recaller\recaller-data.json`, and images in `%APPDATA%\Recaller\images\`. Every save writes a temp file and then renames it into place, so a crash can't leave a half-written file. At each launch, Recaller copies the last good file to `recaller-data.json.bak` and removes image files that no note uses any more. **Settings → Open data folder** opens that folder. On a Mac the same files live in `~/Library/Application Support/Recaller`.
 
+## Accounts, sync and privacy
+
+New in 1.17.0. An account is optional. Without one, Recaller works exactly as before: nothing is uploaded, and the only network traffic is voice recordings, sent to OpenAI with your own key.
+
+### What an account gives
+
+- Your board is kept in your own Recaller account on Google Cloud, and on every computer where you sign in. A Windows PC and a Mac can share one board.
+- A change on one computer reaches the others within about a minute while Recaller is in front, and at once when you bring Recaller up (`Ctrl+Alt+R`, ⌃⌥R on a Mac) or click into it.
+- It all happens by itself: your changes upload a few seconds after you make them, and there's nothing to press. **Sync now** in Settings only skips the wait.
+- A new or replaced computer gets the whole board back by signing in.
+- Each computer still keeps a full copy of the board, so Recaller works offline and never waits for the network. Only a picture added on another computer comes as a preview at first: its full size comes down when you open or copy it.
+
+Everything is in **Settings → Account & sync**, just above **Your data**.
+
+### Create an account and verify your email
+
+1. Click **Create account**, type your email and a password of at least 8 characters, and click **Create account**. **What's stored and where** shows the privacy note (below) before you agree.
+2. Recaller sends you an email. Open the link in it, then come back and click **I've verified**. Recaller also checks by itself for 10 minutes, and whenever you come back to it. Nothing is uploaded until your email is verified.
+   - The email can take a minute, and the first one may land in Spam (or Junk). If it isn't in your inbox, look there.
+   - **Send again** works once a minute. **Use a different email** deletes the account you just made if you do this within a few minutes; otherwise a later clean-up removes it.
+3. Once the email is verified, Recaller uploads this PC's board:
+   - a board that is still only the Welcome project goes up without a question;
+   - a board of your own asks first: **Upload this board?** Click **Upload this board**, or **Not now** to decide later.
+4. A big board shows its progress ("Uploading your board… 120 of 340 notes"), then "Your board is in your account now."
+
+If it says "New accounts are paused right now", try again later.
+
+### Sign in on a second computer
+
+1. Click **Sign in** and use the same email and password.
+2. What happens next depends on the two boards:
+   - **This computer has only the Welcome board, or nothing:** it shows your account's board straight away.
+   - **Your account is empty:** **Upload this board?**, as above.
+   - **Both have a board:** Recaller asks, under **Your account already has a board**:
+     - **Combine both** keeps everything from both. This computer's projects are added after your account's, and nothing is deleted.
+     - **Use my account's board** replaces this computer's board with your account's.
+     - **Not now** leaves it until you choose.
+3. Before it changes anything here, Recaller saves this computer's board as a **Before sync** backup (Settings → Backups).
+
+To bring your PC's notes to your Mac: create the account on the PC and click **Upload this board**, then sign in on the Mac and click **Combine both** (or **Use my account's board** if you don't want the Mac's own notes).
+
+### What syncs and what stays on each computer
+
+| Syncs between your computers | Stays on each computer |
+| --- | --- |
+| Projects: name, colour and column order | Column widths, folded stages and scroll positions |
+| Notes in Cooking, Cooked and Served: text, pictures, order, highlights and copy counts | **Column width** (Compact, Slim, Roomy), **Column title font**, **Cooked colour** and **Colour** (Deep or Soft) |
+| **Join notes with** | Unsaved drafts in New prompt |
+| | Shortcuts, voice settings and **Minimize Recaller after copying** (**Hide Recaller after copying** on a Mac) |
+| | Your OpenAI API key and your local backups, which are never uploaded |
+
+Each computer also uploads its own view, drafts and those settings as a backup. That backup is never copied onto another computer.
+
+### Offline
+
+- Recaller works the same offline. Changes stay on this computer and upload when it's back online. The status line says "Offline · changes upload when you're back online".
+- Quitting with changes still waiting gives them a moment to upload, except when the computer is logging out, restarting or shutting down. Anything left goes up the next time Recaller starts.
+- A note larger than about 900 KB, or a picture over 32 MB, stays on this computer only. The status line says so.
+
+### When two computers change the same note
+
+- **Both changed its text:** both versions are kept. Your account's version stays in place. This computer's version becomes a copy right after it, highlighted **Check again** and tagged **Other version**, and a toast says so. Keep the one you want and delete the other. Saving the copy from its editor removes the tag.
+- **One deleted it and the other edited it:** the edit wins, and the note is kept. A project deleted on the other computer is kept too when it had changes or an unsaved draft here.
+- **Moves and highlights:** the computer that syncs last wins.
+- **While you work:** changes from the other computer wait while an editor is open, while you drag, and while an Undo toast is showing ("Changes from your Mac will appear when you close the editor."). When they arrive, the Undo history is cleared, so Undo never takes back the other computer's work.
+- **Sync now** in Settings looks for changes at once.
+
+### Deleted notes
+
+- A note or project you delete is kept in your account for 30 days, then erased. Recaller has no view of those yet; in the app, Undo and **Settings → Backups** are the ways back. A deleted note's pictures, and a small record that it was deleted (no text), stay in your account until the account is deleted.
+- If many notes would disappear without a delete you made (for example, a notes file replaced by hand), Recaller asks first: **Delete n notes everywhere?** **Keep them in my account** brings them back here; **Delete them everywhere** goes ahead.
+- **Restoring a backup while signed in** deletes nothing from your account: notes in the backup are added back, and notes that are only in your account stay.
+
+### The cloud icon in the top bar
+
+It stays hidden while all is well. Click it to open Settings at **Account & sync**.
+
+| Icon | Means |
+| --- | --- |
+| Cloud, slowly fading in and out | A sync is taking more than a moment |
+| Cloud with a slash | Offline, with changes waiting or for over a minute |
+| Plain cloud | Changes from another computer are waiting for your editor to close |
+| Cloud with an amber dot | Something to do: verify your email, choose how to sync this board, sign in again, update Recaller, or the account can't sync |
+| Cloud with an alert sign | Sync paused. Click it for the reason; **Retry** is there when it helps |
+
+Settings shows the same as a status line under your email, such as "Synced · 2m ago" or "3 changes waiting to upload". **Also signed in on** lists your other computers.
+
+### Signing out
+
+1. Click **Sign out**. Recaller first tries to upload anything still waiting.
+2. It asks "Sign out of you@example.com? Your board stays on this PC unless you remove it." If changes are still waiting, it says how many and that they stay on this PC; **Keep syncing** or **Sign out anyway**.
+3. **Also remove this board, its pictures and its backups from this PC** is for a shared computer. It removes your notes, pictures and backups from this PC and leaves the Welcome board; your account keeps everything. Your settings and OpenAI key stay. It works only once everything here is in your account, so with changes waiting it asks you to wait and offers **Sync now**. If this PC also kept copies of a notes file it once couldn't read, Recaller names them first, and you tick the box again to remove them too.
+4. Without that box, before it signs out, Recaller saves on this PC the full size of pictures your other computers added. They come to this PC as previews, and their full size comes down only when you open one. While signing out, Recaller fetches the rest for up to 20 seconds ("Saving full-size pictures to this PC… 3 of 12"). If some are left, for example offline, it says so: "Signed out. 4 full-size pictures stay in your account, and this PC keeps their previews. Signing in again brings them here." Until then this PC shows and copies their previews.
+
+Signing in again later with the same account carries on without a question. Notes you deleted while signed out may come back then.
+
+### Changing your password
+
+- **Change password** emails you a link to set a new password. **Forgot password?** on the sign-in form does the same when you can't sign in.
+- After a link goes out, **Change password** and **Send link** wait a minute before you can ask for another; the button counts down. Recaller sends at most one link a minute to the same email.
+- After the change, each computer says "You're signed out on this PC because your password changed or your sign-in expired." Sign in again there. Your notes stay, and changes made meanwhile upload after you sign in. **Stop syncing** signs out instead.
+- After 5 wrong passwords in 10 minutes, sign-in waits 30 seconds.
+
+### Deleting your account
+
+1. Click **Delete account…**, type your password and the word DELETE, then click **Delete account**.
+2. First, Recaller saves on this PC the full size of every picture it has only as a preview (pictures your other computers added), so this PC's copy of the board is complete ("Saving full-size pictures to this PC… 3 of 12"). If one can't be saved, nothing is deleted: "Nothing was deleted: not every full-size picture could be saved to this PC first. Check your connection, then try again."
+3. Then it deletes your pictures, then your notes, then the account itself from Google Cloud, showing its progress.
+4. This PC keeps its own copy of the board. Your other computers keep theirs but stop syncing. They say "This account was deleted. Your notes here are safe." and offer **Use without an account**.
+5. If it stops partway (Recaller closed, or the network went away), it shows "Finishing account deletion…" and asks for your password again.
+6. Google's backups of the deleted data expire within 7 days.
+
+### Where your sign-in is kept
+
+- **Windows:** encrypted on this PC (Windows DPAPI), in the `sync` folder of `%APPDATA%\Recaller`.
+- **On a Mac:** in the same folder, protected by your Mac's keychain. macOS may ask about "Recaller Safe Storage"; choose **Always Allow**.
+- If the computer can't store it securely, the sign-in lasts until Recaller closes, and Settings says so.
+- Your password goes only to Google's sign-in service, and Recaller never stores it. The `sync` folder isn't part of your backups.
+
+### What's stored and where (the privacy note)
+
+This is the note shown under **What's stored and where** when you create an account (version 2026-10-01):
+
+- **Your account:** your email address and your password, kept by Google Identity Platform (the password only as a secure hash).
+- **Your board:** every project and note in Cooking, Cooked and Served, their order, highlights, copy counts and the "Join notes with" setting, and the pictures in your notes. Notes and projects you delete are kept for 30 days so they can be recovered, then erased; only a small record that each was deleted, with no text, stays until the account is deleted. Pictures stay in your account until the account is deleted, even after the note or draft that held them is gone.
+- **Each computer's own things,** as a backup that is never copied onto another computer: its name ("Mac" or "Windows PC"), platform, Recaller version and last sync time, its unsaved drafts and their pictures, its view (column widths, folded sections, scroll positions, density, title font, Cooked colour), and these settings: colour theme, voice model, language, vocabulary hint, the two shortcuts, and "hide after copying".
+- **Never uploaded:** your OpenAI API key and your local backups. Voice recordings go from your computer straight to OpenAI with your own key.
+- **Where:** Google Cloud (Firebase), in the United States (South Carolina). Google encrypts it in transit and at rest, but it is **not end-to-end encrypted**: the person who runs Recaller's Google Cloud project can technically read it, and only looks at it to fix a problem you report.
+- Your data isn't sold, shared, or used for ads or AI training.
+- **Deleting:** Settings › Account & sync › Delete account removes your account, board and pictures from Google Cloud straight away. Google's backups of the database and of deleted pictures expire within 7 days, and Google finishes erasing sign-in records within 180 days.
+- **Contact:** ahsan@ponders.ai
+
 ## Recaller on a Mac
 
-The Mac edition is the same Recaller 1.16.0 with Mac keys, the traffic lights and a menu bar. It's for Apple Silicon Macs (M1 or newer) with macOS 13 or later. It's new: the install steps, the permission prompts and the keychain prompt below haven't been confirmed yet.
+The Mac edition is the same Recaller 1.17.0 with Mac keys, the traffic lights and a menu bar. It's for Apple Silicon Macs (M1 or newer) with macOS 13 or later. It's new: the install steps, the permission prompts and the keychain prompt below haven't been confirmed yet.
 
 ### Install on a Mac
 
@@ -108,7 +240,7 @@ npm install
 npm run dist:mac
 ```
 
-This builds `dist/Recaller-1.16.0-arm64.dmg`. Open it, drag **Recaller** onto **Applications**, then eject the "Recaller 1.16.0" disk (the eject button beside it in Finder's sidebar) and open Recaller from Applications. Don't open Recaller from the disk image's window: that copy runs from the disk image, which then can't be ejected. If you already did, quit it (⌘Q), eject the disk and open Recaller from Applications; your notes are the same either way.
+This builds `dist/Recaller-1.17.0-arm64.dmg`. Open it, drag **Recaller** onto **Applications**, then eject the "Recaller 1.17.0" disk (the eject button beside it in Finder's sidebar) and open Recaller from Applications. Don't open Recaller from the disk image's window: that copy runs from the disk image, which then can't be ejected. If you already did, quit it (⌘Q), eject the disk and open Recaller from Applications; your notes are the same either way.
 
 - **A copy built on your own Mac** opens straight away.
 - **A downloaded or AirDropped copy** is blocked the first time, because it isn't signed with an Apple Developer ID: macOS says it can't verify the developer. Close that message, open **System Settings › Privacy & Security**, and click **Open Anyway** next to the note about Recaller. You only do this once. (On macOS 15 and later, Control-click › Open no longer gets past this.)
@@ -119,7 +251,7 @@ This builds `dist/Recaller-1.16.0-arm64.dmg`. Open it, drag **Recaller** onto **
 
 - **Microphone:** the first time you dictate, macOS asks whether Recaller may use the microphone. If it's blocked, Recaller says so and offers **Open System Settings**: under **Privacy & Security › Microphone**, turn Recaller on (or off and on again after an update), then try again.
 - **Screen Recording:** your first screenshot makes macOS ask for Screen Recording permission, and Recaller shows a message with **Open System Settings**. Under **Privacy & Security › Screen & System Audio Recording**, turn Recaller on (or off and on again after an update), then quit Recaller (⌘Q) and open it again.
-- **Keychain:** saving your OpenAI key may bring up a keychain prompt about "Recaller Safe Storage". Choose **Always Allow**.
+- **Keychain:** saving your OpenAI key, or signing in to your Recaller account, may bring up a keychain prompt about "Recaller Safe Storage". Choose **Always Allow**. If you refuse it for the sign-in, the sign-in lasts only until Recaller quits. Because this build isn't signed with a Developer ID, the prompt may come back after an update.
 
 ### Keys and clicks
 
@@ -154,19 +286,20 @@ This builds `dist/Recaller-1.16.0-arm64.dmg`. Open it, drag **Recaller** onto **
 
 ### Your data on a Mac
 
-Everything lives in `~/Library/Application Support/Recaller` (in Finder, **Go › Go to Folder…**): `recaller-data.json`, `recaller-settings.json`, `images/` and `backups/`. **Settings → Open data folder** opens it. Backups and **Restore** work as on Windows.
+Everything lives in `~/Library/Application Support/Recaller` (in Finder, **Go › Go to Folder…**): `recaller-data.json`, `recaller-settings.json`, `images/` and `backups/`, plus `sync/` once you sign in to an account. **Settings → Open data folder** opens it. Backups and **Restore** work as on Windows.
 
-The Mac and the PC each keep their own board. To bring the PC's notes over (not tried yet):
+Without an account, the Mac and the PC each keep their own board. The easy way to share one board is an account: see [Accounts, sync and privacy](#accounts-sync-and-privacy). To copy the PC's notes over by hand instead (not tried yet):
 
 1. Open Recaller on the Mac once, so it creates its folder, then quit it with ⌘Q.
 2. Copy `recaller-data.json` and the `images` folder from `%APPDATA%\Recaller` on the PC into the Mac's folder, replacing the ones there. This replaces any notes you made on the Mac; they survive only if one of its backups holds them (**Settings → Backups**).
 3. Don't copy `recaller-settings.json`. The PC's saved API key is encrypted for Windows and can't be read on a Mac, so enter your key again in Settings.
-4. Open Recaller and check that every project and note is there. Keep the PC's copy until you have. After that the two boards don't sync.
+4. Open Recaller and check that every project and note is there. Keep the PC's copy until you have. After that the two boards don't sync, unless you sign in to the same account on both.
 
 ## Development
 
 - **Full handoff** (architecture, data model, every flow, design system, build and release, pitfalls, backlog): see [`ai_memory/`](ai_memory/README.md).
-- **Tests:** `npm test` runs the end-to-end suites in [`tests/e2e/`](tests/e2e/README.md): 12 + 21 + 134 checks on Windows. On a Mac they keep out of your way (tiny off-screen windows, no Dock icon) and run 12 + 21 + 139: the real screenshot's 3 checks are skipped and 8 Mac checks added. They use the real clipboard on both.
-- **Builds:** `npm run dist` makes the Windows installer on the PC, `npm run dist:win` makes it from a Mac, and `npm run dist:mac` makes the Mac dmg. `npm run icon` (on the PC) and `npm run icon:mac` (on the Mac) redraw the Windows and Mac icons.
+- **Tests:** `npm test` runs the unit tests in `tests/unit/` (plain Node, no windows), then the end-to-end suites in [`tests/e2e/`](tests/e2e/README.md): 12 + 21 + 134 checks on Windows, the same three suites again with accounts on and nobody signed in (`npm run test:accounts-on`, which fails if the app sends any request), and 43 for accounts and sync. On a Mac they keep out of your way (tiny off-screen windows, no Dock icon) and run 12 + 21 + 139 (twice) + 43: the real screenshot's 3 checks are skipped and 8 Mac checks added. The accounts and sync suite talks only to a local mock of Google Cloud and never touches the keychain. The suites use the real clipboard on both.
+- **Builds:** `npm run dist` makes the Windows installer on the PC, `npm run dist:win` makes it from a Mac, and `npm run dist:mac` makes the Mac dmg. Each first checks the app's cloud settings (`src/cloud/project.json`, written by `npm run cloud:config`); `RECALLER_NO_CLOUD=1` builds without accounts. `npm run icon` (on the PC) and `npm run icon:mac` (on the Mac) redraw the Windows and Mac icons.
+- **Cloud:** the Google Cloud project behind accounts is described in Terraform in [`infra/`](infra/README.md). The design is in [`ai_memory/15_accounts_and_sync.md`](ai_memory/15_accounts_and_sync.md).
 - **Mac details:** how the Mac edition differs and how it's built and tested is in [`ai_memory/14_macos.md`](ai_memory/14_macos.md).
-- **Branches:** the Mac edition lives on the `masos` branch; `main` and `v1` hold the Windows 1.16.0.
+- **Branches:** 1.17.0, with accounts, is built for both Windows and Mac from the `masos` branch; `main` and `v1` hold the Windows 1.16.0 until `masos` is merged.

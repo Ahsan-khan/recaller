@@ -281,9 +281,10 @@
     };
   }
 
-  function persist() {
+  // The second argument is for sync (see the sync section); main ignores it while signed out.
+  function persist(extra = {}) {
     try {
-      api.saveData(data);
+      api.saveData(data, { session: SESSION, seq: ++saveSeq, contentSeq, labels: pendingLabels.splice(0), ...extra });
     } catch (err) {
       console.error('save failed', err);
       toast('Could not save your changes.');
@@ -336,6 +337,8 @@
   const snapshot = () => JSON.stringify(data.projects);
 
   function pushHistory(label, snap) {
+    contentSeq++; // every checkpointed edit, dragEnd's included: a sync patch from before it is stale
+    pendingLabels.push(label);
     history.undo.push({ label, snap });
     if (history.undo.length > HISTORY_LIMIT) history.undo.shift();
     history.redo.length = 0;
@@ -390,6 +393,8 @@
     if (ui.editing) stopEditing();
     closeStageEditors();
     history.redo.push({ label: entry.label, snap: snapshot() });
+    contentSeq++;
+    pendingLabels.push('Undo');
     applySnapshot(entry.snap);
     paintHistory();
     dismissHistoryToasts();
@@ -402,6 +407,8 @@
     if (ui.editing) stopEditing();
     closeStageEditors();
     history.undo.push({ label: entry.label, snap: snapshot() });
+    contentSeq++;
+    pendingLabels.push('Redo');
     applySnapshot(entry.snap);
     paintHistory();
     dismissHistoryToasts();
@@ -592,7 +599,7 @@
       <article class="card" tabindex="0">
         <div class="card-text"></div>
         <div class="card-images" hidden></div>
-        <div class="card-meta"><span class="card-hl-tag"></span><span class="card-time"></span><span class="card-copies"></span><button class="card-more" hidden>Show more</button></div>
+        <div class="card-meta"><span class="card-hl-tag"></span><span class="card-sync-tag"></span><span class="card-time"></span><span class="card-copies"></span><button class="card-more" hidden>Show more</button></div>
         <div class="card-actions">
           <button class="card-act act-hl" title="Highlight (H)" aria-label="Highlight">${I.highlighter}</button>
           <button class="card-act act-used act-primary" title="Move to Cooked (U)" aria-label="Move to Cooked">${I.arrowDown}<span>Cooked</span></button>
@@ -613,6 +620,7 @@
       copiesEl: $('.card-copies', root),
       moreBtn: $('.card-more', root),
       hlTag: $('.card-hl-tag', root),
+      syncTag: $('.card-sync-tag', root),
       selBadge: $('.sel-badge', root),
       sig: '',
       expanded: Boolean(note.expanded),
@@ -654,7 +662,8 @@
     view.timeEl.textContent = relTime(note.updatedAt || note.createdAt);
     const imageKey = note.images.map((i) => i.id).join(',');
     const hl = highlightOf(note);
-    const sig = `${note.text}\u0001${query.key}\u0001${view.expanded}\u0001${note.copied}\u0001${imageKey}\u0001${hl?.id ?? ''}`;
+    const syncTip = note.syncConflict ? syncTagTitle(note.syncConflict) : ''; // a conflict copy from sync
+    const sig = `${note.text}\u0001${query.key}\u0001${view.expanded}\u0001${note.copied}\u0001${imageKey}\u0001${hl?.id ?? ''}\u0001${syncTip}`;
     if (sig === view.sig) return;
     const imagesChanged = !view.sig || view.imageKey !== imageKey;
     view.sig = sig;
@@ -669,6 +678,8 @@
       view.root.style.setProperty('--hl-bg', hl.bg);
     }
     view.hlTag.textContent = hl ? hl.name : '';
+    view.syncTag.textContent = syncTip ? 'Other version' : '';
+    if (view.syncTag.title !== syncTip) view.syncTag.title = syncTip;
     toMeasure.add(view);
   }
 
@@ -715,9 +726,10 @@
 
   // The Notes list under the Cooked note and the Served text: one row per part,
   // with buttons to reorder it, edit it on its own, send it back up a stage, or delete it.
+  // A note id can come from the account (1.17), so it is escaped like any text.
   function partsHtml(notes, query, back) {
     return notes.map((note, i) => `
-      <div class="final-part" data-id="${note.id}">
+      <div class="final-part" data-id="${escapeHtml(note.id)}">
         <span class="fp-num">${i + 1}</span>
         <span class="fp-text">${highlight(note.text.split('\n')[0] || '(image)', query)}</span>
         <span class="fp-acts">
@@ -1002,11 +1014,16 @@
       allowDelete: true,
       onSave: (text, images) => {
         const current = locate(id);
-        if (current && (current.note.text !== text || imageKey(current.note.images) !== imageKey(images))) {
+        const changed = current && (current.note.text !== text || imageKey(current.note.images) !== imageKey(images));
+        // Saving a sync conflict copy ("Other version") from its editor settles it, changed or not.
+        if (changed || current?.note.syncConflict) {
           checkpoint('Edit note');
-          current.note.text = text;
-          current.note.images = images;
-          current.note.updatedAt = Date.now();
+          if (changed) {
+            current.note.text = text;
+            current.note.images = images;
+            current.note.updatedAt = Date.now();
+          }
+          delete current.note.syncConflict;
           persist();
         }
         stopEditing();
@@ -1054,8 +1071,11 @@
       toast("Couldn't copy to the clipboard.");
       return;
     }
-    note.copied = (note.copied || 0) + 1;
-    note.lastCopiedAt = Date.now();
+    const cur = locate(id); // a sync patch may have moved or removed the note during the await
+    if (cur) {
+      cur.note.copied = (cur.note.copied || 0) + 1;
+      cur.note.lastCopiedAt = Date.now();
+    }
     persist();
     ui.lastProjectId = loc.project.id;
     // Like Explorer: click one, then Ctrl+click more, and the first one is included.
@@ -1171,8 +1191,11 @@
     }
     if (!(await copySelection())) return;
     if (at < 0) {
-      loc.note.copied = (loc.note.copied || 0) + 1;
-      loc.note.lastCopiedAt = Date.now();
+      const cur = locate(id); // as in copyNote: the note may have moved or gone during the await
+      if (cur) {
+        cur.note.copied = (cur.note.copied || 0) + 1;
+        cur.note.lastCopiedAt = Date.now();
+      }
       persist();
     }
     render();
@@ -3322,7 +3345,7 @@
     backupStatus: $('#backup-status'),
   };
 
-  const BACKUP_KIND = { upgrade: 'Before update', daily: 'Daily', manual: 'Manual', 'before-restore': 'Before restore' };
+  const BACKUP_KIND = { upgrade: 'Before update', daily: 'Daily', manual: 'Manual', 'before-restore': 'Before restore', 'before-sync': 'Before sync' };
 
   async function paintBackups(selectId) {
     let list = [];
@@ -3440,6 +3463,10 @@
   f.joiner.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-value]');
     if (!b) return;
+    if (data.prefs.joiner !== b.dataset.value) { // the one synced preference
+      contentSeq++;
+      pendingLabels.push('Join setting');
+    }
     data.prefs.joiner = b.dataset.value;
     persist();
     paintDensity();
@@ -3477,7 +3504,11 @@
     const id = f.backup.value;
     if (!id) return;
     const label = f.backup.selectedOptions[0]?.textContent || 'that backup';
-    const sure = window.confirm(`Replace all your projects and notes with the backup from ${label}?\n\nWhat you have now is backed up first, so you can go back to it.`);
+    // Signed in, a restore deletes nothing from the account (5.12), so the question differs.
+    const acc = api.account ? await api.account.get().catch(() => null) : null;
+    const sure = window.confirm(acc?.state === 'signed-in'
+      ? `Bring back the board from ${label}?\n\nYou're signed in, so nothing is deleted from your account: notes in the backup are added back, and notes that are only in your account stay. What you have now is backed up first.`
+      : `Replace all your projects and notes with the backup from ${label}?\n\nWhat you have now is backed up first, so you can go back to it.`);
     if (!sure) return;
     const res = await api.restoreBackup(id);
     if (!res?.ok) toast(res?.error || 'Restore failed.');
@@ -3638,6 +3669,200 @@
   // Keep "5m ago" labels fresh.
   setInterval(() => { if (!dragActive) render(); }, 60_000);
 
+  // ---- sync (1.17): the page's side of accounts and sync (ai_memory/15, 5.8 and 6.5)
+  // Main does the network. The account's changes arrive as patches, applied only while nothing
+  // is mid-edit and acknowledged by the save that follows; every save carries the bookkeeping.
+  // Without sync (signed out, or a preload without it) none of this does anything.
+
+  const SESSION = uid();    // this page load: a patch made for another is stale
+  let saveSeq = 0;
+  let contentSeq = 0;       // raised by every content change: a patch based on an older one is stale
+  const pendingLabels = []; // undo labels since the last save, for main's mass-delete guard
+  let pendingPatch = null;
+  let patchTimer = null;
+  let pageReady = false;    // init() has loaded the board
+  const HERE = IS_MAC ? 'this Mac' : 'this PC';
+  const HERE_CAP = IS_MAC ? 'This Mac' : 'This PC';
+
+  const tally = (v) => Math.max(0, Math.floor(Number(v) || 0));
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const holdsDraft = (p) => Boolean(p && (p.draft.trim() || p.draftImages.length));
+
+  // "your Mac", "your other PC", … from a DeviceRef.
+  function deviceName(ref) {
+    if (ref?.platform === 'darwin') return ref.sameAsThis ? 'your other Mac' : 'your Mac';
+    if (ref?.platform === 'win32') return ref.sameAsThis ? 'your other PC' : 'your Windows PC';
+    return 'another computer';
+  }
+
+  // A notice's toast. `own` counts the patch's new conflict copies that hold this computer's
+  // version: all of them, except after a restore with no base to compare (5.7).
+  function noticeText(n, own) {
+    const k = tally(n.count) || 1;
+    const device = deviceName(n.device);
+    const name = n.name || 'Untitled';
+    switch (n.code) {
+      case 'CONFLICT': {
+        const mine = own >= k;
+        return k === 1
+          ? `A note was changed on two computers. Both versions are kept; ${mine ? `${HERE}'s` : 'the copy'} is marked Check again.`
+          : `${k} notes were changed on two computers. Both versions of each are kept; ${mine ? `${HERE}'s` : 'the copies'} are marked Check again.`;
+      }
+      case 'KEPT_NOTE':
+        return k === 1
+          ? `A note you deleted was changed on ${device}, so it was kept.`
+          : `${k} notes you deleted were changed on ${device}, so they were kept.`;
+      case 'KEPT_PROJECT':
+        return `“${name}” was deleted on ${device}, but it had changes here, so it was kept.`;
+      case 'KEPT_PROJECT_DRAFT':
+        return `“${name}” was deleted on ${device}, but it had an unsaved draft here, so it was kept.`;
+      case 'REMOTE_DELETES':
+        return `${device[0].toUpperCase()}${device.slice(1)} deleted ${plural(tally(n.count), 'note')}. ${HERE_CAP}'s board was backed up first (Settings › Backups).`;
+      case 'RESTORED_FROM_ACCOUNT':
+        return `${HERE_CAP}'s notes file couldn't be read, so your board was restored from your account. The unreadable file was kept in the data folder.`;
+      case 'COMBINED':
+        return `Combined: ${plural(tally(n.a), 'project')} from your account and ${tally(n.b)} from ${HERE}.`;
+      case 'USED_ACCOUNT':
+        return `${HERE_CAP} now shows your account's board. Its previous board is in Settings › Backups.`;
+      default:
+        return '';
+    }
+  }
+
+  // How many of a patch's new conflict copies hold this page's own text and pictures, looked at
+  // before the patch puts the account's version in their original's place.
+  function ownCopies(p) {
+    let n = 0;
+    for (const [id, up] of Object.entries(p.notes.upsert || {})) {
+      const f = up?.fields;
+      const original = typeof f?.syncConflict?.of === 'string' && !locate(id) ? locate(f.syncConflict.of)?.note : null;
+      if (original && original.text === f.text && imageKey(original.images) === imageKey(Array.isArray(f.images) ? f.images : [])) n++;
+    }
+    return n;
+  }
+
+  // The card tag's tooltip names the computer a conflict copy came from, by device id. That
+  // needs AccountState's devices with their ids; until main sends them it says less.
+  let deviceNames = new Map();
+  let devicesAsked = false;
+
+  function learnDevices(state) {
+    if (!Array.isArray(state?.devices)) return;
+    const next = new Map();
+    for (const d of state.devices) {
+      if (typeof d?.id === 'string') next.set(d.id, d.current ? HERE : deviceName({ platform: d.platform, sameAsThis: d.platform === api.platform }));
+    }
+    const changed = next.size !== deviceNames.size || [...next].some(([id, name]) => deviceNames.get(id) !== name);
+    deviceNames = next;
+    if (changed && pageReady) render();
+  }
+
+  function syncTagTitle(conflict) {
+    if (!devicesAsked) {
+      devicesAsked = true;
+      api.account?.get().then(learnDevices, () => {});
+    }
+    const from = deviceNames.get(conflict?.device);
+    return `Changed on two computers at once.${from ? ` This copy is the version from ${from}.` : ''}`;
+  }
+
+  // Pointers down on the board: a press can still become a drag of a card, the Cooked note or
+  // a column, and a patch that removed it would break the drag.
+  const pressing = new Set();
+  let releasedAt = 0;
+  if (api.sync) {
+    const release = (e) => { if (pressing.delete(e.pointerId)) releasedAt = Date.now(); };
+    board.addEventListener('pointerdown', (e) => { pressing.add(e.pointerId); }, true);
+    window.addEventListener('pointerup', release, true);
+    window.addEventListener('pointercancel', release, true);
+    window.addEventListener('pointermove', (e) => { if (e.buttons === 0) release(e); }, true);
+    window.addEventListener('blur', () => {
+      if (pressing.size) releasedAt = Date.now();
+      pressing.clear();
+    });
+  }
+
+  // A patch that changes content waits while anything holds the board: an editor, a press, a
+  // delete or swipe still animating, a menu, dictation or an Undo toast.
+  function syncBusy(p) {
+    if (!p.changesContent && !p.resetHistory) return false; // counters are commutative: apply at once
+    if (ui.editing || dragActive || resizing || openMenuEl || Voice.isActive()) return true;
+    if (pressing.size || document.body.classList.contains('is-panning')) return true;
+    if (board.querySelector('.card-wrap.is-removing')) return true; // a deleted card sliding out
+    // A swiped Cooked note moves to Served 220 ms after the release, whatever Cooked then holds.
+    // A class an interrupted swipe left behind must not hold the account's changes back for good.
+    if (Date.now() - releasedAt < 1000 && board.querySelector('.used.is-swiping')) return true;
+    for (const c of columns.values()) if (c.stageEditor || c.renaming || c.composer?.isBusy()) return true;
+    if (ui.composing && p.projects.remove.includes(ui.composing)) return true;
+    return Boolean(toastHost.querySelector('.toast[data-history]:not(.is-leaving)')); // wait out an Undo toast
+  }
+
+  function tryApplyPatch() {
+    clearTimeout(patchTimer);
+    const p = pendingPatch;
+    if (!p || !pageReady) return;
+    if (p.session !== SESSION || (p.changesContent && p.basedOnContentSeq !== contentSeq)) {
+      pendingPatch = null;
+      api.sync?.nack({ patchId: p.id, reason: 'stale' });
+      return;
+    }
+    if (syncBusy(p)) {
+      patchTimer = setTimeout(tryApplyPatch, 700);
+      return;
+    }
+    // A draft typed into a column after main read the file would go with the column. Saved,
+    // it makes main's next merge keep the column (only "Use my account's board" replaces it).
+    if (p.projects.remove.some((id) => holdsDraft(findProject(id))) && !p.notices.some((n) => n?.code === 'USED_ACCOUNT')) {
+      pendingPatch = null;
+      clearTimeout(draftTimer);
+      persist();
+      api.sync?.nack({ patchId: p.id, reason: 'stale' });
+      return;
+    }
+    pendingPatch = null;
+    const own = p.notices.some((n) => n?.code === 'CONFLICT') ? ownCopies(p) : 0;
+    let created;
+    try {
+      ({ created } = window.SyncApply.applyPatch(data, p));
+    } catch (err) {
+      console.error('[sync] patch failed', err);
+      api.sync?.nack({ patchId: p.id, reason: 'invalid' });
+      render();
+      return;
+    }
+    if (p.changesContent) contentSeq++;
+    if (p.changesContent || p.resetHistory) {
+      history.undo.length = 0;
+      history.redo.length = 0;
+      dismissHistoryToasts();
+      paintHistory();
+    }
+    if (created.length <= 10) created.forEach((id) => fresh.add(id));
+    persist({ ack: p.id });
+    render(); // also drops removed ids from ui.selection
+    if (ui.editing && !locate(ui.editing)) ui.editing = null;
+    if (ui.anchor && !locate(ui.anchor.id)) ui.anchor = null;
+    if (dialog.open) paintDensity(); // "Join notes with"
+    for (const n of p.notices) {
+      const text = n && typeof n === 'object' ? noticeText(n, own) : '';
+      if (text) toast(text, { duration: 7000 });
+    }
+  }
+
+  api.sync?.onPatch((p) => {
+    if (!p || typeof p.id !== 'string') return;
+    if (!Array.isArray(p.projects?.remove) || !Array.isArray(p.notes?.remove) || !Array.isArray(p.notices)) {
+      api.sync.nack({ patchId: p.id, reason: 'invalid' });
+      return;
+    }
+    pendingPatch = p;
+    tryApplyPatch();
+  });
+  api.account?.onChanged?.(learnDevices);
+
+  // For account.js, which loads after this file.
+  window.RecallerUI = Object.freeze({ toast, openSettings: () => openSettings(), relTime });
+
   // ================================================================ boot
 
   async function init() {
@@ -3669,6 +3894,9 @@
     updatePan();
     // Sweep image files that no note references any more.
     api.gcImages(referencedImageIds()).catch(() => {});
+    pageReady = true;
+    tryApplyPatch(); // one that came in while loading
+    api.sync?.ready({ session: SESSION });
   }
 
   init();

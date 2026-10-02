@@ -11,6 +11,8 @@ The rest of this folder describes the shared app. Read this file before changing
 
 **Status (seventh session, 2026-09-29):** the Mac edition of 1.16.0 is built and verified. The owner **committed and pushed** it on branch `masos` as "mac build" (`16961eb` + `9536853`). A follow-up commit, "fix" (`f86cf19`, also pushed), took Finder's `.DS_Store` back out of git (see "Files" below). It is not merged into `main`. The session itself never opened the packaged app.
 
+**1.17.0 (eighth session, 2026-10-01):** accounts and sync are built and tested on `masos` (uncommitted, not released; the Google Cloud side is live since 2026-10-01). They are the same on both platforms; what differs on a Mac (the keychain item for the sign-in, log out and shut down, the labels) is in section 9.
+
 **Late update:** at about 20:43 on 2026-09-29, while this handoff was being written, the owner copied Recaller.app (1.16.0) into `/Applications` (20:43:22) and then opened the copy on the mounted dmg (20:43:25), not the one in Applications. That first run created `~/Library/Application Support/Recaller`, which now holds their real Mac notes. At the end of the session, that dmg copy was still the running Recaller. Nothing about how it went is recorded. So where this file says something is untested or not tried by a person, read "not verified by a session and not reported by the owner yet", and ask them.
 
 ## 1. What it is: one codebase, two downloads
@@ -247,6 +249,7 @@ Windows has no menu. On a Mac, Recaller has four menus:
 - **Where it lives:** on a Mac, `safeStorage` keeps its encryption key in the login keychain, as the "Recaller Safe Storage" item. The encrypted API key itself is still stored in `recaller-settings.json` as `{ enc }`, as on Windows. On Windows the protecting key lives in Chromium's `Local State` file, under DPAPI.
 - **Prompts:** saving the key may bring a keychain prompt; choose Always Allow. Each build has a new ad-hoc signature, so the prompt can come back after an update.
 - **When it can't be decrypted** (on another computer, or after the keychain item is removed): `getApiKey()` falls back to `OPENAI_API_KEY` or to nothing, and the key must be pasted again.
+- **Since 1.17** the same item also seals the account's sign-in (section 9).
 
 ### The data folder and the installed app
 
@@ -693,6 +696,7 @@ A person has to check these once (section 8).
 
 ## 7. Moving notes between the PC and the Mac
 
+- **With 1.17.0, use an account instead:** sign up on the PC and choose Upload this board, then sign in on the Mac and choose Combine both (section 9, and README's "Accounts, sync and privacy"). The hand copy below is for use without an account.
 - **Both are 1.16.0 with the same data format,** so a data file from either computer opens on the other. Image ids are stored in the data, not paths.
 - **Copy only `recaller-data.json` and the `images/` folder:**
   - PC: `%APPDATA%\Recaller\`;
@@ -741,3 +745,21 @@ A person has to check these once (section 8).
   - Windows sameness rests on the gates, the review and the mocked-Electron comparison (section 1). Run the suites on the PC before shipping from masos.
 - **`macRect` with several displays (fixed at the end of the session).** It used to take x from the outermost display but y from the cursor's display, so with an external display at a different height the 2 px sliver could land on no display. It now takes y from the display that forms the chosen outer edge. That was checked with simulated screens (one screen gives exactly the old placement); the suites have only run on the built-in screen.
 - **After a snip taken in full screen,** the window comes back windowed, not in full screen.
+- **Accounts and sync (1.17.0)** on a Mac: the keychain prompt for the sign-in, a real log out or shut down with changes waiting, and a real second computer are all untested (section 9; `09`, "Accounts and sync (1.17.0): what's still open").
+
+## 9. Accounts and sync on a Mac (1.17.0)
+
+Built and tested on this Mac (2026-10-01), not released (the Google Cloud side is live since 2026-10-01). Accounts and sync are not a Mac difference: the same code runs on both platforms (`15_accounts_and_sync.md`). Only these things differ on a Mac.
+
+- **Labels,** through `IS_MAC` in `account.js` and in `app.js`'s sync block: "this Mac" and "This Mac" wherever Windows says "this PC"; "Your sign-in is kept in your Mac’s keychain."; this computer's device name "Mac"; other computers called "your Windows PC" or "your other Mac".
+- **The keychain item for the sign-in.** A packaged build seals the account's refresh token with `safeStorage`, which on a Mac uses the login keychain's **"Recaller Safe Storage"** item: the same item that protects the OpenAI key. The sealed token is kept as `{ enc }` in `~/Library/Application Support/Recaller/sync/account.json`; the keychain holds only the key that seals it.
+  - The first sign-in may bring macOS's keychain prompt, unless saving the API key already did. The answer is Always Allow.
+  - Refused, or when the keychain can't be used: the sign-in lasts until Recaller quits, nothing is written, and Settings says "This computer can't store your sign-in securely, so you'll sign in again next time you open Recaller."
+  - Each ad-hoc-signed build looks new to macOS, so the prompt may come back after an update. Refused then, or with the item removed, the saved sign-in can't be unsealed: Recaller asks to sign in again ("You're signed out on this Mac because your password changed or your sign-in expired…"). The board stays, and changes made meanwhile upload after the sign-in. A Developer ID would stop the repeats (`09`).
+  - Signing out deletes `sync/account.json`. The keychain item stays, because it also protects the OpenAI key.
+  - Runs from source and every test keep the sign-in in memory and never touch the keychain; the sync suite turns `safeStorage` into tripwires. `RECALLER_TOKEN_STORE=secure` opts in from source and can raise the prompt: don't use it on the owner's Mac.
+  - Untested: no session has seen the keychain prompt for the sign-in.
+- **Logging out, restarting or shutting down.** macOS asks every app to quit. Signed in with changes not uploaded, Recaller normally holds a quit for up to 1.5 s to push them, but not then: powerMonitor's `shutdown` event (watched from the first sign-in on, never before) records when the notice came (`sessionEndingAt`), and a quit within 60 s of it goes through at once, because holding it up would make macOS report that Recaller cancelled the log out. A log out the person cancels stops counting after that minute, so a later quit gets its final push again. Changes not uploaded stay in the data file and go up at the next start. ⌘Q is not a log out and still gets the 1.5 s. Windows does the same on `session-end`. Checked with stand-ins by `facade.test.js` (the notice reaches main) and `quit.test.js` (the quit isn't held, and a cancelled log out stops counting after a minute); a real log out hasn't been tried.
+- **A hidden window keeps syncing.** Closing the window only hides it (section 2), so sync goes on in the background: a head poll every 30 minutes while hidden, and a pull at once when ⌃⌥R or the Dock brings Recaller back. Waking from sleep and unlocking the screen (`resume`, `unlock-screen`) pull at once and refresh the sign-in.
+- **The PC's board:** the owner's plan is to upload from the PC and choose **Combine both** on the Mac at its first sign-in. Section 7's hand copy is for use without an account.
+- **The tests stay Mac-safe:** the sync suite adds no window, Dock icon, focus or prompt beyond what `mac-harness.js` already allows, and stubs `shell.openExternal` (the "Open" of a verification link) on both platforms.

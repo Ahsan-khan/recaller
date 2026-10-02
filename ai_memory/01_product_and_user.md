@@ -8,7 +8,7 @@ It is a Windows app first (1.16.0 is the current version). Since the seventh ses
 
 ## The owner
 
-- **Name and git identity:** "AKhan" is the git user.name on the PC; every version commit from 1.5.0 to 1.16 carries it. On the Mac, git's identity is "Ahsan-khan <ahsan.k@live.com>", so commits made there carry a different name. Email on file: m.ahsan.k94@gmail.com. Use it only to identify the owner.
+- **Name and git identity:** "AKhan" is the git user.name on the PC; every version commit from 1.5.0 to 1.16 carries it. On the Mac, git's identity is "Ahsan-khan <ahsan.k@live.com>", so commits made there carry a different name. Email on file: m.ahsan.k94@gmail.com. Use it only to identify the owner. The privacy contact for accounts is ahsan@ponders.ai.
 - **Machines:** development has happened on two computers since 2026-09-28, when the repo was first cloned on the Mac. The Windows PC is still the main install.
   - **Windows PC:** Windows 11 Home (10.0.26200).
     - Display: a single ultrawide monitor, 5120×1392, at 100% scaling.

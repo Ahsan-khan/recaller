@@ -67,6 +67,7 @@
       <button class="icon-btn" id="reset-widths" disabled aria-label="Reset column widths">
         <svg class="icon" viewBox="0 0 24 24"><path d="M4 5v14M20 5v14M8 12h8" /><path d="m11 9-3 3 3 3M13 9l3 3-3 3" /></svg>
       </button>
+      <button class="icon-btn sync-btn" id="sync-status" hidden aria-label="Sync"></button>
       <button class="icon-btn" id="open-help" title="How Recaller works (F1)" data-mac-title="How Recaller works (?)" aria-label="Help">
         <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.8" /><path d="M12 17.2v.1" /></svg>
       </button>
@@ -132,6 +133,7 @@
         <li><b>Highlight a prompt</b> to check it again later: hover, then click the marker.</li>
         <li><b>Resize a column:</b> drag its right edge. The <b>↔</b> button in the top bar resets every width.</li>
         <li><b>Screenshots:</b> the camera in the editor, or paste an image. They follow the prompt into Cooked and Served, shown under the text: click the text, paste, then click the picture and paste again.</li>
+        <li id="help-account" hidden><b>On every computer:</b> Settings › Account &amp; sync keeps this board in your account. Column widths, folds, drafts and the look stay on each computer.</li>
       </ul>
 
       <h3 class="modal-section">Shortcuts</h3>
@@ -269,6 +271,9 @@
         </label>
       </section>
 
+      <h3 class="modal-section" id="account-head" hidden>Account &amp; sync</h3>
+      <section class="field" id="account" hidden aria-labelledby="account-head"></section>
+
       <h3 class="modal-section">Your data</h3>
       <section class="field">
         <label for="set-backup">Backups</label>
@@ -290,6 +295,8 @@
 
   <script src="icons.js"></script>
   <script src="voice.js"></script>
+  <script src="sync-apply.js"></script>
   <script src="app.js"></script>
+  <script src="account.js"></script>
 </body>
 </html>

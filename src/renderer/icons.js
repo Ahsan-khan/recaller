@@ -30,5 +30,9 @@ window.ICONS = (() => {
     flame: svg('<path d="M12 3c.6 3.3 5.5 5.6 5.5 10.2A5.5 5.5 0 0 1 6.5 13.4c0-2.3 1.1-3.8 2.4-5 .2 1.5.9 2.5 1.9 3C10.6 8.6 11 5.6 12 3Z"/>'),
     sort: svg('<path d="M4 7h9M4 12h7M4 17h5"/><path d="M17 5v14M14 16l3 3 3-3"/>'),
     undo: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>'),
+    // 1.17 sync indicator: one cloud outline (three arcs over a flat base), crossed out or with a "!"
+    cloud: svg('<path d="M7.5 18.5H17a4 4 0 0 0 1-7.87 5.5 5.5 0 0 0-10.91-1.11A4.5 4.5 0 0 0 7.5 18.5Z"/>'),
+    cloudOff: svg('<path d="m3.5 3.5 17 17"/><path d="M7.74 7.74a5.5 5.5 0 0 0-.65 1.78 4.5 4.5 0 0 0 .41 8.98H17a4 4 0 0 0 1.29-.21"/><path d="M10.27 5.47A5.5 5.5 0 0 1 18 10.63a4 4 0 0 1 2.73 5.3"/>'),
+    cloudAlert: svg('<path d="M7.5 18.5H17a4 4 0 0 0 1-7.87 5.5 5.5 0 0 0-10.91-1.11A4.5 4.5 0 0 0 7.5 18.5Z"/><path d="M12 9.6v3.2"/><path d="M12 15.5v.1"/>'),
   };
 })();

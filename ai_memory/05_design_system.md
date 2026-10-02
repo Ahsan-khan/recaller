@@ -182,7 +182,7 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
 - **Cards:** radius 12px, no border in Deep (soft shadow). On hover, an action pill appears top-right with two buttons (1.11): the highlighter (a 26px button with a 15px icon) and **↓ Cooked**, a filled `--aug-bar` button (the Cooked accent, Ocean blue by default) with a down arrow and the word "Cooked" (white, 11.5px / 650), hover `--aug-bar-hover`. The edit pencil was removed (right-click or E edits).
 - **Cooked and Served:** blocks radius 12px (light sections; neither has a header band since 1.13), inner note or box radius 9px. The text shows `--stage-lines` (6) lines with a fade. Under it, a slim full-width **Show more / Show less** bar (`.stage-more`, 24px, chevron that flips) opens it to min(56vh, 480px), scrolling inside. The Notes lists are capped at 220px. The footer gap is 4px so "n prompts · w words" fits next to Notes and the pencil at slim width.
 - **Dialogs:** Settings and Help share `.modal-card`. `.modal-section` headings are 12px / 700 / uppercase / `--ink-2` with a hairline above. The Help stage cards are white with a coloured square per stage. `kbd` inside Help is forced light, because Deep theme otherwise styles `kbd` for the dark top bar.
-- **Top bar:** brand, search, then (right) undo/redo, the ↔ reset-widths icon button, the ? help button (1.7), the settings gear. No "+ Project" button since 1.6. Disabled top-bar icon buttons are drawn at 30% opacity. Its left padding is 14px; the right padding (`calc(100vw - env(titlebar-area-x) - env(titlebar-area-width) + 12px)`) keeps clear of the Windows window controls. On a Mac the left padding is 84px, or 14px in full screen, to clear the traffic lights (see "macOS"). Below 700px of window width, the "Recaller" name and the search box's key hint are hidden.
+- **Top bar:** brand, search, then (right) undo/redo, the ↔ reset-widths icon button, the sync indicator (1.17; hidden unless sync needs a look, see "Accounts and sync"), the ? help button (1.7), the settings gear. No "+ Project" button since 1.6. Disabled top-bar icon buttons are drawn at 30% opacity. Its left padding is 14px; the right padding (`calc(100vw - env(titlebar-area-x) - env(titlebar-area-width) + 12px)`) keeps clear of the Windows window controls. On a Mac the left padding is 84px, or 14px in full screen, to clear the traffic lights (see "macOS"). Below 700px of window width, the "Recaller" name and the search box's key hint are hidden.
 - **Composer:**
   - radius 12px, with a 1.5px border in the accent at 45% and a soft 3px accent ring around it; the textarea grows up to 300px;
   - an attachment row, and a message row for errors with action links;
@@ -192,9 +192,9 @@ Fonts are bundled in `src/renderer/fonts/`, all under the OFL licence. They came
 
 ## Icons (`src/renderer/icons.js`, 24px grid, stroke width 1.8)
 
-27 icons: `plus`, `mic`, `stop`, `copy`, `check`, `edit`, `trash`, `more`, `chevron`, `used` (check in circle, the Served icon), `restore` (circular arrow), `grip`, `pencilLine`, `arrowLeft`, `arrowRight`, `camera`, `close`, `expand`, `image`, `layers` (the "stack" icon for Cooked), `highlighter`, `arrowDown`, `arrowUp`, `width` (two bars with a double arrow: column width), `flame` (the Cooking header), `sort` (lines with a down arrow), `undo`.
+30 icons: `plus`, `mic`, `stop`, `copy`, `check`, `edit`, `trash`, `more`, `chevron`, `used` (check in circle, the Served icon), `restore` (circular arrow), `grip`, `pencilLine`, `arrowLeft`, `arrowRight`, `camera`, `close`, `expand`, `image`, `layers` (the "stack" icon for Cooked), `highlighter`, `arrowDown`, `arrowUp`, `width` (two bars with a double arrow: column width), `flame` (the Cooking header), `sort` (lines with a down arrow), `undo`, and since 1.17 `cloud`, `cloudOff` and `cloudAlert` (the sync indicator: one cloud outline, crossed out, or with a "!").
 
-Four of them (`copy`, `grip`, `image`, `undo`) are defined but not used by `app.js`. Top-bar icons (search, undo/redo, reset widths, help, gear) are inlined in `index.html`.
+Four of them (`copy`, `grip`, `image`, `undo`) are defined but not used by `app.js`; the three cloud icons are used only by `account.js`. Top-bar icons (search, undo/redo, reset widths, help, gear) are inlined in `index.html`; the sync indicator's icon is set by `account.js`.
 
 ## App icon and monstera art
 
@@ -212,6 +212,29 @@ The `#monstera` symbol has three paths: a stroked stem, the leaf fill, and a mid
 - **Toasts:** spring in.
 - **Served flash:** an expanding emerald ring, 0.7s, when text lands in Served or the Served text is copied.
 - **Composer:** busy progress line (1.1s loop); recording ring grows with the input level; a 0.9s flash.
+
+## Accounts and sync (1.17, built on `masos`, not released yet)
+
+One block near the end of `styles.css`, just before the macOS block, styles the Settings section, the top-bar indicator and the conflict-copy tag. `account.js` builds the section and the indicator, and `app.js` fills the card tag. The strings and states are in `15_accounts_and_sync.md`, section 6. The amber used here is the Check-again amber #f59e0b, written as a literal.
+
+- **Settings › Account & sync** (`#account`): built from the existing Settings parts (`.field`, `.help`, `.key-row`, `.btn-primary`, `.btn-ghost`) plus the classes below. The modal card is light in both themes, so none of it has a Deep variant.
+  - **Layout:** `#account` is a size container. `.account-grid` puts two fields side by side (gap 10px 14px) and stacks them when the section is narrower than 520px. `.account-actions` is a wrapping row of buttons (gap 6px 8px); `.account-spacer` pushes what follows to the right.
+  - **Type:** `.account-email` and `.account-title` are 13.5px / 650 in `--ink`. `.account-text` is 13px / 1.45 in `--ink-2`, with bold parts in `--ink`. The status line and notes are `--ink-2`.
+  - **`.account-warn`:** a line that needs a look (another account's board, "Wait until everything is uploaded…") gets a 6px amber dot before it, like the top-bar dot. Never the red of Delete.
+  - **`.account-link`:** a text button, 12.5px / 600 in `--primary-deep`, with a faint ink tint on hover. `.account-link.is-danger` ("Delete account…") is `--danger` red with an 8% red tint on hover.
+  - **`.account-panel`:** every panel opens inline in the section (no stacked dialogs): white, a 1px `--card-edge` border, radius 12px, padding 12px 14px. Two variants:
+    - `.is-choice`, the **mint choice panel** (Upload this board?, Your account already has a board, the mass-delete question, the missing cloud board): `--primary-mist` with a 30% `--primary` border;
+    - `.is-danger`, the **faint-red delete panel**: still white, with a 40% `--danger` border.
+  - **`.btn-danger`:** the one filled red button (Delete account): `--danger` with white text and a soft red shadow, darker on hover (86% `--danger` with black). **`.btn-danger-ghost`** (Delete them everywhere): red text with an 8% red tint on hover.
+  - **`.account-check`:** the "Also remove this board…" checkbox row, 12.5px in `--ink-2`, with a 14px box in `--primary`.
+  - **`details.privacy-note`:** 12px / 1.45; its summary, "What's stored and where", reads as a `--primary-deep` link.
+  - Disabled buttons in the section are drawn at 45%, without their hover look.
+- **Top-bar indicator** (`#sync-status`, an `.icon-btn` with `.sync-btn`, between ↔ and ?): hidden unless sync needs a look (`15`, 6.4). `account.js` puts the `cloud`, `cloudOff` or `cloudAlert` icon in it.
+  - `.sync-dot`: a 6px amber dot at the button's top right (top 6px, right 5px), with a 1.5px ring in `--topbar` so it reads on both themes.
+  - `.is-muted` (offline): the icon at 55%.
+  - `.is-syncing`: the `sync-breathe` animation, the icon's opacity dipping to 0.35 and back every 1.2s, on a loop. It stops under `prefers-reduced-motion`.
+- **Conflict-copy tag** (`.card-sync-tag`, in `.card-meta` after the highlight chip): "Other version" on a copy made by a sync conflict. Empty means none, and an empty tag is hidden. A pill: radius 999px, padding 0 6px, a 1px ink border at 16%, white at 70%, `--font-ui` (not the meta row's mono) 10.5px / 650 in `--ink-2`, line height 15px. It shortens with "…" only in a row narrower than itself.
+  - **Wrap rule:** on a card whose tag is filled (`.card-meta:has(.card-sync-tag:not(:empty))`), the meta row may wrap onto a second line (4px row gap) when it doesn't fit, and each chip and the time stay whole (`nowrap`) instead of squeezing. Every other card's meta row is unchanged.
 
 ## macOS (the Mac edition only)
 

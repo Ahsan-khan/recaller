@@ -2,6 +2,8 @@
 
 Recaller is one codebase with two downloads. The Windows app (an NSIS installer) is the owner's main install and is built on the Windows PC. The Mac edition (a dmg, added in the seventh session; committed and pushed on branch `masos` as "mac build", not merged into `main`) is built on the Mac. Everything here applies to both unless it is marked **Windows** / **On the PC** or **On a Mac**.
 
+**1.17.0 (eighth session, accounts and sync)** adds unit tests, a local mock of Google Cloud, rules tests, a fourth e2e suite and a cloud-config step before every build. It is built and tested on `masos` in the working tree, but not committed, deployed or built yet; see "Accounts and sync: tests, mock and infra (1.17)" below and `15`.
+
 ## Prerequisites
 
 **Windows PC (sessions 1–5):**
@@ -37,8 +39,15 @@ The owner's VS Code / Claude Code terminal sets `ELECTRON_RUN_AS_NODE=1` (on the
 | `npm run pack` | `electron-builder --dir`: only the unpacked app for the machine you're on, no installer. On the PC that is `dist/win-unpacked/`; on the Mac it is `dist/mac-arm64/Recaller.app` (no dmg; it replaces the one `dist:mac` made). A Windows unpacked build on the Mac needs `npx electron-builder --win --dir --x64` |
 | `npm run icon` | Regenerate `build/icon.png` (512 px, the Windows icon) from the SVG sprite. It writes only that file |
 | `npm run icon:mac` | Regenerate `build/icon-mac.png` (1024 px on Apple's icon grid) for the Mac app. It writes only that file. Made and run on the Mac |
-| `npm test` | Run all three end-to-end suites: multi-copy, then update-safety, then features. They are chained with `&&`, so a failing suite stops the rest |
+| `npm test` | 1.16: run all three end-to-end suites: multi-copy, then update-safety, then features. Since 1.17: the unit tests first, then multi-copy, update-safety, features, accounts-on and sync. They are chained with `&&`, so a failing step stops the rest (but a crashed Electron counts as a pass; read each `n/n passed` line) |
 | `npm run test:features` / `test:update` / `test:multicopy` | Run one suite |
+| `npm run test:unit` | 1.17: `node --test "tests/unit/**/*.test.js"`, plain Node, no windows, no network beyond the loopback mock. 714 tests in 20 files since the storage-overwrite fix (702 at the final gates; confirm) |
+| `npm run test:sync` | 1.17: `tests/e2e/sync.e2e.js`, 43 checks against the local Google Cloud mock, with a headless second computer. About 2½ minutes |
+| `npm run test:accounts-on` | 1.17: `scripts/accounts-on.js` runs multi-copy, update-safety and features again with accounts on and nobody signed in, the state a packaged build with a cloud config starts in. Without it the e2e suites always run with accounts off, because a test data folder turns them off (`src/cloud/config.js`, reason `test-data-dir`). It points `RECALLER_GCP_BASE` at a local listener and fails if the app sends it anything: signed out, Recaller makes no request. `npm run test:accounts-on -- features` runs one suite. About 2 minutes on the Mac |
+| `npm run cloud:config` | 1.17: checks `infra/gcp/project.json` (Terraform's `app_config` output) and copies it to `src/cloud/project.json`, which the build packs. Both are git-ignored; the key is never printed |
+| `predist`, `predist:mac`, `predist:win`, `prepack` | 1.17: run automatically before `dist`, `dist:mac`, `dist:win` and `pack`: `node scripts/cloud-config.js --check` stops the build without a valid `src/cloud/project.json`. `RECALLER_NO_CLOUD=1` turns that into a warning, and the build has no accounts |
+| `npm run rules:test` | 1.17, owner's gcloud login: sends the rules texts and all `tests/rules/cases.js` cases to the Firebase Rules API's test method. Deploys, reads and writes nothing; free. `node infra/scripts/rules-test.js TEXT` runs only the matching cases |
+| `npm run rules:smoke` | 1.17, owner's gcloud login: checks the deployed rules and the app's REST calls on the real project with two throwaway accounts, then deletes everything it made. Costs cents at most. Only after the live deploy |
 | `npm run capture` | Render a sample board to `tests/e2e/.out/<OUT>*.png` for visual review. On a Mac, `SCALE=2 npm run capture` renders at Retina 2× (added in the seventh session but not run yet) |
 
 **Environment variables:**
@@ -48,12 +57,19 @@ The owner's VS Code / Claude Code terminal sets `ELECTRON_RUN_AS_NODE=1` (on the
 - `MODE=real`: run the update-safety suite against a copy of the owner's real data.
 - `OUT`: the file-name prefix for `npm run capture` (default `headers`).
 - `SCALE` (On a Mac, `npm run capture` only): the device scale factor, `2` for a Retina capture. Windows ignores it.
+- 1.17, all ignored in a packaged app:
+  - `RECALLER_GCP_BASE=http://127.0.0.1:PORT`: every Google service goes to the mock (loopback only; anything else is refused);
+  - `RECALLER_GCP_REAL=1`: lets a run with `RECALLER_DATA_DIR` use the real project (the manual check only). Without it, `RECALLER_DATA_DIR` without a mock turns accounts off, which keeps the older suites exactly as before;
+  - `RECALLER_TOKEN_STORE=memory | test-file | secure`: `memory` (the default from source) writes nothing; `test-file` is allowed only with the mock; `secure` uses the keychain or DPAPI and can bring a keychain prompt on a Mac;
+  - `RECALLER_SYNC_FAST=1`: timers ÷10 (polls every 1–2 s);
+  - `RECALLER_SYNC_OFFLINE=1`: the engine behaves as if offline;
+  - `RECALLER_NO_CLOUD=1`: build without `src/cloud/project.json` (no accounts).
 - **Setting them:** PowerShell needs `$env:X = '…'` first. Git Bash and zsh take them inline, for example `MODE=real npm run test:update`.
 
 ## Build notes
 
 - **Packaging config** (electron-builder, in `package.json`):
-  - `files: ["src/**/*", "build/icon.png", "package.json"]` (unchanged by the Mac edition; `build/icon-mac.png` is a build resource that becomes the Mac app's `icon.icns`, not a file inside `app.asar`)
+  - `files: ["src/**/*", "build/icon.png", "package.json"]` (unchanged by the Mac edition; `build/icon-mac.png` is a build resource that becomes the Mac app's `icon.icns`, not a file inside `app.asar`). Since 1.17 that includes `src/cloud/project.json` when `npm run cloud:config` has written it: the cloud config, API key included, ships inside `app.asar`. The key is public by design; it still stays out of git
   - `win.target: nsis` (no arch in the config; see `dist` and `dist:win` above)
   - `nsis: { oneClick: true, perMachine: false, createDesktopShortcut: true, createStartMenuShortcut: true, shortcutName: "Recaller", deleteAppDataOnUninstall: false }`
   - **On a Mac** (seventh session): `mac: { target: [{ target: "dmg", arch: ["arm64"] }], icon: "build/icon-mac.png", category: "public.app-category.productivity", identity: "-", hardenedRuntime: false, darkModeSupport: true, extendInfo: { NSMicrophoneUsageDescription: "Recaller listens only while you dictate a prompt, and sends the recording to OpenAI to turn it into text." } }` and `dmg: { title: "Recaller ${version}" }`.
@@ -338,6 +354,71 @@ Run these from the repo root after `npm run dist:mac`. They only read (the mount
 7. **Architecture:** `file dist/mac-arm64/Recaller.app/Contents/MacOS/Recaller` ["Mach-O 64-bit executable arm64"].
 8. **Don't open the app yourself.** It would open a real window on the owner's screen and may raise keychain or permission prompts. The owner opens it.
 
+## Accounts and sync: tests, mock and infra (1.17)
+
+Nothing here talks to the real Google Cloud except the two owner-run `rules:*` scripts and the manual two-computer check. The unit and rules counts are as of the storage-overwrite fix (2026-10-01, `15` section 0, item 34), the e2e counts as of the final gates the same morning; confirm them before quoting.
+
+**Expected totals for `npm test` with 1.17:**
+- Mac: unit tests (714), then 12 + 21 + 139, then the same 12 + 21 + 139 with accounts on (`test:accounts-on`, no request), then 43.
+- PC: unit tests (714), then 12 + 21 + 134, then the same 12 + 21 + 134 with accounts on, then 43. Never run on the PC yet.
+
+### Unit tests (`tests/unit/`, `npm run test:unit`)
+
+Plain `node --test`: no Electron, no windows, no keychain. Twenty files, 714 tests (the rules twin's 219 cases count as subtests; 702 with 216 cases at the final gates, before the storage-overwrite fix; about 50 s on the Mac):
+
+| File | Covers |
+| --- | --- |
+| `config.test.js` | overrides ignored when packaged; when accounts are on; only a loopback mock base; token-store defaults |
+| `codec.test.js` | Firestore values round-trip; what goes to `_json`; `__proto__` safety; document ids |
+| `clients.test.js` | the REST clients against the mock: error mapping, 401 then refresh then retry, precondition errors, query paging and framing, multipart and resumable uploads, the `Firebase` auth scheme |
+| `keys.test.js`, `model.test.js`, `diff.test.js`, `merge.test.js`, `apply.test.js` | order keys; the data file as a model and the pristine-Welcome checks; local changes against the shadow; every merge rule; the page's `applyPatch` |
+| `mock.test.js`, `rules-twin.test.js` | the mock's protocol; every rules case against the mock's JavaScript twin |
+| `state.test.js` | the `sync/` folder: defensive reads, atomic writes, unknown fields kept, a copied folder getting a new device id, removal |
+| `facade.test.js` | `src/cloud/index.js` in plain Node with a stand-in for Electron (`net.fetch` is the mock's, `powerMonitor` an event emitter) and main's debounced write: removing the board keeps the unreadable copies until the person agrees; a sign-in mid-session gets the `contentSeq` of the save on disk, not of one main still holds; a log out, restart or shut down on a Mac (`shutdown` watched once signed in, never before); a draft saved just before "Use my account's board" is acknowledged reaches the disk first, so it is backed up; a plain sign-out saves the full-size pictures held only as previews (at most 20 s; `picturesLeft` when some stay in the account, offline too, counting only pictures the account keeps; none saved when removing the board, or after a `PENDING` answer until "Sign out anyway"); deleting the account shows `save-pictures` first, and a failure there deletes nothing |
+| `images.test.js` | `src/images.js` with a stand-in for Electron: signed out, every file served as in 1.16, and a picture known only by its preview shown and copied from it; signed in, the account is asked for the full size first |
+| `quit.test.js` | `main.js`'s quit with sync, its own code run in a vm with stand-ins for `app`, the facade and the clock: signed out or with nothing to upload a quit is never held; with changes waiting, one final push of 1.5 s; never during a log out, restart or shut down; on a Mac a cancelled log out stops counting after a minute |
+| `account-page.test.js` | `src/renderer/account.js` in a vm over a small DOM with a stand-in for `window.recaller`, as "this Mac" and "this PC": the "Saving full-size pictures…" lines of a sign-out and a deletion, the toasts after a sign-out, and a deletion that fails while saving ("Nothing was deleted…"); also the 60 s waits of [Send link] and "Change password" |
+| `privacy.test.js` | the privacy note is the same in `src/renderer/account.js`, README and `15` (6.7), and names what the account really keeps: a deleted note's pictures, and every field of a computer's device record |
+| `tokens.test.js`, `account.test.js` | the token store with a fake `safeStorage` (never plain text; session-only when sealing fails; another project's file ignored); sign-in, verification, lock-out, one reset link per email a minute, deletion |
+| `engine.test.js` | two or three computers (engines over real temp folders and the headless peer) on one fake clock against the mock: push and pull both ways, races, chunk order, pictures before commits, the first-sync table, union triggers, refusals and quarantine, notes held back with a project the account doesn't have and a project's deletion held back for such a note, slow and lossy links, the audit, `completePictures` and the full-size pictures saved before a deletion, account deletion and its gating, and crash injection at every `await` |
+| `fuzz.test.js` | three computers and random steps (edits, moves, deletes, offline, crashes, restarts); after every step the account holds no live note in a deleted or missing project; after quiescence the boards agree, the shadow equals the cloud, and in runs without deletes every text ever saved still exists. About a minute by default; `FUZZ_SEEDS=50 FUZZ_STEPS=2000` is the full run, and `FUZZ_SEED=n` replays one seed |
+
+### The Google Cloud mock (`tests/mock-gcp/`)
+
+- An in-process mock of Identity Toolkit, Secure Token, Firestore (REST v1) and Cloud Storage for Firebase (v0), on 127.0.0.1 only. There are no Firebase emulators here: they need Java, which the Mac doesn't have.
+- It runs a JavaScript twin of the security rules on every read and write, counting access calls like the real service, and accepts Storage calls only with `Authorization: Firebase <token>`.
+- It is deterministic: ids and tokens come from counters, and time from one controllable clock.
+- Its control API plays the other computer (`remote(uid)`), injects failures (503, 429, offline, lost answers, a head bumped between read and commit, a denied document, a pause at any step), and manages accounts (verify, revoke, disable, delete, pause sign-ups). The full list is at the top of `tests/mock-gcp/index.js`.
+
+### The headless peer (`tests/support/peer.js`)
+
+The real engine, account, token store and REST clients over their own data folder, with stand-ins for main (the 250 ms debounced write, `loadData` with its `.bak`, restore) and for the page (normalize or seed, `contentSeq`, undo labels, busy states, the stale answer, acknowledging saves). The unit tests run several on a fake clock; the e2e suite runs one as computer B. It never starts Electron, and it is the reference for how `src/cloud/index.js` wires things.
+
+### Rules cases: three layers, then the smoke test
+
+1. `tests/rules/cases.js`: 219 cases (185 Firestore, 34 Storage), each a request with an expected ALLOW or DENY, named by the method the live service uses (in Storage every upload is a `create`). `node tests/rules/cases.js` checks the list and prints the counts.
+2. The mock's twin passes every case (`rules-twin.test.js`, part of `npm run test:unit`).
+3. The real rules texts pass every case on Google's own rules engine: `npm run rules:test` (owner's gcloud login; deploys nothing). All 219 passed on 2026-10-01, once the runner sent `resource: null` for a new upload (`07` #100).
+4. After the live deploy, `npm run rules:smoke` checks the deployed rules and the app's REST calls on the real project, and prints a "Recorded" block of facts to copy into `15` (2.10). On 2026-10-01 it passed 43 of 45 (an upload over an existing picture was accepted); after the next plan's apply it must pass 45 of 45.
+
+### `sync.e2e.js` (43 checks, `npm run test:sync`)
+
+- **Setup:** computer A is the real app, in the suite's own process, in `.out/sync-a`; computer B is the headless peer in `.out/sync-b`. The suite starts the mock and sets `RECALLER_GCP_BASE`, `RECALLER_TOKEN_STORE=test-file` and `RECALLER_SYNC_FAST=1` before the app loads, so `project.json` is never read and nothing reaches Google; any request beyond the loopback mock fails a check.
+- **Covers:** signed out with the cloud on (no request, no `sync/`, the file untouched); the account forms; sign-up, verification and the first upload; edits both ways; the joiner; copy counts; conflicts; patches held back by an editor, an Undo toast, a copy and a drag; offline; expired and revoked tokens; a precondition race; a refused document; a 950 KB note; unknown fields; unreadable files and the `.bak`; restore; the mass-delete guard; a second account, Combine and "Use my account's board"; sign-out and removing the board; account deletion and its gating; security (no token or password reaches the page, the CSP, nothing beyond the mock); quitting with a change waiting. The numbered list is in `tests/e2e/README.md` and `15`, 7.5.
+- **Mac-safe** like the others, plus: `safeStorage.encryptString` and `decryptString` are tripwires (the suite stops with `HARNESS FAIL` before the app starts if it can't replace them), `shell.openExternal` is stubbed and counted on both platforms, there are no global hotkeys, and the window never takes focus. Check 43 is "Mac only" on a Mac and its Windows counterpart (no focus taken, DPAPI untouched) on the PC.
+- Screenshots of each account state go to `.out/sync-shots/`.
+
+### Infra (`infra/`)
+
+- The Google Cloud project `recaller-cloud` is Terraform: `infra/terraform/bootstrap` (the state bucket `gs://recaller-cloud-tfstate`) and `infra/terraform/prod` (one file per concern). The rules texts are in `infra/firebase/`. The runbook, kill switches and recovery steps are in `infra/README.md`.
+- Terraform is at `~/.local/bin/terraform` and gcloud at `~/google-cloud-sdk/bin/gcloud` on the Mac, both off the PATH. They use the owner's gcloud login (Application Default Credentials); there are no service account keys.
+- **Never part of `npm test`,** and never run by an agent without the owner: plans print secrets unless masked (`07` #89), and an apply changes the live project.
+- **Status (2026-10-01):** the sync additions (`sync.tf`, the sign-up switch, the real rules) are live since the owner's apply at about 17:54 UTC (`15`, status). The next plan, `infra/terraform/prod/prod.tfplan` (the Storage rules fix, Firebase's auto-created key cut to the sign-in APIs, the budget's new alerts), waits for the owner (`infra/README.md`, "The next plan").
+
+### The manual two-computer check
+
+After the deploy and a build: two source runs with their own data folders (`RECALLER_GCP_REAL=1 RECALLER_TOKEN_STORE=memory RECALLER_DATA_DIR=…`), a real email, Upload on one and Combine both on the other, a picture, an offline conflict, a password change and an account deletion. The steps are in `15`, 7.7. Not done yet. Which API key the email links carry is already settled: Firebase's auto-created browser key, not the app key (`07` #99).
+
 ## Release checklist
 
 ### Windows (on the PC)
@@ -368,6 +449,14 @@ Run these from the repo root after `npm run dist:mac`. They only read (the mount
 11. Don't commit or push; the owner does it through GitHub Desktop. To see what's on GitHub without fetching, `git ls-remote origin` works read-only. The seventh session's Mac edition is committed and pushed on `masos` as "mac build" (`16961eb` + `9536853`, 2026-09-29), with its three new files `build/icon-mac.png`, `tests/e2e/mac-harness.js` and `ai_memory/14_macos.md`; it isn't merged into `main` (see "Git status" below). Finder's `.DS_Store` went into `16961eb` by accident. At the owner's "fix it" it was taken out of git (`git rm --cached .DS_Store`; the file stays on disk) and added to `.gitignore`, so Finder's file won't be picked up again; the owner committed and pushed that as "fix" (`f86cf19`).
 12. A matching Windows installer is built on the PC (Windows steps 7–8). `npm run dist:win` can build it on the Mac (untested there; confirm `archs=x64` in its `building target=nsis` log line), but the Mac can't run its suites.
 
+### 1.17.0 additions (both platforms)
+
+1. **Before the first build:** the live deploy must be done (`infra/README.md`, "Accounts and sync: the runbook"), so that `infra/gcp/project.json` holds the current `app_config` output. Then `npm run cloud:config` writes `src/cloud/project.json`. Without it every `dist*` and `pack` script stops (`predist` checks).
+2. **The PC build:** either build it on the Mac with `npm run dist:win`, or copy the one git-ignored `src/cloud/project.json` into the PC's clone before `npm run dist`. Never commit it, and never print it.
+3. **Tests:** `npm test` now includes the unit tests, `test:accounts-on` and `test:sync`. Run them on source, then against the packaged `app.asar` on each platform (the sync suite included). On the PC this is their first run.
+4. **Before handing it out:** `npm run rules:smoke` passed on the real project, and the manual two-computer check (`15`, 7.7) passed.
+5. **Sign-ups are open** (`signup_enabled = true`). Before sharing the app beyond the owner, pause them or add a hosted privacy and terms page (`15`, owner's answers).
+
 ## Git status (important)
 
 - **Repository:** remote `origin` = https://github.com/Ahsan-khan/recaller.
@@ -376,17 +465,18 @@ Run these from the repo root after `npm run dist:mac`. They only read (the mount
 - **Branches** (as of the seventh session, 2026-09-29):
   - `v1` = `origin/v1` = `664212a` "1.16". This is where the owner commits each version, with a short message: "Initial commit … (v1.5.0)" = `3876950`, "initial commits" = `296fd32` (1.6), "v1" = `ee2572a` (1.7), then "1.8" = `093c434`, "1.9" = `147b16d`, "1.10" = `2a04390`, "1.11" = `e1f8275`, "1.12" = `290c74d`, "1.13" = `0f7ceea`, "1.14" = `8776a32`, "1.15" = `7f101e6` and "1.16" = `664212a` (2026-09-26, committed together with the fifth session's `ai_memory`). The old note that 1.16.0 was uncommitted is out of date.
   - `main` = `origin/main` = `dd5a3b0` "Merge pull request #1 from Ahsan-khan/v1" (2026-09-29). Its tree is identical to `664212a`, so `main` holds 1.16.0. Before that merge `main` was `296fd32` (1.6.0); the old note "main has the 1.5.0 commit" was wrong.
-  - `masos` = `origin/masos` = `f86cf19` "fix" (GitHub checked read-only with `git ls-remote origin` at 21:58 on 2026-09-29). The owner made it from `main` (`dd5a3b0`) on 2026-09-29 and published it, for the Mac app. "masos" is their own spelling; keep it.
+  - `masos` = `origin/masos` = `33f62ed` "done" (2026-09-29 22:04, the seventh session's last doc updates; `git status -sb` showed `## masos...origin/masos` on 2026-10-01). Before that it was `f86cf19` "fix" (GitHub checked read-only with `git ls-remote origin` at 21:58 on 2026-09-29). The owner made it from `main` (`dd5a3b0`) on 2026-09-29 and published it, for the Mac app. "masos" is their own spelling; keep it.
     - **Committed and pushed:** the owner committed the Mac edition at 21:45 on 2026-09-29, as two commits both called "mac build", and pushed both. `16961eb` (21:45:34) is the snapshot they had staged at about 21:13: the changes to `package.json`, `scripts/make-icon.js`, `src/`, `tests/e2e/`, `README.md` and `ai_memory/`, and three new files (`build/icon-mac.png`, `tests/e2e/mac-harness.js`, `ai_memory/14_macos.md`). `9536853` (21:45:53) holds the fixes made after that staging: mostly docs, plus the `icon:mac` capture check in `scripts/make-icon.js` (now made before any scaling) and a comment in `tests/e2e/mac-harness.js`. At the owner's check (`10`, message 42), a read-only `git ls-remote origin` showed GitHub's `masos` at `9536853`, with `main` (`dd5a3b0`) and `v1` (`664212a`) unchanged. The working tree then matched the pushed commit exactly.
     - **Same as the tested dmg:** all 33 files under the pushed `src/` are byte-identical to the dmg's `app.asar`, and `build/icon-mac.png` is the same file. `package.json` differs only in the `scripts`, `build` and `devDependencies` fields, which electron-builder strips from the packaged copy.
     - **`.DS_Store`:** Finder's `.DS_Store` in the repo root went into `16961eb` by accident. At the owner's "fix it", `git rm --cached .DS_Store` took it out of git (the file stays on disk) and ".DS_Store" was added as the last line of `.gitignore`. The owner committed both as "fix" (`f86cf19`, 21:51:53, only those two changes) and pushed it. The docs update that recorded all this came after that commit, so it is left for the owner to commit and push.
     - **Not merged into `main`:** merging is the owner's call. When they want it: a pull request from `masos` into `main`, after running the suites once on the PC (expect 12 + 21 + 134). `main` and `v1` were not touched.
   - `stash@{0}` "On v1: Discarded changes since 1.16 push (1.17.0 macOS work) — 2026-09-29" is the sixth session's discarded Mac attempt. The owner chose to start from scratch, so the Mac edition was built without it; it was never applied or popped. Leave it alone unless they ask; popping it would also bring back README and `ai_memory` files full of stale 1.17.0 statements.
 - **Commit names:** commits made on the PC say "AKhan"; the Mac's git identity is "Ahsan-khan <ahsan.k@live.com>".
-- **Line endings:** there is no `core.autocrlf` and no `.gitattributes`, and the repository stores LF.
+- **The eighth session (2026-09-30 to 10-01):** `masos` = `origin/masos` = `33f62ed` "done" (2026-09-29 22:04), the owner's commit of the seventh session's last doc updates. All of 1.17.0 (accounts and sync: `src/cloud/`, `src/sync/`, the new renderer files, the tests, `infra/`, `scripts/cloud-config.js`, `ai_memory/15_accounts_and_sync.md` and the edits to existing files) is uncommitted in the working tree. The owner commits it.
+- **Line endings:** there is no `core.autocrlf`, and the repository stores LF. The only `.gitattributes` is `infra/.gitattributes` (1.17), which keeps the rules, Terraform and shell files LF on every checkout: Terraform uploads the rules byte for byte, and Git Bash refuses a script with CRLF endings.
   - **On the PC** `app.js`, `styles.css`, the suites and the Markdown files are LF in the working tree, but `index.html` is CRLF (most likely Windows git's own conversion; not checked). Git warns "LF will be replaced by CRLF" on diff; that is harmless.
   - **On the Mac** every file is LF in the working tree, `index.html` included, and git prints no such warnings.
   - Keep each file's existing endings when patching: on the Mac a patch script must keep `index.html` LF.
 - **When committing is requested:** follow the owner's pattern for Windows versions (commit on `v1` with the version as the message) unless told otherwise; the Mac edition lives on `masos`. Add the attribution the environment requires. Push only when asked. **On the Mac,** don't fetch, pull or push at all: the credentials live in GitHub Desktop, and the owner does it.
-- **Ignored:** `.gitignore` ignores `node_modules/`, `dist/`, `tests/e2e/.out/` and, since the owner's commit "fix" (`f86cf19`, 2026-09-29), `.DS_Store`.
+- **Ignored:** `.gitignore` ignores `node_modules/`, `dist/`, `tests/e2e/.out/` and, since the owner's commit "fix" (`f86cf19`, 2026-09-29), `.DS_Store`. 1.17 adds the cloud config (`infra/**/project.json`, `src/cloud/project.json`: they hold the API key) and Terraform's local files (`.terraform/`, `*.tfstate`, `*.tfstate.*`, `*.tfplan`, crash logs, override files, `.terraformrc`, `terraform.rc`). The state lives in `gs://recaller-cloud-tfstate`, never in git.
 - **GitHub CLI:** on the PC `gh` isn't on PATH; use `C:\Program Files\GitHub CLI\gh.exe`. The Mac has no `gh`.

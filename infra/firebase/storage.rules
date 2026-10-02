@@ -1,0 +1,43 @@
+rules_version = '2';
+
+// Recaller pictures (deployed by infra/terraform/prod/rules.tf).
+// users/{uid}/images/<32 hex>.png is the full picture, <32 hex>.t.png its thumbnail.
+// A picture never changes once uploaded, and is deleted only while the account is being deleted.
+// In Storage rules every upload of a file's contents is a create, also an upload over a file that already
+// exists (resource is then that file's metadata); update applies only to changing an existing file's
+// metadata. So create requires resource == null, and update is never allowed.
+// A new upload and a delete read the account's head in Firestore (one billed read each; at most two per
+// evaluation are allowed); an upload over an existing picture is refused before that read. The read needs
+// roles/firebaserules.firestoreServiceAgent on the Storage service agent (infra/terraform/prod/sync.tf).
+// A missing head denies the upload: the app creates the head first.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isOwner(uid) {
+      return request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.email_verified == true;
+    }
+
+    function deleting(uid) {
+      return firestore.get(/databases/(default)/documents/users/$(uid)).data.get('deleting', false);
+    }
+
+    match /users/{uid}/{allPaths=**} {
+      allow list: if isOwner(uid);
+    }
+
+    match /users/{uid}/images/{name} {
+      allow get: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && resource == null
+        && name.matches('[a-f0-9]{32}([.]t)?[.]png')
+        && request.resource.size > 0
+        && request.resource.size <= 40 * 1024 * 1024
+        && request.resource.contentType == 'image/png'
+        && deleting(uid) == false;
+      allow update: if false;
+      allow delete: if isOwner(uid) && deleting(uid) == true;
+    }
+  }
+}

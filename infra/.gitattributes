@@ -1,0 +1,8 @@
+# Keep Terraform's inputs LF on every checkout, including Windows with core.autocrlf=true.
+# Terraform uploads the rules files byte for byte, so a CRLF copy would plan new rulesets.
+*.rules  text eol=lf
+*.tf     text eol=lf
+*.tfvars text eol=lf
+*.hcl    text eol=lf
+# Git Bash on Windows cannot run a shell script with CRLF endings.
+*.sh     text eol=lf

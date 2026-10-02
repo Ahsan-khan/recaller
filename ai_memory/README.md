@@ -2,7 +2,15 @@
 
 This folder is the complete handoff for **Recaller**. It lets any person, AI agent or LLM continue development without the original conversation. Everything here is plain text, and every user flow is described in words.
 
-Status as of **2026-09-29**, seventh session (on the owner's Mac):
+Status as of **2026-10-01**, eighth session (on the owner's Mac):
+- **1.17.0, accounts and sync, is built, tested and live on Google Cloud, but not committed or released.** Optional email-and-password accounts and local-first sync of the board to Google Cloud (project `recaller-cloud`, us-east1), for Windows and Mac alike, from `masos`. The design, its status and where the code differs from it: `15_accounts_and_sync.md`.
+  - **Tested** (the final gates on 2026-10-01, all passing, from source and packaged on the Mac): 702 unit tests in 20 files (`tests/unit/`, plain Node), 216 rules cases passing on Google's real rules engine (`npm run rules:test`, which deploys nothing), and the sync e2e suite 43/43 on the Mac, against a local mock of Google Cloud. The older suites stay at 12 + 21 + 139 on the Mac, and `npm run test:accounts-on` runs them again with accounts on and nobody signed in. Since the storage-overwrite fix (below): 714 unit tests, and all 219 rules cases (185 Firestore, 34 Storage) pass on Google's rules engine.
+  - **Live since 2026-10-01:** the owner applied the deploy's plan, ran `auth-settings.sh` and `npm run rules:smoke`. The smoke test passed 43 of 45: the live Storage rules accepted an upload over an existing picture. The fix is in the repo (`15` section 0, item 34).
+  - **Still open:** the next plan, saved for the owner (`infra/README.md`, "The next plan": the Storage rules fix, Firebase's auto-created key cut to the sign-in APIs, the budget's new alerts), then `rules:smoke` 45 of 45 and an email-link check; the email steps (the name "Recaller" and a sending domain of our own, `infra/README.md` "Email delivery"); the manual two-computer check; and the first run of any suite on the PC from `masos`.
+  - **Git:** `masos` = `origin/masos` = `33f62ed` "done" (the owner's commit of the seventh session's last doc updates, 2026-09-29 22:04). Everything of 1.17.0 is uncommitted on top of it, including this folder's updates and the new `15`.
+  - **Infra:** the project is Terraform in `infra/` (`infra/README.md`). The sync additions were applied on 2026-10-01; the next plan (`infra/terraform/prod/prod.tfplan`) waits for the owner.
+
+Earlier status (2026-09-29, seventh session, on the owner's Mac):
 - **Windows 1.16.0 is committed and merged.**
   - It is committed on `v1` as "1.16" (`664212a`), together with the fifth session's `ai_memory`, and merged into `main` (`dd5a3b0`, PR #1).
   - Its installer (`dist\Recaller Setup 1.16.0.exe`) was built and tested on the PC in the fifth session.
@@ -43,15 +51,16 @@ Recaller is a desktop app for Windows and macOS (Electron 44, vanilla JavaScript
 | `05_design_system.md` | Colours, themes, fonts, sizes, stage colours, palettes and design rules learned from user feedback |
 | `06_build_test_release.md` | How to run, build, test and release. What the end-to-end suites check and how they work |
 | `07_gotchas_and_lessons.md` | Every pitfall hit so far: symptom, cause and fix |
-| `08_changelog.md` | Versions 1.0.0 to 1.16.0 (with the 1.16.0 Mac edition and the discarded 1.17.0) and what changed in each |
+| `08_changelog.md` | Versions 1.0.0 to 1.17.0 (with the 1.16.0 Mac edition, the discarded first 1.17.0, and the accounts-and-sync 1.17.0, built but not released) and what changed in each |
 | `09_backlog_and_open_questions.md` | The roadmap for making Recaller usable by everyone, known issues, untested areas, ideas the user may want, technical debt and suggested next steps |
 | `10_user_messages_verbatim.md` | Every message the owner sent, word for word, with notes on how each was interpreted |
 | `11_decision_log.md` | Why each major choice was made (Electron, vanilla JS, voice design, undo, storage, fonts, …) and when to revisit it |
 | `12_dev_recipes.md` | Step-by-step recipes for common changes: settings, card actions, stage actions, data fields, undo, IPC, shortcuts, colours, fonts, voice, tests |
 | `13_ai_agent_playbook.md` | For AI agents: the session-start checklist, the per-request workflow that worked, tool and environment tips, how the owner likes answers, and a glossary |
 | `14_macos.md` | The macOS edition: the one-codebase rule, everything that differs on a Mac and how each difference works in code, building and installing the dmg, Mac-safe testing, Mac gotchas, moving notes between the PC and the Mac, and what is still open |
+| `15_accounts_and_sync.md` | Accounts and sync (1.17.0): the status, section 0 "As built" (every place the code differs from the spec), then the full design: Google Cloud setup, client modules and IPC, the cloud data model and security rules, the sync algorithm, the UI strings, testing, and the risks and owner's answers |
 
-AI agents should read `13` first, then continue with the order above. Read `14` before any Mac work.
+AI agents should read `13` first, then continue with the order above. Read `14` before any Mac work, and `15` (its status and section 0 first) before any account, sync or `infra/` work.
 
 ## Golden rules (read before changing anything)
 
@@ -95,6 +104,11 @@ AI agents should read `13` first, then continue with the order above. Read `14` 
    - On Windows every line must behave exactly as before: the same strings, handlers and timing, and the same files written. Helpers such as `kb()` return their input unchanged there.
    - On a Mac, never run the real screen snip: it asks for Screen Recording and captures the owner's screen.
    - Don't run `MODE=real` on a Mac without the owner's OK either: since their first run (late on 2026-09-29) the Mac data folder holds their real notes.
+9. **Accounts and sync never reach the real cloud from tests or agents, and never print a secret** (see `15`, `12` "Work on accounts and sync safely", `13`).
+   - Tests use the local mock (`tests/mock-gcp/`); runs from source keep the sign-in in memory and never touch the keychain.
+   - Terraform applies, `gcloud` changes, `rules:test`, `rules:smoke` and any run with `RECALLER_GCP_REAL=1` are the owner's, done only when they ask and are present.
+   - Never print the cloud config (`project.json`), a token, Terraform state, a saved plan or `terraform output`.
+   - Signed out, the app must stay exactly 1.16.0: no `sync/` folder, no network, no timers.
 
 ## Where things are
 
@@ -109,23 +123,24 @@ AI agents should read `13` first, then continue with the order above. Read `14` 
   - `v1` is the Windows working branch. The owner commits each version there with a short message and pushes: "1.8", "1.9", … "1.12" = `290c74d`, "1.13" = `0f7ceea`, "1.14" = `8776a32`, "1.15" = `7f101e6`, "1.16" = `664212a`.
   - `masos` is the Mac edition. The owner created it from `main` (`dd5a3b0`) on 2026-09-29 and published it.
     - **Committed and pushed:** at 21:45 that evening the owner committed the Mac edition there as two commits, both "mac build": `16961eb` (the snapshot they had staged at about 21:13, which also took in Finder's `.DS_Store` by accident) and `9536853` (the fixes made after that staging, mostly docs). Both were pushed: a read-only check (`git ls-remote origin`) found GitHub's `masos` at `9536853`, and `main` and `v1` unchanged there. The pushed app code is byte-identical to the tested dmg (`14`, "Files").
-    - **`.DS_Store` cleanup:** at the owner's "fix it", `git rm --cached .DS_Store` took Finder's file out of git (it stays on disk), and `.DS_Store` was added as a new last line of `.gitignore`. The owner committed both as "fix" (`f86cf19`, 21:51) and pushed it, so `masos` = `origin/masos` = `f86cf19`. The doc updates that record this came after "fix"; the owner commits and pushes them.
+    - **`.DS_Store` cleanup:** at the owner's "fix it", `git rm --cached .DS_Store` took Finder's file out of git (it stays on disk), and `.DS_Store` was added as a new last line of `.gitignore`. The owner committed both as "fix" (`f86cf19`, 21:51) and pushed it. The doc updates that recorded this followed as "done" (`33f62ed`, 22:04, pushed), so `masos` = `origin/masos` = `33f62ed`. 1.17.0 (accounts and sync) is uncommitted on top of it (2026-10-01).
     - **Not merged into `main`:** that is the owner's call. When they want it: a pull request from `masos` into `main`, after running the suites once on the PC (expect 12 + 21 + 134).
   - `stash@{0}` ("On v1: Discarded changes since 1.16 push (1.17.0 macOS work) — 2026-09-29") is the sixth session's discarded Mac attempt. The Mac edition was built without it: the build never read, applied or popped it. Leave it alone unless the owner asks.
 - **Source:** `src/`.
-- **Tests:** `tests/e2e/`. Run them with `npm test`; on a Mac, read `14` first.
+- **Tests:** `tests/e2e/`; since 1.17 also `tests/unit/`, `tests/mock-gcp/`, `tests/rules/` and `tests/support/`. Run them with `npm test`; on a Mac, read `14` first.
 - **Build output** (`dist/`, git-ignored):
   - PC: `dist\Recaller Setup <version>.exe`, from `npm run dist`.
-  - Mac: `dist/Recaller-1.16.0-arm64.dmg` and `dist/mac-arm64/Recaller.app`, from `npm run dist:mac`.
-  - The Mac clone's `dist/` has no Windows installer. `npm run dist:win` builds one there, with x64 pinned.
+  - Mac: `dist/Recaller-<version>-arm64.dmg` (1.16.0 and 1.17.0 are there) and `dist/mac-arm64/Recaller.app`, from `npm run dist:mac`.
+  - The Mac clone's `dist/` also holds the 1.17.0 Windows installer and `win-unpacked/`, built there by `npm run dist:win` (x64 pinned).
   - `dist/_discarded-1.17.0/` on the Mac holds the discarded 1.17.0 builds (exe, dmg, `win-unpacked/`, `mac-arm64/`), moved aside and kept. Never hand them out, install them or test against them.
 - **Installed app:**
   - PC: `%LOCALAPPDATA%\Programs\recaller\`. It had 1.15.0 at the end of the fifth session; unknown since.
   - Mac: `/Applications/Recaller.app`: 1.16.0, copied there by the owner late on 2026-09-29.
-- **User data:** the notes file, the settings file, `images/` and `backups/`.
+- **User data:** the notes file, the settings file, `images/` and `backups/`; since 1.17, once someone signs in, also `sync/` (see `03`).
   - PC: `%APPDATA%\Recaller\`.
   - Mac: `~/Library/Application Support/Recaller/`, created by the owner's first run late on 2026-09-29.
-- **User-facing docs:** `README.md` in the project root.
+- **Cloud (1.17):** Google Cloud project `recaller-cloud` (us-east1), described by Terraform in `infra/` with its runbook in `infra/README.md`. On the Mac, gcloud is at `~/google-cloud-sdk/bin/gcloud` and Terraform at `~/.local/bin/terraform`, both off the PATH, using the owner's gcloud login. The Terraform state is in `gs://recaller-cloud-tfstate`. The app's cloud config (`infra/gcp/project.json`, copied to `src/cloud/project.json` by `npm run cloud:config`) holds the API key and is git-ignored.
+- **User-facing docs:** `README.md` in the project root (accounts are under "Accounts, sync and privacy").
 - **Earlier Claude Code notes:** Claude Code kept short notes about this project and the user's taste. This folder is the full version of those notes.
   - PC: `C:\Users\User\.claude\projects\c--Users-User-Documents-iresine\memory\` (files `recaller-app.md`, `ui-taste-dense-distinct.md`) and, since the move, `C:\Users\User\.claude\projects\c--Users-User-Documents-recaller\memory\`.
   - Mac: `~/.claude/projects/-Users-ahsan-Documents-GitHub-recaller/memory/` (`MEMORY.md`, `macos-dev-environment.md`).

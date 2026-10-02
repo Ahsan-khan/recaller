@@ -2,6 +2,8 @@
 
 The Windows app (1.16.0 on `main` and `v1`) and the Mac edition of 1.16.0 (committed and pushed on branch `masos`, not merged into `main`) read and write exactly the same files. Mac-only behaviour is marked **On a Mac**.
 
+1.17.0 (accounts and sync, on `masos`, built and tested but not released) keeps the same files and format. It adds one optional note field (`syncConflict`), a `before-sync` backup kind and, only while signed in, a `sync/` folder. What goes to the cloud is in "Accounts and sync (1.17.0)" below; the full design is `15_accounts_and_sync.md`.
+
 ## Where data lives
 
 User data lives in one folder per computer:
@@ -29,6 +31,8 @@ Paths below are relative to that folder (Windows shows them with `\`):
 | `images/<id>.png` | Full-size image attachments (PNG). `id` is 32 lowercase hex characters |
 | `images/<id>.t.png` | Thumbnail, at most 640px wide (PNG). Written for every image; for one 640px wide or less it is the same as the full image |
 | `backups/<timestamp>_<kind>/` | Backups (see below) |
+| `sync/` (1.17) | Only once someone signs in to an account: `device.json`, `account.json`, `state.json`, `shadow.json`. Never in a backup. See "Accounts and sync (1.17.0)" |
+| `recaller-data.unreadable-<ISO time>.json` (1.17) | Only while signed in: a byte copy of a data file that couldn't be parsed, made before anything can overwrite it. The 5 newest are kept |
 | Chromium profile files (`Local State`, caches, …) | Electron's own. On Windows, **`Local State` holds the encryption key** `safeStorage` uses for the API key (DPAPI); if it is lost, the saved key can't be decrypted and the user must paste it again. **On a Mac** that key is kept in the login keychain instead (Electron's macOS backend for `safeStorage`; for the packaged app the item should be "Recaller Safe Storage"), not in `Local State`. Untested: the suites never touch the keychain, and the owner's first run isn't reported yet |
 
 The installed program lives separately: `%LOCALAPPDATA%\Programs\recaller\` on Windows, and `/Applications/Recaller.app` on a Mac, dragged there from the dmg (the owner copied 1.16.0 there late on 2026-09-29).
@@ -109,6 +113,9 @@ Both editions read and write exactly this; the Mac edition added no fields.
   "usedAt": ms,               // when it entered Cooked or Served (0 for notes that never did)
   "highlight": "amber",       // optional: "amber" (Check again) | "rose" (Important) | "sky" (Idea) | "lime" (Ready)
   "expanded": true,           // optional: card shows all lines instead of the clamp
+  "syncConflict": { "of": "<original note id>", "device": "<32 hex device id>", "at": ms },
+                              // 1.17, optional: only on a conflict copy made by sync ("Other version" tag).
+                              //   Saving the note from its editor deletes it. Synced like any note field
   ...unknown keys preserved
 }
 ```
@@ -119,7 +126,7 @@ Both editions read and write exactly this; the Mac edition added no fields.
 { "id": "<32 hex>", "w": 1920, "h": 1080, ...unknown keys preserved }
 ```
 
-It is displayed via `recaller-img://img/<id>.t.png` (thumbnail) and `recaller-img://img/<id>.png` (full size).
+It is displayed via `recaller-img://img/<id>.t.png` (thumbnail) and `recaller-img://img/<id>.png` (full size). Since 1.17 a picture another computer added can be here as its thumbnail only (the full size comes down when opened); where the full size is missing, it is shown and copied from the thumbnail. Pictures made on this computer always have both files.
 
 `w` and `h` are the stored PNG's size in physical pixels, not CSS pixels. A snip on the owner's 2× Retina Mac is twice the size of the same area on the PC's 100% screen; a whole-screen snip there is 3024×1964.
 
@@ -197,8 +204,10 @@ The on-screen names changed three times; the data field names never did, so exis
   - `daily`: made at startup if the last one is more than 24h old; 10 kept. **On a Mac** the same check also runs every hour while the app is running (window shown or hidden), after flushing pending data, because a Mac app runs for days without restarting.
   - `manual`: Settings → Back up now (flushes first); 20 kept.
   - `before-restore`: made automatically before a restore; 10 kept.
+  - `before-sync` (1.17, signed in only; listed as "Before sync"): made before a first upload or a first-sign-in choice, before "Use my account's board", and before an incoming change that removes at least 10 notes or a project with notes (at most once an hour); 10 kept. 1.16 lists these by their raw kind.
 - **Image cleanup** runs on every page load (`gcImages`). It deletes image files (`.png` and `.t.png`) older than 1 hour that neither the data nor any backup references, so restoring a backup never shows broken images. Images referenced only by backups that have since been pruned become collectable.
 - **Restore** (Settings → Backups → Restore) replaces the data file only; settings are not restored. What the user had just before is saved as a `before-restore` backup first. The steps, and a known hole, are in `02` (`restoreBackup`).
+  - **Signed in (1.17)**, a restore deletes nothing from the account: the next sync is a restore merge, so notes in the backup come back everywhere and notes only in the account stay. The confirm text says so. Backups never include `sync/`, so a restore never rewinds sync.
 
 ## Persistence mechanics
 
@@ -214,10 +223,55 @@ The on-screen names changed three times; the data field names never did, so exis
 - **Reading:** falls back to `.bak` if the main file is unreadable. A read or parse error, or a falsy JSON value such as `null`, counts as unreadable.
 - **Scroll positions** are saved only when the user caused the scroll: a wheel, pointerdown or keydown in the last 1.5 seconds. They are saved 700ms after scrolling stops, and on `beforeunload`. If a smaller window forces the browser to clamp a restored scroll position, that clamped value must never overwrite the saved one.
 
+## Accounts and sync (1.17.0)
+
+Built and tested on `masos`, not released. The design and every rule are in `15_accounts_and_sync.md`; this is the data view.
+
+### The `sync/` folder (only once someone signs in)
+
+All files are written atomically with `writeJsonAtomic`, read defensively (missing or malformed reads as null; unknown fields are kept), and never copied into a backup (`backups.js` copies only the data and settings files).
+
+| File | Holds | Written |
+| --- | --- | --- |
+| `sync/device.json` | This computer: `id` (32 hex), `name` ("Windows PC" or "Mac"), `host` (16 hex of sha256 of hostname and platform), `place` (the folder's inode and birth time), `lastUid` and `lastEmailMasked` (the account it last synced with, as "a•••@gmail.com"), `createdAt` | At the first sign-in. A folder copied from another computer gets a new id at once. It stays at sign-out; "Also remove this board" and account deletion only clear `lastUid` |
+| `sync/account.json` | The sign-in: `project` ("recaller-cloud"), `uid`, `email`, `emailVerified`, `keyStore` (`dpapi`, `keychain`, `session` or `test`), `refresh` (`{ enc }` sealed with `safeStorage`, or null for a session-only sign-in), `privacyVersion`, `signedInAt` | At sign-in and when the token rotates. Deleted at sign-out. Ignored if `project` doesn't match the build's config |
+| `sync/state.json` | Where sync stands: `uid`, `rev` and `headUpdateTime` (the account head last seen), `minRev`, `mode` (`first`, `normal`, `union` or `restore`), `dataFile` (sha256 and size of the data file as last written), `uploaded` (pictures the account has), `quarantine` (items the cloud refused or that are too large), undo `labels`, an open `choice`, `massDelete`, the `outgoing` commit marker, the `ack` marker, `deletion`, and timestamps | After every save while signed in, always after the data file, and after each sync step |
+| `sync/shadow.json` | The board as last synced, per project and note: synced fields, position, rev, update time, deleted flag; plus the account's `joiner` | Only after the matching commit, or after the page's acknowledging save is on disk |
+
+Sign-out deletes `account.json` and keeps `state.json` and `shadow.json`, so the same account resumes without a question. A different account signing in deletes them first.
+
+### What is in the cloud
+
+| Where | What |
+| --- | --- |
+| Identity Platform | The email, the password hash, whether the email is verified |
+| `users/{uid}` (Firestore, the head) | `schema`, `rev` (raised by exactly one per board commit), `minRev`, `deleting`, `board.joiner`, `stats` (live counts), `lastDevice`, `commits.<deviceId>` (each computer's last landed commit), `privacy` (version accepted), `createdAt`, `updatedAt`. Never the email |
+| `users/{uid}/projects/{docId}` | One per project: `name`, `color`, `createdAt`, unknown project fields, and `_sync` (`rev`, `key` = the column order, `deleted`, `by`, `at`). Values Firestore can't hold go in `_json` |
+| `users/{uid}/notes/{docId}` | One per note in any stage: the note's synced fields (text, images, times, highlight, `copied`, `lastCopiedAt`, `syncConflict`, unknown fields) and `_sync` with `project` and `list`, the data names (`notes` = Cooking, `used` = Cooked, `combined` = Served), and an order `key` |
+| Tombstones | A deleted project or note keeps only `_sync`, with `deleted: true` |
+| `users/{uid}/trash/{kind}-{docId}` | A full copy of each deleted project or note, erased by a TTL 30 days later |
+| `users/{uid}/devices/{deviceId}` | Each computer's backup of its own things: name, platform, app version, its last sync (`lastSeenAt`, the time; `lastRev`, the board's rev then), its view (`prefs` widths, scroll, density, title font, Cooked colour; folds), its drafts, and the allow-listed settings. Never applied to another computer |
+| `gs://recaller-cloud-data/users/{uid}/images/{id}.png` and `{id}.t.png` | The pictures and thumbnails, byte-identical to `images/` on disk |
+
+**Synced:** projects, notes in all three stages with their order, highlights, copy counts (merged as counters), pictures, and `prefs.joiner`. **Per computer:** every other `prefs` key (`density`, `colWidths`, `scroll`, `lastProjectId`, `titleFont`, `cookedColor`), the fold flags, note `expanded`, `draft` and `draftImages`, unknown top-level keys, and the whole settings file. Keys starting with `local` are reserved for future per-computer fields. **Never uploaded:** the OpenAI API key and local backups.
+
+### Update safety, signed in
+
+Every invariant below still holds, signed in or not:
+- **No rewrite on startup.** The engine never writes the data file; only the page's `persist()` does, for a real change or to acknowledge a patch. Signed in with nothing new in the cloud, nothing is written. Ids that `normalize()` invents at startup stay out of pushes until a real save.
+- **Signed out is 1.16.0:** no `sync/` folder, no network, no timers, no quit delay. The only visible difference is the Settings section (hidden in a build without cloud config). The older suites run with accounts off.
+- **Unknown fields survive** locally (`normalize()`), in the cloud (under their own names or in `_json`) and in patches, which delete only synced keys the other side removed.
+- **Only additions:** `note.syncConflict` (conflict copies only) is the one new data field. The settings file gets no new keys.
+- **User choices are never migrated:** per-computer choices never cross over, and `joiner` travels only when changed.
+- **Downgrades:** 1.16 ignores `sync/` and shows `before-sync` backups by their raw kind. Back on 1.17, the data file's fingerprint no longer matches, so the next sync is a union that never deletes.
+- **Backups before a new version** are unchanged, and `before-sync` backups are added.
+- The data folder, `productName` and `appId` are unchanged.
+
 ## Update-safety invariants (never break these)
 
 1. **No rewrite on startup.** An up-to-date data file stays byte-for-byte identical when a new version starts. `init()` writes at once only when `!raw || !(Number(raw.version) >= DATA_VERSION)`: no file, neither the file nor its `.bak` readable, a failed `loadData` call, or a version that is missing or below 2. "Byte for byte" also depends on `writeJsonAtomic`'s exact `JSON.stringify(value, null, 2)` format; changing the serialiser would rewrite every file on its next save.
    - **Known hole:** an unreadable data file (with no readable `.bak`) is handled like a first run. The Welcome seed is written over it about 250ms later, and the same start's image cleanup, which now sees only the seed, deletes image files older than 1 hour that no backup references. The good copies are then only in `backups/` (Settings → Backups), so point any recovery there. A file that parses but has no `projects` array also gets the seed: it is written at once if its version is missing or below 2, otherwise by the first change. Don't widen this path.
+     - **Signed in (1.17)** this is softened: the unreadable bytes are first copied to `recaller-data.unreadable-<ISO time>.json`, the next sync is a union, and the account's board replaces the seed (toast "…your board was restored from your account…"). Signed out, the hole is unchanged.
 2. **Loading keeps what it doesn't understand, and repairs only malformed data.** `normalize()` spreads the original objects (`...raw`, `...p`, `...n`, and each image), so unknown fields survive. User choices as the UI writes them are never rewritten: any string `color` (unknown ids too), any string `density`, `titleFont`, `joiner`, `cookedColor` and `colWidths` (never touched), boolean collapsed flags and `notesCollapsed`. Their fallbacks happen only when drawing (e.g. an old `cookedColor: "caramel"` draws as ocean but stays in the file). What `normalize()` does change:
    - **Drops:** notes (in `notes`, `used` and `combined`) whose `text` isn't a string; projects that aren't objects; image entries (note `images` and `draftImages`) whose id fails `/^[a-f0-9]{32}$/`.
    - **Replaces:** missing, non-string or duplicate ids get new ones (ids must be unique across all projects and notes).
@@ -257,5 +311,6 @@ The on-screen names changed three times; the data field names never did, so exis
 - **1.13.0** changed the allowed `cookedColor` values to ocean/teal/midnight/graphite. Stored 1.12 values are not rewritten; they draw as ocean.
 - **1.14.0–1.16.0** added no fields (1.16 only changed the board arrows). 1.14 shows the images already stored on `used` / `combined` notes; 1.15 deletes notes from those lists (the same splice as deleting a card).
 - **The 1.16.0 Mac edition** (branch `masos`, committed and pushed as "mac build" on 2026-09-29) added no data fields and doesn't change the format. Its only settings difference is the default `hotkey` (`"Control+Alt+R"` on a Mac). It adds flushes (`closed`, `will-quit`, the page's `beforeunload` draft save) and the hourly daily-backup check, all on a Mac only.
+- **1.17.0** (accounts and sync, both platforms; built on `masos`, not released) added `note.syncConflict` (only on conflict copies), the `before-sync` backup kind, and, only while signed in, the `sync/` folder and `recaller-data.unreadable-*.json` copies. `DATA_VERSION` is still 2, and the settings file is unchanged.
 
 `DATA_VERSION` has been 2 since 1.1.0. Every change since then was additive or display-only, so no migration code exists beyond the one-time v1 → v2 rewrite.

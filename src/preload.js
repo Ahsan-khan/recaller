@@ -6,7 +6,7 @@ let nextReq = 1;
 
 contextBridge.exposeInMainWorld('recaller', {
   loadData: () => ipcRenderer.invoke('data:load'),
-  saveData: (data) => ipcRenderer.send('data:save', data),
+  saveData: (data, meta) => ipcRenderer.send('data:save', data, meta),
   copy: (text) => ipcRenderer.invoke('clipboard:write', text),
   minimize: () => ipcRenderer.invoke('window:minimize'),
   getSettings: () => ipcRenderer.invoke('settings:get'),
@@ -50,6 +50,29 @@ contextBridge.exposeInMainWorld('recaller', {
     const listener = (_e, name) => fn(name);
     ipcRenderer.on('app:command', listener);
     return () => ipcRenderer.removeListener('app:command', listener);
+  },
+
+  // Accounts and sync (1.17): main does the network; the page sees AccountState and patches, never a token.
+  account: {
+    get: () => ipcRenderer.invoke('account:get'),
+    signUp: (email, password, privacyVersion) => ipcRenderer.invoke('account:sign-up', { email, password, privacyVersion }),
+    signIn: (email, password) => ipcRenderer.invoke('account:sign-in', { email, password }),
+    resendVerification: () => ipcRenderer.invoke('account:resend-verification'),
+    checkVerified: () => ipcRenderer.invoke('account:check-verified'),
+    discardUnverified: () => ipcRenderer.invoke('account:discard-unverified'),
+    resetPassword: (email) => ipcRenderer.invoke('account:reset-password', { email }),
+    signOut: (opts = {}) => ipcRenderer.invoke('account:sign-out', {
+      force: Boolean(opts.force), removeBoard: Boolean(opts.removeBoard), removeUnreadable: Boolean(opts.removeUnreadable),
+    }),
+    deleteAccount: (password) => ipcRenderer.invoke('account:delete', { password }),
+    onChanged: (fn) => { const l = (_e, s) => fn(s); ipcRenderer.on('account:changed', l); return () => ipcRenderer.removeListener('account:changed', l); },
+  },
+  sync: {
+    ready: (info) => ipcRenderer.send('sync:ready', info),
+    nack: (info) => ipcRenderer.send('sync:nack', info),
+    now: () => ipcRenderer.invoke('sync:now'),
+    choose: (choice) => ipcRenderer.invoke('sync:choose', { choice }),
+    onPatch: (fn) => { const l = (_e, p) => fn(p); ipcRenderer.on('sync:patch', l); return () => ipcRenderer.removeListener('sync:patch', l); },
   },
   platform: process.platform,
 });

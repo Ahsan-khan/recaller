@@ -27,14 +27,16 @@ function sleepSync(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
+// Returns the text written (sync fingerprints it); callers may ignore it.
 function writeJsonAtomic(file, value) {
   const tmp = file + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(value, null, 2), 'utf8');
+  const text = JSON.stringify(value, null, 2);
+  fs.writeFileSync(tmp, text, 'utf8');
   // Antivirus / indexers on Windows can briefly lock the target; retry a few times.
   for (let attempt = 0; ; attempt++) {
     try {
       fs.renameSync(tmp, file);
-      return;
+      return text;
     } catch (err) {
       if (attempt >= 4 || !['EPERM', 'EBUSY', 'EACCES'].includes(err.code)) throw err;
       sleepSync(25 * (attempt + 1));

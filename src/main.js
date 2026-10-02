@@ -11,6 +11,7 @@ const { transcribe } = require('./transcribe');
 const images = require('./images');
 const screenshot = require('./screenshot');
 const backups = require('./backups');
+const cloud = require('./cloud'); // accounts and sync (1.17); every hook returns at once while signed out
 
 const IS_MAC = process.platform === 'darwin'; // the Mac edition; on Windows everything runs as before
 
@@ -49,6 +50,8 @@ let win = null;
 let settings = { ...DEFAULT_SETTINGS };
 const hotkeyOk = { hotkey: false, shotHotkey: false };
 let quitting = false; // Mac: set on ⌘Q, so closing the window stops meaning "hide"
+let sessionEnding = false; // Windows: the computer logs out, restarts or shuts down: quitting waits for nothing (sync)
+let sessionEndingAt = 0; // Mac: when powerMonitor last said so; a log out the person cancels stops counting after a minute
 
 // ---------------------------------------------------------------- settings
 
@@ -108,6 +111,7 @@ function publicSettings() {
 // ---------------------------------------------------------------- data
 
 let pendingData = null;
+let pendingMeta = null; // sync's bookkeeping for pendingData (null while signed out)
 let dataTimer = null;
 let restoring = false; // while true, saves from the page are ignored (a backup is being put back)
 
@@ -116,6 +120,7 @@ function loadData() {
   if (!restoring) flushData();
   restoring = false;
   const { value, from } = readJsonWithFallback(DATA_FILE());
+  cloud.onLoadResult({ from: from === DATA_FILE() ? 'main' : from ? 'bak' : null, value, file: DATA_FILE() });
   if (from === DATA_FILE()) backup(DATA_FILE()); // session-start snapshot of a known-good file
   return value;
 }
@@ -124,16 +129,26 @@ function flushData() {
   clearTimeout(dataTimer);
   dataTimer = null;
   if (!pendingData || restoring) return;
+  let text;
   try {
-    writeJsonAtomic(DATA_FILE(), pendingData);
-    pendingData = null;
+    text = writeJsonAtomic(DATA_FILE(), pendingData);
   } catch (err) {
     console.error('[data] save failed:', err);
+    return; // pendingData is kept: the next flush tries again
   }
+  const written = pendingData;
+  const meta = pendingMeta;
+  pendingData = null;
+  pendingMeta = null;
+  cloud.onFileWritten(written, meta, text); // sync reads the board only as it is on disk
 }
 
-function scheduleDataWrite(data) {
+function scheduleDataWrite(data, meta) {
+  // Signed in, a save acknowledging a sync patch never takes the place of the save waiting before it: that one
+  // is written first, so sync sees what it held (a draft in a column the patch removes is backed up).
+  if (meta?.ack && pendingData && cloud.active()) flushData();
   pendingData = data;
+  pendingMeta = cloud.mergeSaveMeta(pendingMeta, meta);
   clearTimeout(dataTimer);
   dataTimer = setTimeout(flushData, 250);
 }
@@ -190,6 +205,8 @@ function createWindow() {
   win.once('ready-to-show', () => win.show());
   win.on('resize', rememberBounds);
   win.on('move', rememberBounds);
+  // Sync polls more often while Recaller is in front, and pulls when it comes back.
+  for (const name of ['focus', 'blur', 'show', 'hide', 'minimize', 'restore']) win.on(name, () => cloud.onWindowState());
   win.on('close', (e) => {
     flushData();
     settings.maximized = win.isMaximized();
@@ -213,6 +230,7 @@ function createWindow() {
     if (IS_MAC) flushData(); // ⌘Q: the page's last save (on beforeunload) arrives after 'close'
   });
   win.on('session-end', flushData); // Windows shutdown / sign-out
+  win.on('session-end', () => { sessionEnding = true; });
 
   // Mac: full screen hides the traffic lights, so the page gives their space back to the top bar.
   if (IS_MAC) {
@@ -273,6 +291,7 @@ function summon() {
   win.show();
   if (IS_MAC) app.focus({ steal: true }); // the hotkey was pressed in another app: come to the front
   win.focus();
+  cloud.onSummon();
   win.webContents.send('app:summoned');
 }
 
@@ -420,9 +439,11 @@ function restoreBackup(id) {
   if (!restored || !Array.isArray(restored.projects)) return { ok: false, error: "That backup couldn't be read." };
   flushData();
   backups.create('before-restore', { restoredFrom: id });
+  cloud.onRestore(id); // signed in: the next sync is a union that deletes nothing from the account
   restoring = true;
   clearTimeout(dataTimer);
   pendingData = null;
+  pendingMeta = null;
   writeJsonAtomic(DATA_FILE(), restored);
   setTimeout(() => win?.webContents.reload(), 50);
   return { ok: true };
@@ -440,11 +461,14 @@ function inOrder(write) {
 }
 
 function registerIpc() {
-  ipcMain.handle('data:load', () => loadData());
+  ipcMain.handle('data:load', () => {
+    cloud.onPageLoading();
+    return loadData();
+  });
 
-  ipcMain.on('data:save', (_e, data) => {
+  ipcMain.on('data:save', (_e, data, meta) => {
     if (restoring) return;
-    if (data && typeof data === 'object' && Array.isArray(data.projects)) scheduleDataWrite(data);
+    if (data && typeof data === 'object' && Array.isArray(data.projects)) scheduleDataWrite(data, meta);
   });
 
   ipcMain.handle('clipboard:write', (_e, text) => inOrder(() => clipboard.writeText(String(text ?? ''))).then(() => true));
@@ -493,8 +517,18 @@ function registerIpc() {
 
   ipcMain.handle('image:copy', async (_e, id) => {
     try {
-      const png = images.readPng(String(id));
-      await inOrder(() => clipboard.write([new ClipboardItem({ 'image/png': new Blob([png], { type: 'image/png' }) })]));
+      const write = (png) => clipboard.write([new ClipboardItem({ 'image/png': new Blob([png], { type: 'image/png' }) })]);
+      if (cloud.active()) {
+        // A picture from another computer may have to download first: in the queue, so a copy made after it
+        // still lands last.
+        await inOrder(async () => {
+          await cloud.ensureImage(String(id), false);
+          await write(images.readPng(String(id))); // clipboard.write is async: the next copy waits for it
+        });
+      } else {
+        const png = images.readPng(String(id));
+        await inOrder(() => write(png));
+      }
       return true;
     } catch (err) {
       console.error('[images] copy failed:', err.message);
@@ -536,6 +570,8 @@ function registerIpc() {
       return { ok: false, code: err.code || 'UNKNOWN', error: err.message || 'Transcription failed.' };
     }
   });
+
+  cloud.registerIpc(ipcMain); // account:* and sync:*; account:get answers even with accounts off
 }
 
 // ---------------------------------------------------------------- lifecycle
@@ -549,6 +585,24 @@ if (!app.requestSingleInstanceLock()) {
     app.setAppUserModelId('com.akhan.recaller');
     loadSettings();
     protectData();
+    cloud.init({
+      app, ipcMain, safeStorage, userData: app.getPath('userData'), isPackaged: app.isPackaged, getWindow: () => win,
+      images, backups, flushData, hasPendingWrite: () => pendingData !== null, isRestoring: () => restoring,
+      // Uploaded as this computer's backup only, never applied elsewhere; never apiKey, bounds or lastVersion.
+      getDeviceSettings: () => ({
+        theme: settings.theme, model: settings.model, language: settings.language, hint: settings.hint,
+        hotkey: settings.hotkey, shotHotkey: settings.shotHotkey, hideAfterCopy: settings.hideAfterCopy,
+      }),
+      // Signing out with "remove this board": saves are ignored, as during a restore, until the page loads again.
+      holdSaves: () => {
+        restoring = true;
+        clearTimeout(dataTimer);
+        pendingData = null;
+        pendingMeta = null;
+      },
+      appVersion: app.getVersion(), platform: process.platform,
+      onShutdown: () => { sessionEndingAt = Date.now(); }, // Mac: powerMonitor's shutdown, watched while signed in
+    });
     // Mac: the app runs for days without restarting, so look for the day's backup every hour.
     if (IS_MAC) {
       setInterval(() => {
@@ -575,7 +629,7 @@ if (!app.requestSingleInstanceLock()) {
     session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(allowed.has(permission)));
     session.defaultSession.setPermissionCheckHandler((_wc, permission) => allowed.has(permission));
 
-    images.serve();
+    images.serve({ fetchMissing: cloud.ensureImage });
     registerIpc();
     applyHotkeys();
     createWindow();
@@ -596,6 +650,16 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('before-quit', flushData);
   if (IS_MAC) app.on('before-quit', () => { quitting = true; });
+  // Signed in with changes not yet uploaded: up to 1.5 s for them, once (app.quit() comes back here). Not while
+  // the computer logs out or shuts down (macOS would say Recaller canceled it): they upload at the next start.
+  let finalPushDone = false;
+  app.on('before-quit', (e) => {
+    if (finalPushDone || sessionEnding || Date.now() - sessionEndingAt < 60000 || !cloud.active() || !cloud.hasUnpushed()) return;
+    e.preventDefault();
+    finalPushDone = true;
+    flushData();
+    cloud.finalPush(1500).finally(() => app.quit());
+  });
   app.on('will-quit', () => {
     if (IS_MAC) flushData(); // ⌘Q never reaches 'window-all-closed'
     globalShortcut.unregisterAll();

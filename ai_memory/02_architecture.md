@@ -5,6 +5,7 @@ This file describes version 1.16.0 on both platforms:
 - **Windows** (the owner's main install): committed on branch `v1` as "1.16" (`664212a`) and merged into `main` by PR #1 (`dd5a3b0`).
 - **The Mac edition** of the same 1.16.0 (seventh session, 2026-09-29): committed on branch `masos` as "mac build" (`16961eb` + `9536853`) and pushed; not merged into `main`. It reuses the Windows code, and every Mac difference is fenced: `IS_MAC` in JavaScript, `body.is-mac` in CSS, the `mac` / `dmg` sections in `package.json`. On Windows the `masos` code behaves exactly like 1.16.0. Finder's `.DS_Store`, committed by accident in `16961eb`, was taken out of git and git-ignored in a follow-up commit, "fix" (`f86cf19`, also pushed).
 - An earlier Mac attempt (1.17.0, sixth session) was discarded and is kept as `stash@{0}`. None of it was used; the build never read it.
+- **1.17.0, accounts and sync** (eighth session, 2026-09-30 to 10-01): built, tested and packaged (the 1.17.0 dmg and Windows installer, 2026-10-01) on `masos` in the working tree; not committed or released. Its Google Cloud side is live since 2026-10-01 (`15`, status). It adds optional accounts and local-first sync of the board to Google Cloud for both platforms. The section "Accounts and sync (1.17.0)" below covers its modules, IPC and security; the full design, and where the code differs from it, is `15_accounts_and_sync.md`. Signed out, the app behaves exactly like 1.16.0.
 
 Mac-only behaviour is marked **On a Mac**. Anything unmarked applies to both platforms. `14_macos.md` describes the whole Mac edition in one place: every difference, its flows, the build and the Mac-safe tests.
 
@@ -14,14 +15,15 @@ Mac-only behaviour is marked **On a Mac**. Anything unmarked applies to both pla
 - **Packaging:** electron-builder 26.15.3.
   - **Windows:** an NSIS one-click installer for x64. `npm run dist` on the PC; from a Mac use `npm run dist:win`, which pins `--x64` (a bare `--win nsis` on Apple Silicon builds an arm64 app the PC can't run).
   - **Mac (`masos` only):** a dmg for Apple Silicon (arm64 only), ad-hoc signed (`identity: "-"`), no hardened runtime, not notarised: `npm run dist:mac` makes `dist/Recaller-1.16.0-arm64.dmg`. Its Info.plist has `com.akhan.recaller`, `LSMinimumSystemVersion` 13.0 and an `NSMicrophoneUsageDescription`. Intel Macs are neither built nor tested.
-- **UI:** vanilla JavaScript, HTML and CSS in the renderer. No framework, bundler or build step for the UI; scripts load as classic `<script>` tags in order: `icons.js`, `voice.js`, `app.js`.
-- **Dependencies:** none at runtime. Only `electron` and `electron-builder` are devDependencies. Fonts are copied `.woff2` files, not npm packages.
+- **UI:** vanilla JavaScript, HTML and CSS in the renderer. No framework, bundler or build step for the UI; scripts load as classic `<script>` tags in order: `icons.js`, `voice.js`, `app.js` (1.16), and since 1.17.0 `icons.js`, `voice.js`, `sync-apply.js`, `app.js`, `account.js`.
+- **Dependencies:** none at runtime. Only `electron` and `electron-builder` are devDependencies. Fonts are copied `.woff2` files, not npm packages. 1.17.0 added no dependency: accounts and sync use raw REST calls, no Firebase SDK.
 - **Speech-to-text:** the OpenAI API (`POST /v1/audio/transcriptions`), called only from the main process with Node's built-in `fetch`, `FormData` and `Blob`.
+- **Cloud (1.17.0):** Firebase on Google Cloud project `recaller-cloud` (us-east1): Identity Platform for accounts, Cloud Firestore for the board, Cloud Storage for pictures. Called only from the main process through Electron's `net.fetch`, which follows the system's proxies and certificates. The project is Terraform in `infra/` (`infra/README.md`).
 - **Machines:** the Windows PC (Windows 11, x64, one 5120×1392 ultrawide at 100%) and the owner's MacBook Pro (macOS 26.5.1, Apple M5 Pro, one Retina screen of 3024×1964 px at 2×, 1512×982 pt). The Mac edition was built and tested only on that Mac.
 
 ## Processes and windows
 
-1. **Main process** (`src/main.js`): the app lifecycle, the one main window, the settings and data files, backups, the clipboard, global hotkeys, the image protocol, screenshots and transcription. **On a Mac** also the menu bar.
+1. **Main process** (`src/main.js`): the app lifecycle, the one main window, the settings and data files, backups, the clipboard, global hotkeys, the image protocol, screenshots and transcription. **On a Mac** also the menu bar. Since 1.17.0 also accounts and sync, through the facade `src/cloud/index.js` (see "Accounts and sync" below).
 2. **Main window renderer** (`src/renderer/*`): the whole UI. Its preload is `src/preload.js`, which exposes `window.recaller`.
 3. **Screenshot overlay window** (`src/overlay/*`): a temporary, frameless, always-on-top window covering one display while the user drags out a region. Its preload is `src/overlay/preload.js`, which exposes `window.shot`.
 
@@ -44,12 +46,47 @@ recaller/
                           directory (used by npm start / test / icon / capture)
     make-icon.js          renders build/icon.png from the SVG sprite in src/renderer/index.html;
                           with --mac (npm run icon:mac) it renders only build/icon-mac.png
+    cloud-config.js       1.17: npm run cloud:config checks infra/gcp/project.json and copies it to
+                          src/cloud/project.json; --check (predist, predist:mac, predist:win, prepack) stops a
+                          build without it unless RECALLER_NO_CLOUD=1. Prints no key
+    accounts-on.js        1.17: npm run test:accounts-on runs multi-copy, update-safety and features with
+                          accounts on and nobody signed in, and fails if the app sends any request
+  infra/                  1.17: the Google Cloud project as Terraform (terraform/bootstrap, terraform/prod), the
+                          security rules (firebase/), and owner-run scripts (scripts/: auth-settings.sh,
+                          rules-test.js, rules-smoke.js, purge-unverified.js). Runbook: infra/README.md.
+                          infra/gcp/project.json (the app config, holds the API key) is git-ignored
   src/
     main.js               app entry (see below)
     preload.js            window.recaller bridge (IPC wrappers, listeners, and `platform`)
-    store.js              crash-safe JSON: atomic write (tmp + rename with retries), read with .bak fallback, backup copy
+    store.js              crash-safe JSON: atomic write (tmp + rename with retries), read with .bak fallback, backup copy;
+                          since 1.17 writeJsonAtomic returns the text it wrote (sync fingerprints it)
+    cloud/                1.17, main process only (see "Accounts and sync"):
+      project.json        generated by npm run cloud:config, git-ignored: projectId, apiKey, storageBucket,
+                          authDomain, region. Without it accounts are off
+      config.js           loadConfig(): endpoints, enabled flag, mock/fast/offline flags, token-store mode
+      http.js             createHttp(): JSON and bytes requests over net.fetch, Google errors → CloudError codes,
+                          serverNow() from Date headers
+      codec.js            Firestore typed values, document encoding with _json, docId()
+      auth.js             Identity Toolkit and Secure Token REST calls
+      firestore.js        get, batchGet, runQuery (paged), commit
+      storage.js          Storage v0: multipart (≤ 256 KiB) or resumable upload, download, stat, list, remove
+      tokens.js           the token store: the refresh token sealed with safeStorage in sync/account.json
+      account.js          the account's life: sign-up, verification, sign-in, sign-out, deletion, single-flight
+                          ID tokens, the 5-wrong-passwords lock-out
+      index.js            the facade main.js calls: init, IPC handlers, hooks; the only one that requires electron
+    sync/                 1.17, main process only, plain Node (dependencies injected):
+      keys.js             fractional order keys (base 62)
+      model.js            data file → model, cloud documents → model, encoding, pristine-Welcome checks, counts
+      diff.js             the local board against the shadow → writes
+      merge.js            three-way, union and restore merges → a patch for the page and the new shadow
+      state.js            the sync/ folder: device.json, state.json, shadow.json
+      engine.js           createSync(): the loop (push, pull, first sync, audit, account deletion, pictures);
+                          completePictures() fetches the board's missing full-size pictures before a sign-out
+                          or an account deletion
     transcribe.js         OpenAI transcription: form building, SSE streaming parser, retries and fallbacks, error codes
-    images.js             image store in <userData>/images, recaller-img:// protocol, garbage collection
+    images.js             image store in <userData>/images, recaller-img:// protocol, garbage collection; since 1.17
+                          also pictures by id for sync (has, size, readFile, writeWithId, ensureThumb), and a
+                          full size that isn't here is shown and copied from its thumbnail
     screenshot.js         region snip: hide window, desktopCapturer, overlay window, crop, store;
                           on a Mac also the Screen Recording check
     backups.js            backup folders in <userData>/backups: create/list/prune/daily/readData/imageIds
@@ -63,14 +100,27 @@ recaller/
                           selection bar, toasts, lightbox dialog, settings dialog; CSP meta tag;
                           Mac labels as data-mac / data-mac-title attributes (masos)
       styles.css          all styling: tokens, themes, densities, title fonts, Cooked palettes, components
-                          (1820 lines on masos, 1801 in 1.16; the macOS block is at the end)
-      icons.js            window.ICONS: inline SVG strings (stroke icons on a 24px grid)
+                          (about 1900 lines with 1.17, 1820 for the 1.16 Mac edition, 1801 in Windows 1.16; the 1.17
+                          account block sits before the macOS block, which is at the end)
+      icons.js            window.ICONS: inline SVG strings (stroke icons on a 24px grid; 1.17 adds cloud,
+                          cloudOff and cloudAlert)
       voice.js            window.Voice: mic capture, voice-activity segmentation, transcribe() wrapper
-      app.js              the whole UI app (3675 lines on masos, 3576 in 1.16; one IIFE; see "Renderer design")
+      sync-apply.js       1.17: window.SyncApply (UMD, also required by main): applyPatch() and the per-device key
+                          lists. Pure; reuses the page's live objects
+      app.js              the whole UI app (about 3900 lines with 1.17 on masos, 3675 for the 1.16 Mac edition, 3576 in
+                          Windows 1.16; one IIFE; see "Renderer design")
+      account.js          1.17: Settings › Account & sync, the choice panels, the top-bar #sync-status indicator
       fonts/              Geist, Geist Mono, Instrument Sans, Plus Jakarta Sans, Onest, Sora, Space Grotesk,
                           Manrope, Inter (woff2) plus OFL licence files
   tests/e2e/              end-to-end suites (see 06_build_test_release.md); on masos also mac-harness.js,
-                          which keeps every suite quiet on a Mac and does nothing on Windows
+                          which keeps every suite quiet on a Mac and does nothing on Windows; 1.17 adds sync.e2e.js
+  tests/unit/             1.17: node --test unit tests for src/cloud, src/sync, sync-apply.js, src/images.js,
+                          main.js's quit, the account page (in a vm), the GCP mock and its rules twin, and the
+                          privacy note's wording (plain Node, no windows)
+  tests/mock-gcp/         1.17: an in-process mock of Identity Toolkit, Secure Token, Firestore and Storage on
+                          127.0.0.1, with a JavaScript twin of the security rules
+  tests/rules/cases.js    1.17: the shared rules cases (the twin and the real Rules API both run them)
+  tests/support/peer.js   1.17: a headless second computer (the real engine and clients, no Electron)
   ai_memory/              this handoff
 ```
 
@@ -133,7 +183,7 @@ recaller/
   1. Read and check the backup's data file. If it can't be read or has no `projects` array, return `{ ok: false, error: "That backup couldn't be read." }` and touch nothing.
   2. Flush pending data.
   3. Create a `before-restore` backup (with `restoredFrom: id`).
-  4. Set `restoring = true`, so incoming saves are ignored; clear the write timer and drop `pendingData`.
+  4. Set `restoring = true`, so incoming saves are ignored; clear the write timer and drop `pendingData` (and, since 1.17, `pendingMeta`). Signed in, `cloud.onRestore(id)` runs just before this, so the next sync is a restore merge that deletes nothing from the account.
   5. Write the parsed backup over the data file, atomically. It is re-serialised with 2-space indentation, not copied byte for byte.
   6. Reload the page after 50ms. The next `data:load` turns `restoring` off.
 
@@ -150,6 +200,16 @@ recaller/
   - Every web contents denies new windows (http(s) links open in the system browser) and blocks navigation.
   - `activate` (on a Mac, a Dock click) creates the window if there is none. **On a Mac** it also summons a hidden window.
   - `before-quit` flushes and, **on a Mac**, sets `quitting`. `will-quit` unregisters the global shortcuts, after a flush **on a Mac**. `window-all-closed` flushes and quits, except on a Mac.
+- **Accounts and sync hooks (1.17.0).** `const cloud = require('./cloud')`. Every hook returns at once while accounts are off or signed out, and none throws into main:
+  - `cloud.init({...})` right after `protectData()`, with main's own pieces: `safeStorage`, `userData`, `isPackaged`, `getWindow`, `images`, `backups`, `flushData`, `hasPendingWrite`, `isRestoring`, `holdSaves` (ignore saves while "Also remove this board" runs, like `restoring`), `getDeviceSettings` (an allow-list: theme, model, language, hint, hotkey, shotHotkey, hideAfterCopy; never `apiKey`, `bounds` or `lastVersion`), `appVersion`, `platform`, and `onShutdown` (records `sessionEndingAt`, below);
+  - `loadData()` calls `cloud.onLoadResult({ from: 'main' | 'bak' | null, value, file })` before its `.bak` copy; `data:load` calls `cloud.onPageLoading()` first;
+  - `scheduleDataWrite(data, meta)` keeps `pendingMeta = cloud.mergeSaveMeta(pendingMeta, meta)` (null while signed out). Signed in, a save that acknowledges a patch (`meta.ack`) first flushes the save waiting before it, so the engine sees what that one held. `flushData()` keeps `pendingData` when the write throws (as before) and, after a good write, calls `cloud.onFileWritten(data, meta, text)`: the engine reads the board only as it is on disk;
+  - `restoreBackup()` calls `cloud.onRestore(id)` after the `before-restore` backup and clears `pendingMeta` with `pendingData`;
+  - the window's `focus`, `blur`, `show`, `hide`, `minimize` and `restore` call `cloud.onWindowState()`; `summon()` calls `cloud.onSummon()`;
+  - `image:copy`, signed in, fetches a picture from another computer (`cloud.ensureImage(id)`) and writes it to the clipboard inside the `inOrder()` queue, so a copy made after it still lands last; `images.serve({ fetchMissing: cloud.ensureImage })` fetches missing files for `recaller-img://`. A full size that still isn't here (offline, or signed out since) is served and copied from its thumbnail;
+  - `cloud.registerIpc(ipcMain)` at the end of `registerIpc()`;
+  - a third `before-quit` listener, after the flush and the Mac's `quitting`: when signed in with changes not uploaded, it cancels the quit once, flushes, gives `cloud.finalPush(1500)` up to 1.5 s, then quits (`finalPushDone` lets the second `before-quit` through);
+  - **except while the computer logs out, restarts or shuts down:** on Windows the window's `session-end` sets `sessionEnding`. **On a Mac** powerMonitor's `shutdown` (through the `onShutdown` dep; watched from the first sign-in on, never before it, and never on ⌘Q) sets `sessionEndingAt`, and it counts only for 60 s, so a log out the person cancels doesn't turn the final push off for the rest of the run. The quit then goes through at once, because holding it up would make macOS say Recaller cancelled the log out. What didn't upload goes up at the next start.
 
 ### Mac additions in `src/screenshot.js`
 
@@ -169,7 +229,7 @@ None of this has been verified against a real Screen Recording prompt: the Mac t
 | Preload function | Channel | Type | Payload → result |
 | --- | --- | --- | --- |
 | `loadData()` | `data:load` | invoke | → the parsed data object or `null` |
-| `saveData(data)` | `data:save` | send | full data object; debounced write; ignored while restoring |
+| `saveData(data, meta)` | `data:save` | send | full data object; debounced write; ignored while restoring. Since 1.17 a second argument `meta = { session, seq, contentSeq, labels, ack? }` (sync's bookkeeping); main keeps it only while signed in, and bad meta counts as `{}` |
 | `copy(text)` | `clipboard:write` | invoke | string → `true` (serialised) |
 | `minimize()` | `window:minimize` | invoke | minimises the window on Windows; **on a Mac** hides the app (`app.hide()`), like ⌘H |
 | `getSettings()` | `settings:get` | invoke | → public settings object |
@@ -184,6 +244,26 @@ None of this has been verified against a real Screen Recording prompt: the Mac t
 | `captureScreen()` | `shot:capture` | invoke | → `{ ok: true, image }`, `{ ok: false, code: 'CANCELLED' \| 'BUSY' \| 'FAILED', error? }`, and **on a Mac** also `code: 'PERMISSION'` with the Screen Recording text |
 | `transcribe(bytes, mime, context, onEvent)` | `stt:transcribe` | invoke | `{ reqId, bytes, mime, context }` → `{ ok, text }` or `{ ok: false, code, error }` |
 | `openPrivacy(kind)` | `app:open-privacy` | invoke | **Mac only**: the handler is registered only on a Mac, and only Mac-gated code calls it. `'microphone'` or `'screen'` opens that pane of System Settings › Privacy & Security (`x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone` or `?Privacy_ScreenCapture`) → `true`; any other value → `false` |
+
+**Accounts and sync (1.17.0), `window.recaller.account.*` and `window.recaller.sync.*`.** Registered by `cloud.registerIpc()`. Main checks every payload: an email of at most 254 characters matching `^[^\s@]+@[^\s@]+\.[^\s@]+$`, a password string of 1–4096 characters, a `choice` from the allow-list. One account operation runs at a time; another gets `{ ok: false, code: 'BUSY' }`. Results are `{ ok: true }` or `{ ok: false, code, retryAfterMs? }` (codes in `15`, 3.6). With accounts off, `account:get` still answers `{ enabled: false, state: 'signed-out' }`, the other account calls and `sync:choose` answer `UNAVAILABLE`, `sync:now` answers `null`, and the sends are ignored.
+
+| Preload function | Channel | Type | Payload → result |
+| --- | --- | --- | --- |
+| `account.get()` | `account:get` | invoke | → `AccountState`: `enabled`, `state` (`signed-out`, `unverified`, `signed-in`, `needs-sign-in`, `deleted`, `disabled`), `email`, `keyStore`, and while signed in `sync` (phase, pending, last synced, errors, progress), `choice`, `devices`, `counts`, `deleting` (`what` is `save-pictures`, `pictures`, `notes` or `account`), and `signingOut` (`{ what: 'pictures', done, total }`, only while a plain sign-out saves the full-size pictures) |
+| `account.signUp(email, password, privacyVersion)` | `account:sign-up` | invoke | → `Result`; sends the verification email |
+| `account.signIn(email, password)` | `account:sign-in` | invoke | → `Result` (also from `needs-sign-in`) |
+| `account.resendVerification()` | `account:resend-verification` | invoke | → `Result` |
+| `account.checkVerified()` | `account:check-verified` | invoke | → `Result & { verified }`; shares a lookup already on its way |
+| `account.discardUnverified()` | `account:discard-unverified` | invoke | "Use a different email": deletes the unverified account only if it was made in the last few minutes (`accounts:delete` wants a recent sign-in) and wasn't verified meanwhile; otherwise it is left for `infra/scripts/purge-unverified.js`. Then signs out (`NETWORK` and `TOO_MANY_ATTEMPTS` change nothing) → `Result` |
+| `account.resetPassword(email)` | `account:reset-password` | invoke | → `Result`, ok for unknown emails too (enumeration protection). Main sends at most one link per email a minute: another answers `{ ok: false, code: 'RESET_UNAVAILABLE', retryAfterMs }` |
+| `account.signOut({ force, removeBoard, removeUnreadable })` | `account:sign-out` | invoke | → `Result`, or `{ ok: false, code: 'PENDING', pending, localOnly? }` while changes wait. With `removeBoard`, also while anything exists only here, and while kept copies of an unreadable notes file exist that `removeUnreadable` didn't agree to remove (`localOnly.unreadable` says how many). A plain sign-out first saves the full-size pictures here for at most 20 s and answers `{ ok: true, picturesLeft }` when some stayed in the account |
+| `account.deleteAccount(password)` | `account:delete` | invoke | → `Result`; progress arrives in `account:changed`, starting with `save-pictures` (nothing is deleted until the full-size pictures are saved here) |
+| `account.onChanged(fn)` | `account:changed` (main → page) | listener | `AccountState`, sent on every change |
+| `sync.ready({ session })` | `sync:ready` | send | the page finished `init()`; sync may start sending patches |
+| `sync.nack({ patchId, reason })` | `sync:nack` | send | `reason` `'stale'` (the page's `contentSeq` moved) or `'invalid'` |
+| `sync.now()` | `sync:now` | invoke | Sync now → the sync status, or `null` signed out |
+| `sync.choose(choice)` | `sync:choose` | invoke | `upload`, `combine`, `use-account`, `not-now`, `delete-everywhere`, `keep` or `retry` → `Result` |
+| `sync.onPatch(fn)` | `sync:patch` (main → page) | listener | a `Patch` (`15`, 5.8): entity upserts and removals, final list orders, counters, notices |
 
 **Preload listeners and values:**
 
@@ -219,13 +299,24 @@ None of this has been verified against a real Screen Recording prompt: the Mac t
   - `index.html`: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: recaller-img:; media-src 'self' blob:; connect-src 'none'; object-src 'none'; base-uri 'none'`. The page itself cannot make network requests; all network traffic goes through main.
   - `overlay.html`: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src blob:; font-src 'self'; object-src 'none'; base-uri 'none'`.
   - Keep `base-uri 'none'` when editing either one: it has no fallback.
-- **Image protocol:** `recaller-img://img/<32 hex>.png` (full size) and `.../<id>.t.png` (thumbnail). The handler validates the id with a regex, so there is no path traversal. A missing thumbnail falls back to the full image.
+- **Image protocol:** `recaller-img://img/<32 hex>.png` (full size) and `.../<id>.t.png` (thumbnail). The handler validates the id with a regex, so there is no path traversal. A missing thumbnail falls back to the full image, and since 1.17 a missing full size falls back to the thumbnail (a picture from another computer known here only by its preview; with 1.16 data every picture has both files).
 - **API key:** encrypted at rest with `safeStorage`, and never sent to the renderer. The code has no platform branch; the operating system supplies the protection.
   - **Windows:** DPAPI. The encryption key sits in Chromium's `Local State` file in the data folder.
   - **On a Mac:** the Keychain (Electron's documented macOS backend). The encryption key is a login-keychain item, which for the packaged app should be named "Recaller Safe Storage". Saving a key may bring a keychain prompt ("Always Allow"), and because each ad-hoc-signed build has a new signature, the prompt may come back after a rebuild. Untested: the test suites use a `{ plain }` test key, so they never touch the keychain, and nothing is recorded from the owner's first run of the packaged app (late on 2026-09-29).
   - Stored as `{ enc: base64 }`, or `{ plain }` only if OS encryption is unavailable.
   - A blob encrypted on one computer can't be decrypted on the other, so the key can't move between the PC and the Mac; it has to be pasted again.
   - Backups copy `recaller-settings.json`, so every backup folder holds the key blob (in plain text if it was saved as `{ plain }`). Never print or share backup settings files.
+- **Accounts and sync (1.17.0):**
+  - **The page never sees a token, the API key or the cloud config.** It gets `AccountState`, `Result`s and patches only. The CSP is unchanged (`connect-src 'none'`); every Google call goes through `net.fetch` in main.
+  - **Passwords** cross IPC only for sign-up, sign-in, re-authentication and deletion. Main passes them straight to Identity Toolkit and never stores or logs them. Deletion holds the password only for the length of that call.
+  - **The refresh token** is the only long-lived secret. In a packaged build (`tokenStore: 'secure'`) it is sealed with `safeStorage` and kept as `{ enc }` in `sync/account.json`: DPAPI on Windows (`keyStore: 'dpapi'`), the keychain **on a Mac** (`'keychain'`, the same "Recaller Safe Storage" item as the API key). Linux's `basic_text` fallback counts as not secure. If sealing isn't possible, the token is never written: the sign-in lasts for the session (`'session'`), and Settings says so. `{ plain }` is never stored. A sealed token for another cloud project (`project` mismatch) is ignored.
+  - **ID tokens** (one hour) live in memory only, refreshed single-flight 5 minutes before they expire, after a 401, and on resume.
+  - **Runs from source never touch the keychain:** the token store defaults to `memory` (nothing written). `test-file` (a readable `{ testPlain }`) is allowed only with a loopback mock, in a run from source; `RECALLER_TOKEN_STORE=secure` is an explicit opt-in. Every development override (`RECALLER_GCP_BASE`, `RECALLER_GCP_REAL`, `RECALLER_TOKEN_STORE`, `RECALLER_SYNC_FAST`, `RECALLER_SYNC_OFFLINE`) is ignored when `app.isPackaged`, and `RECALLER_GCP_BASE` must be `http://127.0.0.1:PORT` or `http://localhost:PORT`.
+  - **Accounts are off** without `src/cloud/project.json`, and in any run that sets `RECALLER_DATA_DIR` without a mock base (unless `RECALLER_GCP_REAL=1`, from source only). So the older suites run exactly as in 1.16.
+  - **The API key** in `project.json` is public by design (it ships in every copy and only names the project); the security rules and the verified-email sign-in protect the data. It still stays out of git and out of logs: the config object hides it from `console.log`, and logs carry error codes only, never a message that could hold an email or note text.
+  - **Security rules** (`infra/firebase/*.rules`): a user whose email is verified reads and writes only `users/{uid}` and `users/{uid}/images/`. Board writes make no `get()` calls; a board commit must raise the head's `rev` by exactly one; nothing is hard-deleted except while the account is being deleted. Details in `15`, 4.8 and 4.9.
+  - **What arrives from the account is untrusted text.** A note id can now come from another computer, so the Notes lists of the Cooked note and the Served text escape it where they build their HTML (`partsHtml`), as note text always was (a security fix from 1.17's final review).
+  - **The data on Google's side** is encrypted in transit and at rest, but not end to end: the project owner could read it (the privacy note says so).
 - **Permissions and navigation:**
   - Chromium level: the request and check handlers grant only `media` and `clipboard-sanitized-write`. `media` is granted without looking at the media types, so a camera request would pass too; the renderer only ever asks for audio.
   - **On a Mac**, macOS adds its own layer. The microphone needs the Info.plist `NSMicrophoneUsageDescription` (macOS asks on first use) and, when refused, the composer offers an Open System Settings button. Screen Recording is checked before every snip (see `screenshot.js` above). The session never saw either prompt (the Mac tests use a fake microphone and skip the real snip), and the owner's first run isn't reported yet.
@@ -255,13 +346,15 @@ One IIFE. After the top constants comes a short `// ---- macOS (1.16 Mac edition
 17. global keys
 18. boot
 
+Since 1.17 a `// ---- sync (1.17)` block sits at the end of section 17, just before boot: `SESSION`, `saveSeq`, `contentSeq`, `pendingLabels`, `syncBusy()`, `tryApplyPatch()`, `noticeText()` (the sync toasts), the "Other version" tag's tooltip, `window.RecallerUI`, and the `api.sync.onPatch` handler. `init()` ends with `api.sync?.ready({ session })`.
+
 - **State:**
   - `data` is the persisted document (see `03`).
   - `ui` holds ephemeral state: `search`, `composing` (project id with the new-prompt composer open), `editing` (id of the note being edited), `lastProjectId`, `settings` (the public settings), `selection` (the ids picked by Ctrl+click, or ⌘-click on a Mac, in order) and `anchor` (the last plain-clicked note, used for Explorer-style selection).
 - **Rendering: keyed reconciliation, no virtual DOM.**
   - `columns` (Map projectId → column view) and `cards` (Map noteId → card view) keep DOM nodes alive across renders.
   - `render()` rebuilds the order with `syncChildren(parent, nodes)`, which moves only the nodes that changed. This keeps focus, scroll, animations and open editors intact.
-  - Each card view keeps a signature string (text, search key, expanded, copy count, image ids, highlight id) and only rewrites its DOM when that changes. There is no stage in it: cards exist only in Cooking since 1.6. The time label is rewritten on every render, outside the signature, and the selection ring and badge are set in `syncList`.
+  - Each card view keeps a signature string (text, search key, expanded, copy count, image ids, highlight id, and since 1.17 the "Other version" tag's tooltip) and only rewrites its DOM when that changes. There is no stage in it: cards exist only in Cooking since 1.6. The time label is rewritten on every render, outside the signature, and the selection ring and badge are set in `syncList`.
   - The Cooked note and the Served text are rendered per column with their own signatures (`augSig`, `finalSig`), which include the search key so matches get highlighted. Their Notes lists come from `partsHtml()`.
   - Column widths: `updateColumn()` sets `style.width` from `colWidth(id)` (reads `data.prefs.colWidths`), except for the column being resized. `render()` ends with `paintWidthReset()`, which enables or disables the top-bar ↔ button.
   - `render()` is skipped while a drag is active.
@@ -344,6 +437,21 @@ One IIFE. After the top constants comes a short `// ---- macOS (1.16 Mac edition
   - `'undo'` / `'redo'`: in a text field, `document.execCommand(name)`, the field's own undo; with Settings, Help or the lightbox open, nothing; otherwise the board's `undo()` / `redo()`.
 - **CSS** (the macOS block at the end of `styles.css`): `body.is-mac .topbar { padding-left: 84px }` (14px under `body.is-mac.is-fullscreen`), Mac font stacks on `body.is-mac` (Geist first, then `-apple-system`; Geist Mono first, then `ui-monospace`, "SF Mono", Menlo), and the system font for `kbd`, because none of the bundled fonts has ⌘ ⇧ ⌥ ⌃ ↩. Details in `05`.
 - **Measured on the owner's Mac** (the features suite's `INFO` line): `env(titlebar-area-x)` is 92px, the top bar's padding-left 84px, `getWindowButtonPosition()` `{ x: 16, y: 16 }`, and the logo sits at x 84 with its centre at y 24. Nobody has reported on the real traffic lights yet.
+
+## Accounts and sync (1.17.0)
+
+A summary; the design is `15_accounts_and_sync.md`, and its section 0 lists where the code differs from it.
+
+- **Local first.** The data file stays the source of truth. The engine never writes it: it reads the board only as main wrote it (`onLoadResult`, `onFileWritten`), and changes from the cloud reach the board only as patches the page applies and saves. Signed out, there is no `sync/` folder, no network, no timer and no quit delay.
+- **Layers in main:** `cloud/index.js` (the facade: IPC, hooks, the engine's life) → `cloud/account.js` (sign-in and ID tokens, with `cloud/tokens.js`) and `sync/engine.js` (the loop) → `cloud/firestore.js` and `cloud/storage.js` → `cloud/http.js` → `net.fetch`. Everything below the facade gets its dependencies injected and runs under plain Node: the unit tests and the headless peer (`tests/support/peer.js`) use it without Electron.
+- **One loop, one network task at a time.** Triggers only set what is wanted (pull, push, device record); `run()` does the work.
+  - **Push:** about 2 s after a save that changed content (at most 10 s after the first), as one or more commits of at most 400 writes and 8 MiB. Each commit raises the account head's `rev` by exactly one under an `updateTime` precondition, so pushes are fast-forward only. Pictures upload before the commit that names them. Copy counts alone wait for blur, hide, the next content push, 10 minutes or quit.
+  - **Pull:** reads the head, then the documents with `_sync.rev` in `(state.rev, head.rev]`, merges them with the file on disk against the shadow (the board as last synced), and sends the page a patch. The shadow advances only once the page's acknowledging save is on disk.
+  - **When:** the head is polled every 60 s while focused, 5 min while visible but unfocused, 30 min while hidden. Summon, focus and show pull at once, but at most once per 10 s after the last head read (`pullSoon()`); resume, unlock, back online, page ready, Sync now and the account becoming signed in pull at once without that limit. Failures back off 5 s, 15 s, 1 min, 5 min, then every 15 min.
+- **The page's side.** `persist()` sends `meta` with every save: the page load's `session`, a `seq`, `contentSeq` (raised by every content change, undo and redo included) and the undo labels since the last save (for the mass-delete guard). A patch based on an older `contentSeq`, or for another page load, is answered `stale` and merged again. A patch that changes content waits while anything holds the board (an editor, a drag or press, a menu, dictation, an Undo toast) and then clears the undo history. Counter-only patches apply at once. `window.RecallerUI = { toast, openSettings, relTime }` is what `account.js` uses from `app.js`.
+- **Files on disk:** the `sync/` folder (`device.json`, `account.json`, `state.json`, `shadow.json`) and `recaller-data.unreadable-*.json` copies; see `03`.
+- **Startup with a saved sign-in:** `cloud.init()` reads `sync/` with no network call; the engine starts the loop when the page says `sync:ready`. A sign-in in mid-session starts it then.
+- **Pictures from another computer** arrive as thumbnails after each patch; the full size comes down on demand (lightbox, copy). `engine.completePictures()` fetches every missing full size the board shows before a plain sign-out (at most 20 s; what's left stays in the account) and before an account deletion (if one can't be saved, nothing is deleted). Where a full size is still missing, `images.js` shows and copies the thumbnail.
 
 ## `src/renderer/voice.js` (summary; full flow in `04`)
 

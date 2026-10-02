@@ -166,3 +166,77 @@ The Mac edition of 1.16.0 (seventh session, 2026-09-29, branch `masos`). The own
     - Revisit if: the owner wants a different Mac icon.
 63. **`npm run dist:win` pins x64.**
     - Why: on an Apple Silicon Mac, a bare `--win nsis` builds an arm64 Windows app, and the owner's PC is x64. `npm run dist` stays as it was for building on the PC. `dist:win` hasn't been run yet.
+
+## Accounts and sync (1.17.0, eighth session)
+
+The full reasoning is in `15_accounts_and_sync.md` (section 1.2 lists 20 design decisions, D1–D20, and section 0 the as-built differences). These are the ones to know before changing anything.
+
+64. **Firebase on Google Cloud, called by raw REST from the main process.**
+    - What: accounts on Firebase Authentication with Identity Platform (email and password), the board in Cloud Firestore, pictures in Cloud Storage for Firebase, all in the existing project `recaller-cloud` (us-east1, which can't change: the database's location is permanent). Every call is a REST request through Electron's `net.fetch` in main, with the fetch function injected so the code unit-tests under plain Node. No Firebase SDK and no server code of our own.
+    - Why: keeps #5 (all network and secrets in main; the page has `connect-src 'none'` and never sees a token), adds no runtime dependency (#2), and allows a Node mock, since the Mac has no Java for Firebase's emulators. `net.fetch` follows system proxies and certificates. Firebase's free tiers cover the owner many times over (`15`, 2.3).
+    - Cost: the Storage v0 REST API is documented only through the SDK's own code, so `storage.js` copies its protocol and the smoke test checks it. A per-user quota, an automatic spending cap and scheduled clean-ups would need a server.
+    - Revisit if: the app is shared widely (a small Cloud Run service for quotas and clean-up), or Google changes the v0 Storage API.
+65. **Local first: the data file stays the source of truth.**
+    - What: each computer keeps its full board in `recaller-data.json`, as before. The sync engine never writes that file: it reads the board only as main wrote it, pushes only what is on disk, and changes from the cloud reach the board as patches that the page applies and saves. The shadow (the board as last synced) advances only once that save is on disk. Signed out, nothing runs at all.
+    - Why: the owner's first rule is that their data is never changed or lost (`README` golden rule 1). Offline, a crash or a quit can then never lose a note, the update-safety invariants keep holding, and an account is optional.
+    - Revisit if: never lightly. A cloud-first model would put every note behind the network.
+66. **Terraform for the whole project, plus one script for what it can't express.**
+    - What: `infra/terraform/bootstrap` (the state bucket) and `infra/terraform/prod` (everything else, one file per concern), adopted from the earlier setup script by import. The password policy and email enumeration protection, which the provider can't express, are set by `infra/scripts/auth-settings.sh`, which reads first and changes only what differs. Billing and people's access stay outside Terraform on purpose.
+    - Why: one source of truth for every resource, reviewable plans, recoverable state (`gs://recaller-cloud-tfstate`, versioned, owners only), and no service account keys (the owner's gcloud login).
+    - Cost: plans and state hold secrets, so plans are masked and saved plans deleted (`07` #89); a rules change re-creates the release (`07` #88).
+    - Revisit if: the provider gains the two missing settings, or people other than the owner need access.
+67. **The look stays on each computer; only "Join notes with" syncs.**
+    - What: column widths, folds, scroll, density, title font, Cooked colour, theme, drafts, shortcuts and voice settings stay per computer. Each computer uploads them as a backup that is never applied elsewhere. `prefs.joiner` syncs because it changes what a copy contains.
+    - Why: the PC's 5120×1392 ultrawide at 1× and the Mac's Retina screen at 2× want different widths and density, and the owner confirmed it (question Q3, 2026-09-30).
+    - Revisit if: the owner wants the title font or Cooked colour to follow them.
+68. **Sign-ups are open now.**
+    - What: `signup_enabled = true`; anyone with the app can create an account. One Terraform variable pauses sign-ups; existing accounts keep working.
+    - Why: the owner's answer (Q6): only they have the app today. Abuse limits are a verified email before any cloud access, Identity Platform's own limits, the rules' size caps, the client's lock-out and the budget alerts.
+    - Revisit before: sharing the app with anyone. Then either pause sign-ups or add a hosted privacy and terms page (declined for 1.17 as an extra).
+69. **Fast-forward commits counted by a revision, never by clocks.**
+    - What: every push is one Firestore commit that raises the account head's `rev` by exactly one, under an `updateTime` precondition, and stamps its items with that rev; a pull reads the revisions it hasn't seen. Order within a list is a fractional key. The rules allow a board commit only together with that head bump, and board writes make no `get()` calls.
+    - Why: no clock can be trusted across two computers, a commit is atomic, and a pull can then never miss a write. Access calls add up across a batch (20 per batched write), so a rule that read the head per item would refuse a big first upload.
+    - Revisit if: real-time listening is needed (REST has no `listen`; the app polls instead, which is the main cost lever).
+70. **Never lose text: conflicts keep both, and an edit beats a delete.**
+    - What: when both computers changed a text, the account's version stays in place and this computer's becomes a copy right after it, marked Check again with an "Other version" tag. A deleted note that the other computer edited is kept. Other fields: the later pusher wins. After a restore, a `.bak`, an unreadable file or a downgrade the merge is a union, which never deletes. A first sign-in never uploads a real board without asking, and a push that would delete many notes for no visible reason asks first.
+    - Why: the owner's data rule (#65), and a duplicate is easy to delete while a lost note is gone.
+    - Cost: conflict copies can pile up, and a union can bring back notes deleted elsewhere (`09`).
+71. **Tokens are sealed by the operating system, or not kept at all.**
+    - What: the refresh token is sealed with `safeStorage` (DPAPI on Windows, the keychain on a Mac). If that isn't possible the sign-in lasts for the session. It is never written in plain text, and runs from source keep it in memory so no test or dev run touches the keychain.
+    - Why: the same protection as the OpenAI key (#5), and the tests must never raise a keychain prompt on the owner's Mac.
+    - Revisit if: the app gets a Developer ID (the keychain prompt then stops returning after each update).
+72. **Test against an in-process mock, and test the rules three ways.**
+    - What: `tests/mock-gcp/` imitates every Google endpoint the app uses, with a JavaScript twin of the rules; `tests/support/peer.js` is a headless second computer; the unit tests include crash injection and a three-computer fuzz test. The rules cases run against the twin, then the real rules engine through the Rules API (free, deploys nothing), then the deployed project (`rules:smoke`, owner-run).
+    - Why: tests must never call paid services or touch the owner's data, the Mac can't run the emulators, and the twin plus the real engine keep each other honest.
+73. **One version, 1.17.0, for both platforms, from `masos`.**
+    - What: Windows and Mac both get accounts in 1.17.0, built from the one codebase on `masos`. The number of the discarded 1.17.0 is reused.
+    - Why: the owner's answers (Q2, Q10); those builds were never installed, so no computer's `lastVersion` says 1.17.0 and the upgrade backup still runs. Accounts aren't a Mac difference, so they aren't fenced by `IS_MAC`; only their labels differ ("this PC" / "this Mac", the keychain line).
+
+Decided in the last fix round (2026-10-01), after the final review.
+
+74. **A change held here outlives a deletion elsewhere.**
+    - What: a note whose version here the account hasn't seen and can't take yet (moved into a project the account doesn't have, refused, or too large) isn't removed by a deletion from the account, whether the other computer deleted the note or its column; it goes up as an undelete with its project. The other way round, a project's deletion waits while the account still has a live note in it that the push neither deletes nor moves out. (`15` section 0, items 10 and 28.)
+    - Why: the deletion elsewhere removed the version the account had, in its old column, not this one, and removing it here would lose a change that only couldn't go up yet (#65, #70). A project deleted while the account still holds a note in it would be brought back by every other computer.
+    - Cost: an exception to D10 (a move never beats a delete), so a note deleted on another computer can come back with its new column.
+75. **Deleting the account first saves the full-size pictures, strictly, and doesn't pull.**
+    - What: before anything is recorded or erased, the engine downloads every full size the board shows that this computer holds only as a preview (`completePictures`, strict). If one can't be saved, nothing is deleted and the deletion can be tried again. No pull runs first. (`15` section 0, items 31 and 32.)
+    - Why: the panel promises "This Mac keeps its own copy of the board", and after the deletion nothing could fetch those pictures. A pull was declined because what it brings counts only once the page has saved it, and the page can hold a patch back indefinitely.
+    - Cost: a note or picture another computer added since the last pull (one poll) isn't saved here; that computer keeps its own copy.
+76. **Reads are halved only on a timeout.**
+    - What: a page cut short by its deadline (`TIMEOUT`) is read again in pages half as big, down to one document. A dropped connection (`NETWORK`) fails the cycle as any request does (offline, a backoff) and starts again at the same size. A one-document read that keeps timing out is quiet once, then shows as paused from the second cycle; only a cycle that got through resets that count. (`15` section 0, item 9.)
+    - Why: a dropped connection says nothing about a page's size, and smaller pages only make a link that loses answers read more of them. A document the link can never carry in time must show, not retry quietly for ever.
+77. **A sign-out saves the full-size pictures for up to 20 s, and a preview stands in for the rest.**
+    - What: a plain sign-out, signed in, downloads the board's missing full-size pictures for at most 20 s after the final push ("Saving full-size pictures to this Mac… 3 of 12"), and the toast names what stayed in the account. Where a full size isn't here, `images.js` shows and copies the thumbnail. (`15` section 0, items 29 and 30.)
+    - Why: "Your board stays on this computer" must hold signed out, but a sign-out must never hang, so it has a time limit and says what's left. The fallback only matters for pictures from another computer; 1.16 data always has both files.
+    - Cost: a sign-out can take up to 20 s longer. Removing the board saves nothing, since the board goes anyway.
+78. **The privacy note names what the account really keeps.**
+    - What: "Pictures stay in your account until the account is deleted, even after the note or draft that held them is gone", and each computer's platform, Recaller version and last sync time. The page, README and `15` (6.7) say the same words, and `privacy.test.js` checks them against each other and against a device record the engine writes. The version stays 2026-10-01.
+    - Why: nothing erases a picture before the account goes (the rules allow it only during a deletion), and the device record holds those fields, so the note must say so.
+79. **Firebase's auto-created "Browser key" is kept, in Terraform, with the sign-in APIs only.** (Changed on 2026-10-01, live once the plan saved that day is applied. It was first "left as it is for now", outside Terraform, until a real email showed which key the links carry.)
+    - What: `google_apikeys_key.email_page` in `infra/terraform/prod/apikey.tf`, adopted by an import (`imports.tf`, deleted after the apply). Its API list is `email_page_key_services` in `locals.tf`: Identity Toolkit and Secure Token, down from the 27 Firebase gave it. It has `prevent_destroy`, and a precondition refuses an empty list. "Stop everything" can also cut it to the API Keys API, which breaks the email links until undone (`infra/README.md`).
+    - Why: the email links carry this key, not the app key. The API metrics (Cloud Monitoring, request counts per credential) showed the owner's click on a verification link as its only use in 7 days (Identity Toolkit's SetAccountInfo), while every call the app makes used the app key. Restricting it fully, or deleting it, would break every verification and reset email; keeping only the sign-in APIs takes Firestore, Storage and the rest out of its reach. The owner step these docs had planned, comparing key values, wasn't needed (`07` #99).
+    - Revisit if: an email link stops working after a change to the key, or Firebase creates another browser key.
+80. **The budget also alerts early: at 10 % of 15 CAD, and on the month's forecast.** (2026-10-01, live once the plan saved that day is applied.)
+    - What: the 15 CAD budget (amount unchanged, Q7) emails at 10 % (1.50 CAD), 50 %, 90 % and 100 % of actual spend (`budget_alert_thresholds` in `variables.tf`), and once when the month's forecast passes 100 % (`budget.tf`). Still alerts only: nothing is capped.
+    - Why: normal spend is about 0.00 CAD, so 1.50 CAD of real spend is an early sign of abuse, and a forecast alert can come before the money is spent. Google's cost data can lag a day, so earlier is better.
+    - Revisit when: the budget is raised for public sign-up (Q7); with many users, 10 % becomes ordinary spend.
