@@ -3,6 +3,7 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const { app, BrowserWindow, clipboard, screen } = require('electron');
+const { IS_MAC, MOD, MOD_KEY, macRect, quiet } = require('./mac-harness'); // Mac-safe run (⌘ for Ctrl); inert on Windows
 
 const SCRATCH = path.join(__dirname, '.out'); // test data, screenshots, logs (git-ignored)
 fs.mkdirSync(SCRATCH, { recursive: true });
@@ -26,6 +27,7 @@ app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-background-timer-throttling');
 process.env.RECALLER_DATA_DIR = DATA_DIR;
 const OFF = () => {
+  if (IS_MAC) return macRect(1360, 860);
   const c = screen.getCursorScreenPoint();
   const wa = screen.getDisplayNearestPoint(c).workArea;
   return { x: c.x - wa.x > wa.width / 2 ? wa.x - 1300 : wa.x + wa.width - 60, y: wa.y, width: 1360, height: 860 };
@@ -35,7 +37,8 @@ app.on('browser-window-created', (_e, w) => {
   w.show = () => { w.setBounds(OFF()); showInactive(); w.setBounds(OFF()); };
 });
 const APP_MAIN = process.env.APP_MAIN || path.join(__dirname, '..', '..', 'src', 'main.js');
-if (!fs.existsSync(APP_MAIN)) { console.error(`HARNESS FAIL: no app at ${APP_MAIN} (APP_MAIN must be a Windows path)`); process.exit(1); }
+if (!fs.existsSync(APP_MAIN)) { console.error(`HARNESS FAIL: no app at ${APP_MAIN}${IS_MAC ? '' : ' (APP_MAIN must be a Windows path)'}`); process.exit(1); }
+quiet();
 require(APP_MAIN);
 
 const results = [];
@@ -49,11 +52,11 @@ app.whenReady().then(async () => {
   const js = (code) => wc.executeJavaScript(code);
   const rect = (id) => js(`(() => { const r = document.querySelector('.card-wrap[data-id="${id}"] .card-text').getBoundingClientRect(); return { cx: r.left + r.width / 2, cy: r.top + r.height / 2 }; })()`);
   const send = (e) => wc.sendInputEvent(e);
-  const ctrlDown = () => send({ type: 'keyDown', keyCode: 'Control', modifiers: ['control'] });
-  const ctrlUp = () => send({ type: 'keyUp', keyCode: 'Control', modifiers: [] });
+  const ctrlDown = () => send({ type: 'keyDown', keyCode: MOD_KEY, modifiers: [MOD] });
+  const ctrlUp = () => send({ type: 'keyUp', keyCode: MOD_KEY, modifiers: [] });
   async function click(id, { ctrl = true, hold = 90, jitter = 0 } = {}) {
     const r = await rect(id);
-    const mods = ctrl ? ['control'] : [];
+    const mods = ctrl ? [MOD] : [];
     send({ type: 'mouseMove', x: Math.round(r.cx), y: Math.round(r.cy), modifiers: mods });
     send({ type: 'mouseDown', x: Math.round(r.cx), y: Math.round(r.cy), button: 'left', clickCount: 1, modifiers: mods });
     if (jitter) { await sleep(hold / 2); send({ type: 'mouseMove', x: Math.round(r.cx + jitter), y: Math.round(r.cy + 1), modifiers: [...mods, 'leftButtonDown'] }); await sleep(hold / 2); }

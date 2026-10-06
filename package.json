@@ -1,7 +1,7 @@
 {
   "name": "recaller",
   "productName": "Recaller",
-  "version": "1.16.0",
+  "version": "1.17.0",
   "description": "Your prompts and notes, one click away.",
   "main": "src/main.js",
   "author": "AKhan",
@@ -9,13 +9,26 @@
   "scripts": {
     "start": "node scripts/run-electron.js .",
     "icon": "node scripts/run-electron.js scripts/make-icon.js",
+    "icon:mac": "node scripts/run-electron.js scripts/make-icon.js --mac",
+    "cloud:config": "node scripts/cloud-config.js",
+    "predist": "node scripts/cloud-config.js --check",
     "dist": "electron-builder --win nsis",
+    "predist:mac": "node scripts/cloud-config.js --check",
+    "dist:mac": "electron-builder --mac",
+    "predist:win": "node scripts/cloud-config.js --check",
+    "dist:win": "electron-builder --win nsis --x64",
+    "prepack": "node scripts/cloud-config.js --check",
     "pack": "electron-builder --dir",
-    "test": "npm run test:multicopy && npm run test:update && npm run test:features",
+    "test": "npm run test:unit && npm run test:multicopy && npm run test:update && npm run test:features && npm run test:accounts-on && npm run test:sync",
+    "test:unit": "node --test \"tests/unit/**/*.test.js\"",
     "test:features": "node scripts/run-electron.js tests/e2e/features.e2e.js",
     "test:update": "node scripts/run-electron.js tests/e2e/update-safety.e2e.js",
     "test:multicopy": "node scripts/run-electron.js tests/e2e/multi-copy.e2e.js",
-    "capture": "node scripts/run-electron.js tests/e2e/capture-board.js"
+    "test:accounts-on": "node scripts/accounts-on.js",
+    "test:sync": "node scripts/run-electron.js tests/e2e/sync.e2e.js",
+    "capture": "node scripts/run-electron.js tests/e2e/capture-board.js",
+    "rules:test": "node infra/scripts/rules-test.js",
+    "rules:smoke": "node infra/scripts/rules-smoke.js"
   },
   "build": {
     "appId": "com.akhan.recaller",
@@ -29,6 +42,27 @@
       "build/icon.png",
       "package.json"
     ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon-mac.png",
+      "category": "public.app-category.productivity",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "darkModeSupport": true,
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Recaller listens only while you dictate a prompt, and sends the recording to OpenAI to turn it into text."
+      }
+    },
+    "dmg": {
+      "title": "Recaller ${version}"
+    },
     "win": {
       "target": "nsis",
       "icon": "build/icon.png"

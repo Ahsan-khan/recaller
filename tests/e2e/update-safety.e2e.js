@@ -7,13 +7,14 @@ const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
 const { app, BrowserWindow, screen } = require('electron');
+const { IS_MAC, MOD, macRect, quiet } = require('./mac-harness'); // Mac-safe run; inert on Windows
 
 const SCRATCH = path.join(__dirname, '.out'); // test data, screenshots, logs (git-ignored)
 fs.mkdirSync(SCRATCH, { recursive: true });
 const MODE = process.env.MODE || 'synthetic';
 const DATA_DIR = path.join(SCRATCH, MODE === 'real' ? 'data-real' : 'data3');
 const APP_MAIN = process.env.APP_MAIN || path.join(__dirname, '..', '..', 'src', 'main.js');
-if (!fs.existsSync(APP_MAIN)) { console.error(`HARNESS FAIL: no app at ${APP_MAIN} (APP_MAIN must be a Windows path)`); process.exit(1); }
+if (!fs.existsSync(APP_MAIN)) { console.error(`HARNESS FAIL: no app at ${APP_MAIN}${IS_MAC ? '' : ' (APP_MAIN must be a Windows path)'}`); process.exit(1); }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const DATA = path.join(DATA_DIR, 'recaller-data.json');
 const SETTINGS = path.join(DATA_DIR, 'recaller-settings.json');
@@ -30,7 +31,10 @@ const OLD = new Date(Date.now() - 3 * 24 * 3600e3);
 
 let img1, img2, orphan, backupOnly;
 if (MODE === 'real') {
-  const src = path.join(process.env.APPDATA, 'Recaller');
+  // Mac: ~/Library/Application Support/Recaller; stop cleanly (no crash dialog) if it isn't there
+  const src = IS_MAC ? path.join(app.getPath('appData'), 'Recaller') : path.join(process.env.APPDATA, 'Recaller');
+  const missing = IS_MAC && ['recaller-data.json', 'recaller-settings.json'].find((f) => !fs.existsSync(path.join(src, f)));
+  if (missing) { console.error(`HARNESS FAIL: no ${missing} in ${src}`); process.exit(1); }
   for (const f of ['recaller-data.json', 'recaller-settings.json']) fs.copyFileSync(path.join(src, f), path.join(DATA_DIR, f));
   if (fs.existsSync(path.join(src, 'images'))) fs.cpSync(path.join(src, 'images'), path.join(DATA_DIR, 'images'), { recursive: true });
 } else {
@@ -91,6 +95,7 @@ app.commandLine.appendSwitch('disable-background-timer-throttling');
 
 process.env.RECALLER_DATA_DIR = DATA_DIR;
 const OFF = () => {
+  if (IS_MAC) return macRect(1360, 860);
   const c = screen.getCursorScreenPoint();
   const wa = screen.getDisplayNearestPoint(c).workArea;
   return { x: c.x - wa.x > wa.width / 2 ? wa.x - 1160 : wa.x + wa.width - 200, y: wa.y, width: 1360, height: 860 };
@@ -99,6 +104,7 @@ app.on('browser-window-created', (_e, w) => {
   const showInactive = w.showInactive.bind(w);
   w.show = () => { w.setBounds(OFF()); showInactive(); w.setBounds(OFF()); };
 });
+quiet();
 require(APP_MAIN);
 app.whenReady().then(run).catch((err) => { console.error('HARNESS FAIL', err); app.exit(1); });
 
@@ -177,7 +183,7 @@ async function run() {
     check('a resized column keeps its width; the others keep the default', widths[0] === 300 && widths[1] === 330, JSON.stringify(widths));
     check('unsaved draft kept (dot on +)', await js(`document.querySelector('.column[data-id="pA"] .col-add').classList.contains('has-draft')`));
     check('collapsed sections kept', await js(`document.querySelector('.column[data-id="pA"] .used').classList.contains('is-collapsed') && document.querySelector('.column[data-id="pB"] .final').classList.contains('is-collapsed')`));
-    key('N', ['control']);
+    key('N', [MOD]);
     await sleep(300);
     check('last-used project remembered (Ctrl+N opens in it)', await js(`!!document.querySelector('.column[data-id="pB"] .composer')`));
     key('Escape');

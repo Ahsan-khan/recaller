@@ -9,7 +9,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const FILES = ['recaller-data.json', 'recaller-settings.json'];
-const KEEP = { upgrade: 30, daily: 10, manual: 20, 'before-restore': 10 };
+const KEEP = { upgrade: 30, daily: 10, manual: 20, 'before-restore': 10, 'before-sync': 10 };
 const DAY_MS = 24 * 60 * 60 * 1000;
 const ID = /^[0-9TZ-]+_[a-z-]+$/;
 

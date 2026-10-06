@@ -53,7 +53,7 @@
     <label class="search">
       <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
       <input id="search" type="search" placeholder="Search prompts" spellcheck="false" autocomplete="off" />
-      <kbd>Ctrl K</kbd>
+      <kbd data-mac="⌘K">Ctrl K</kbd>
     </label>
     <div class="topbar-actions">
       <div class="history">
@@ -67,10 +67,11 @@
       <button class="icon-btn" id="reset-widths" disabled aria-label="Reset column widths">
         <svg class="icon" viewBox="0 0 24 24"><path d="M4 5v14M20 5v14M8 12h8" /><path d="m11 9-3 3 3 3M13 9l3 3-3 3" /></svg>
       </button>
-      <button class="icon-btn" id="open-help" title="How Recaller works (F1)" aria-label="Help">
+      <button class="icon-btn sync-btn" id="sync-status" hidden aria-label="Sync"></button>
+      <button class="icon-btn" id="open-help" title="How Recaller works (F1)" data-mac-title="How Recaller works (?)" aria-label="Help">
         <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.8" /><path d="M12 17.2v.1" /></svg>
       </button>
-      <button class="icon-btn" id="open-settings" title="Settings (Ctrl+,)" aria-label="Settings">
+      <button class="icon-btn" id="open-settings" title="Settings (Ctrl+,)" data-mac-title="Settings (⌘,)" aria-label="Settings">
         <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" /></svg>
       </button>
     </div>
@@ -92,7 +93,7 @@
 
   <div class="selection-bar" id="selection-bar" hidden>
     <span class="sel-count" id="sel-count"></span>
-    <span class="sel-hint">Ctrl+click to add or remove</span>
+    <span class="sel-hint" data-mac="⌘-click to add or remove">Ctrl+click to add or remove</span>
     <button class="sel-btn" id="sel-used">Move to Cooked</button>
     <button class="sel-btn" id="sel-clear">Clear</button>
   </div>
@@ -125,27 +126,28 @@
 
       <h3 class="modal-section">Handy moves</h3>
       <ul class="help-list">
-        <li><b>Copy several at once:</b> hold <kbd>Ctrl</kbd> and click cards. They're copied in click order.</li>
-        <li><b>Delete:</b> hold a card and swipe it left. In Cooked or Served, open <b>Notes</b> and click the trash on one note, or right-click the text and use the editor's trash to delete all of it. <kbd>Ctrl Z</kbd> undoes anything.</li>
+        <li><b>Copy several at once:</b> hold <kbd data-mac="⌘">Ctrl</kbd> and click cards. They're copied in click order.</li>
+        <li><b>Delete:</b> hold a card and swipe it left. In Cooked or Served, open <b>Notes</b> and click the trash on one note, or right-click the text and use the editor's trash to delete all of it. <kbd data-mac="⌘Z">Ctrl Z</kbd> undoes anything.</li>
         <li><b>Edit anything:</b> right-click a prompt, the Cooked note or the Served text (Cooked and Served also have a pencil). In <b>Notes</b>, right-click one part to edit just that part, or reorder, send back or delete it.</li>
         <li><b>Fold a stage away:</b> click its name (Cooking, Cooked or Served).</li>
         <li><b>Highlight a prompt</b> to check it again later: hover, then click the marker.</li>
         <li><b>Resize a column:</b> drag its right edge. The <b>↔</b> button in the top bar resets every width.</li>
         <li><b>Screenshots:</b> the camera in the editor, or paste an image. They follow the prompt into Cooked and Served, shown under the text: click the text, paste, then click the picture and paste again.</li>
+        <li id="help-account" hidden><b>On every computer:</b> Settings › Account &amp; sync keeps this board in your account. Column widths, folds, drafts and the look stay on each computer.</li>
       </ul>
 
       <h3 class="modal-section">Shortcuts</h3>
       <div class="help-keys">
-        <kbd>Ctrl K</kbd><span>Search (Enter copies the top match)</span>
-        <kbd>Ctrl N</kbd><span>New prompt</span>
-        <kbd>Ctrl M</kbd><span>Dictate</span>
-        <kbd>Ctrl Enter</kbd><span>Save</span>
-        <kbd>Ctrl Shift S</kbd><span>Screenshot into a prompt</span>
-        <kbd>Ctrl Z / Y</kbd><span>Undo / redo</span>
-        <kbd>Ctrl Shift N</kbd><span>New project</span>
-        <kbd>Ctrl ,</kbd><span>Settings</span>
-        <kbd id="help-hotkey">Ctrl Alt R</kbd><span id="help-hotkey-label">Show or hide Recaller from any app</span>
-        <kbd>F1</kbd><span>This help</span>
+        <kbd data-mac="⌘K">Ctrl K</kbd><span>Search (Enter copies the top match)</span>
+        <kbd data-mac="⌘N">Ctrl N</kbd><span>New prompt</span>
+        <kbd data-mac="⌘M">Ctrl M</kbd><span>Dictate</span>
+        <kbd data-mac="⌘↩">Ctrl Enter</kbd><span>Save</span>
+        <kbd data-mac="⇧⌘S">Ctrl Shift S</kbd><span>Screenshot into a prompt</span>
+        <kbd data-mac="⌘Z / ⇧⌘Z">Ctrl Z / Y</kbd><span>Undo / redo</span>
+        <kbd data-mac="⇧⌘N">Ctrl Shift N</kbd><span>New project</span>
+        <kbd data-mac="⌘,">Ctrl ,</kbd><span>Settings</span>
+        <kbd id="help-hotkey" data-mac="⌃⌥R">Ctrl Alt R</kbd><span id="help-hotkey-label">Show or hide Recaller from any app</span>
+        <kbd data-mac="?">F1</kbd><span>This help</span>
       </div>
 
       <footer class="modal-foot">
@@ -184,7 +186,7 @@
       </section>
 
       <section class="field">
-        <label>Join notes with <span class="muted">(Cooked, Served and Ctrl+click copies)</span></label>
+        <label>Join notes with <span class="muted" data-mac="(Cooked, Served and ⌘-click copies)">(Cooked, Served and Ctrl+click copies)</span></label>
         <div class="segmented" id="set-joiner" role="radiogroup">
           <button type="button" data-value="blank" role="radio">Blank line</button>
           <button type="button" data-value="line" role="radio">New line</button>
@@ -265,9 +267,12 @@
         <label class="switch">
           <input id="set-hide" type="checkbox" />
           <span class="switch-track"><span class="switch-thumb"></span></span>
-          <span>Minimize Recaller after copying</span>
+          <span data-mac="Hide Recaller after copying">Minimize Recaller after copying</span>
         </label>
       </section>
+
+      <h3 class="modal-section" id="account-head" hidden>Account &amp; sync</h3>
+      <section class="field" id="account" hidden aria-labelledby="account-head"></section>
 
       <h3 class="modal-section">Your data</h3>
       <section class="field">
@@ -290,6 +295,8 @@
 
   <script src="icons.js"></script>
   <script src="voice.js"></script>
+  <script src="sync-apply.js"></script>
   <script src="app.js"></script>
+  <script src="account.js"></script>
 </body>
 </html>

@@ -4,6 +4,7 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const { app, BrowserWindow, screen } = require('electron');
+const { IS_MAC, macRect, quiet } = require('./mac-harness'); // Mac-safe run; inert on Windows
 
 const SCRATCH = path.join(__dirname, '.out'); // test data, screenshots, logs (git-ignored)
 fs.mkdirSync(SCRATCH, { recursive: true });
@@ -27,10 +28,11 @@ fs.writeFileSync(path.join(DATA_DIR, 'recaller-data.json'), JSON.stringify({ ver
 ] }));
 fs.writeFileSync(path.join(DATA_DIR, 'recaller-settings.json'), JSON.stringify({ hotkey: '', shotHotkey: '', theme: 'deep', lastVersion: '44.4.5' }));
 
-app.commandLine.appendSwitch('force-device-scale-factor', '1');
+app.commandLine.appendSwitch('force-device-scale-factor', (IS_MAC && process.env.SCALE) || '1'); // Mac: SCALE=2 for a Retina capture
 app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 process.env.RECALLER_DATA_DIR = DATA_DIR;
 const OFF = () => {
+  if (IS_MAC) return macRect(1360, 820);
   const c = screen.getCursorScreenPoint();
   const wa = screen.getDisplayNearestPoint(c).workArea;
   return { x: c.x - wa.x > wa.width / 2 ? wa.x - 1300 : wa.x + wa.width - 60, y: wa.y, width: 1360, height: 820 };
@@ -40,7 +42,8 @@ app.on('browser-window-created', (_e, w) => {
   w.show = () => { w.setBounds(OFF()); showInactive(); w.setBounds(OFF()); };
 });
 const APP_MAIN = process.env.APP_MAIN || path.join(__dirname, '..', '..', 'src', 'main.js');
-if (!fs.existsSync(APP_MAIN)) { console.error(`HARNESS FAIL: no app at ${APP_MAIN} (APP_MAIN must be a Windows path)`); process.exit(1); }
+if (!fs.existsSync(APP_MAIN)) { console.error(`HARNESS FAIL: no app at ${APP_MAIN}${IS_MAC ? '' : ' (APP_MAIN must be a Windows path)'}`); process.exit(1); }
+quiet();
 require(APP_MAIN);
 app.whenReady().then(async () => {
   await sleep(2200);

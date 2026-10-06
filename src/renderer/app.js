@@ -4,6 +4,7 @@
   const api = window.recaller;
   const I = window.ICONS;
   const Voice = window.Voice;
+  const IS_MAC = api.platform === 'darwin'; // the Mac edition; on Windows everything runs as before
 
   // Gesture tuning
   const HOLD_MS = 240;       // press-and-hold before a card lifts for dragging
@@ -70,6 +71,32 @@
   // How notes are joined when combined (Cooked, Served, Ctrl+click): a blank line or a single new line.
   const joiner = () => (data.prefs.joiner === 'line' ? '\n' : '\n\n');
   const IMAGE_ID = /^[a-f0-9]{32}$/;
+
+  // ---- macOS (1.16 Mac edition). These only change anything when IS_MAC is true.
+
+  // A Windows key label as a Mac writes it: 'Ctrl+Shift+S' → '⇧⌘S', 'Ctrl+Enter' → '⌘↩'.
+  // On Windows the label comes back unchanged.
+  function kb(label) {
+    if (!IS_MAC) return label;
+    if (label === 'Ctrl+Y') return '⇧⌘Z'; // a Mac redoes with ⇧⌘Z
+    const parts = label.split('+');
+    const key = parts.pop();
+    // Apple's order is ⌃⌥⇧⌘; Ctrl on the PC is ⌘ on a Mac.
+    const mods = (parts.includes('Alt') ? '⌥' : '') + (parts.includes('Shift') ? '⇧' : '') + (parts.includes('Ctrl') ? '⌘' : '');
+    return mods + (key === 'Enter' ? '↩' : key);
+  }
+
+  // The app's shortcuts: ⌘ on a Mac, so ⌃K, ⌃F, ⌃N and ⌃M stay text-editing keys there.
+  const modKey = (e) => (IS_MAC ? e.metaKey && !e.ctrlKey : e.ctrlKey || e.metaKey);
+  // Picking several cards: ⌘-click on a Mac, where Control+click is a right-click.
+  const multiKey = (e) => (IS_MAC ? e.metaKey : e.ctrlKey || e.metaKey);
+
+  // Mac labels and titles from index.html (data-mac, data-mac-title), before anything is drawn.
+  if (IS_MAC) {
+    document.body.classList.add('is-mac');
+    for (const node of document.querySelectorAll('[data-mac]')) node.textContent = node.dataset.mac;
+    for (const node of document.querySelectorAll('[data-mac-title]')) node.title = node.dataset.macTitle;
+  }
 
   // ================================================================ utilities
 
@@ -233,16 +260,16 @@
 
   function seedData() {
     const tips = [
-      'Click a note to copy it, then paste anywhere with Ctrl+V.',
-      'Swipe a note to the left (hold the mouse button and drag) to delete it. Ctrl+Z brings it back.',
+      `Click a note to copy it, then paste anywhere with ${kb('Ctrl+V')}.`,
+      `Swipe a note to the left (hold the mouse button and drag) to delete it. ${kb('Ctrl+Z')} brings it back.`,
       'Press and hold a note, then drag it down into “Cooked”. Drop it on another project to move it.',
       'Click Dictate next to New prompt to speak a prompt — text appears as you talk. Add your OpenAI key in Settings first.',
       'Tap the camera in the editor to snip part of your screen into a note. Click an image on a card to copy it.',
-      'Hold Ctrl and click several notes to copy them all at once, with a blank line between each.',
+      `Hold ${IS_MAC ? '⌘' : 'Ctrl'} and click several notes to copy them all at once, with a blank line between each.`,
       'New prompts start in “Cooking”. Move them down into “Cooked” and they join into one note. Move that note down into “Served” (swipe it left, drag it, or click Move to Served) and it is added to the final text. Click either one to copy it; the pencil edits it.',
       'Hover a note and click the highlighter to colour-mark it, e.g. to check it again later.',
       'Drag the right edge of a column to make it wider or narrower. The ↔ button in the top bar puts every column back to the default width.',
-      'Ctrl+K search · Ctrl+N new prompt · Ctrl+M dictate · Ctrl+Shift+S screenshot · Ctrl+Z undo',
+      `${kb('Ctrl+K')} search · ${kb('Ctrl+N')} new prompt · ${kb('Ctrl+M')} dictate · ${kb('Ctrl+Shift+S')} screenshot · ${kb('Ctrl+Z')} undo`,
     ];
     return {
       version: 2,
@@ -254,9 +281,10 @@
     };
   }
 
-  function persist() {
+  // The second argument is for sync (see the sync section); main ignores it while signed out.
+  function persist(extra = {}) {
     try {
-      api.saveData(data);
+      api.saveData(data, { session: SESSION, seq: ++saveSeq, contentSeq, labels: pendingLabels.splice(0), ...extra });
     } catch (err) {
       console.error('save failed', err);
       toast('Could not save your changes.');
@@ -267,6 +295,16 @@
   function persistSoon() {
     clearTimeout(draftTimer);
     draftTimer = setTimeout(persist, 400);
+  }
+
+  // A Mac quits with ⌘Q before that timer fires, which would lose the last keystrokes of a draft:
+  // send the waiting save now.
+  if (IS_MAC) {
+    window.addEventListener('beforeunload', () => {
+      if (!draftTimer) return;
+      clearTimeout(draftTimer);
+      persist();
+    });
   }
 
   const findProject = (id) => data.projects.find((p) => p.id === id);
@@ -299,6 +337,8 @@
   const snapshot = () => JSON.stringify(data.projects);
 
   function pushHistory(label, snap) {
+    contentSeq++; // every checkpointed edit, dragEnd's included: a sync patch from before it is stale
+    pendingLabels.push(label);
     history.undo.push({ label, snap });
     if (history.undo.length > HISTORY_LIMIT) history.undo.shift();
     history.redo.length = 0;
@@ -353,6 +393,8 @@
     if (ui.editing) stopEditing();
     closeStageEditors();
     history.redo.push({ label: entry.label, snap: snapshot() });
+    contentSeq++;
+    pendingLabels.push('Undo');
     applySnapshot(entry.snap);
     paintHistory();
     dismissHistoryToasts();
@@ -365,6 +407,8 @@
     if (ui.editing) stopEditing();
     closeStageEditors();
     history.undo.push({ label: entry.label, snap: snapshot() });
+    contentSeq++;
+    pendingLabels.push('Redo');
     applySnapshot(entry.snap);
     paintHistory();
     dismissHistoryToasts();
@@ -378,8 +422,8 @@
     const r = history.redo[history.redo.length - 1];
     undoBtn.disabled = !u;
     redoBtn.disabled = !r;
-    undoBtn.title = u ? `Undo ${u.label.toLowerCase()} (Ctrl+Z)` : 'Nothing to undo';
-    redoBtn.title = r ? `Redo ${r.label.toLowerCase()} (Ctrl+Y)` : 'Nothing to redo';
+    undoBtn.title = u ? `Undo ${u.label.toLowerCase()} (${kb('Ctrl+Z')})` : 'Nothing to undo';
+    redoBtn.title = r ? `Redo ${r.label.toLowerCase()} (${kb('Ctrl+Y')})` : 'Nothing to redo';
   }
   undoBtn.addEventListener('click', undo);
   redoBtn.addEventListener('click', redo);
@@ -457,7 +501,7 @@
       </div>
       <div class="col-new">
         <button class="new-prompt col-add"><span class="np-icon">${I.plus}</span><span class="np-label"><span class="lbl-long">New prompt</span><span class="lbl-short">New</span><span class="lbl-draft">Draft</span></span></button>
-        <button class="new-prompt new-voice col-mic" title="Dictate a new prompt (Ctrl+M)" aria-label="Dictate a new prompt"><span class="np-icon">${I.mic}</span><span class="np-label">Dictate</span></button>
+        <button class="new-prompt new-voice col-mic" title="Dictate a new prompt (${kb('Ctrl+M')})" aria-label="Dictate a new prompt"><span class="np-icon">${I.mic}</span><span class="np-label">Dictate</span></button>
       </div>
       <div class="col-compose"></div>
       <div class="col-scroll">
@@ -555,7 +599,7 @@
       <article class="card" tabindex="0">
         <div class="card-text"></div>
         <div class="card-images" hidden></div>
-        <div class="card-meta"><span class="card-hl-tag"></span><span class="card-time"></span><span class="card-copies"></span><button class="card-more" hidden>Show more</button></div>
+        <div class="card-meta"><span class="card-hl-tag"></span><span class="card-sync-tag"></span><span class="card-time"></span><span class="card-copies"></span><button class="card-more" hidden>Show more</button></div>
         <div class="card-actions">
           <button class="card-act act-hl" title="Highlight (H)" aria-label="Highlight">${I.highlighter}</button>
           <button class="card-act act-used act-primary" title="Move to Cooked (U)" aria-label="Move to Cooked">${I.arrowDown}<span>Cooked</span></button>
@@ -576,6 +620,7 @@
       copiesEl: $('.card-copies', root),
       moreBtn: $('.card-more', root),
       hlTag: $('.card-hl-tag', root),
+      syncTag: $('.card-sync-tag', root),
       selBadge: $('.sel-badge', root),
       sig: '',
       expanded: Boolean(note.expanded),
@@ -617,7 +662,8 @@
     view.timeEl.textContent = relTime(note.updatedAt || note.createdAt);
     const imageKey = note.images.map((i) => i.id).join(',');
     const hl = highlightOf(note);
-    const sig = `${note.text}\u0001${query.key}\u0001${view.expanded}\u0001${note.copied}\u0001${imageKey}\u0001${hl?.id ?? ''}`;
+    const syncTip = note.syncConflict ? syncTagTitle(note.syncConflict) : ''; // a conflict copy from sync
+    const sig = `${note.text}\u0001${query.key}\u0001${view.expanded}\u0001${note.copied}\u0001${imageKey}\u0001${hl?.id ?? ''}\u0001${syncTip}`;
     if (sig === view.sig) return;
     const imagesChanged = !view.sig || view.imageKey !== imageKey;
     view.sig = sig;
@@ -632,6 +678,8 @@
       view.root.style.setProperty('--hl-bg', hl.bg);
     }
     view.hlTag.textContent = hl ? hl.name : '';
+    view.syncTag.textContent = syncTip ? 'Other version' : '';
+    if (view.syncTag.title !== syncTip) view.syncTag.title = syncTip;
     toMeasure.add(view);
   }
 
@@ -678,9 +726,10 @@
 
   // The Notes list under the Cooked note and the Served text: one row per part,
   // with buttons to reorder it, edit it on its own, send it back up a stage, or delete it.
+  // A note id can come from the account (1.17), so it is escaped like any text.
   function partsHtml(notes, query, back) {
     return notes.map((note, i) => `
-      <div class="final-part" data-id="${note.id}">
+      <div class="final-part" data-id="${escapeHtml(note.id)}">
         <span class="fp-num">${i + 1}</span>
         <span class="fp-text">${highlight(note.text.split('\n')[0] || '(image)', query)}</span>
         <span class="fp-acts">
@@ -763,7 +812,7 @@
     }
     const hasDraft = Boolean(project.draft.trim() || project.draftImages.length);
     col.addBtn.classList.toggle('has-draft', hasDraft && !composing);
-    col.addBtn.title = hasDraft ? 'Resume draft (Ctrl+N)' : 'New prompt (Ctrl+N)';
+    col.addBtn.title = hasDraft ? `Resume draft (${kb('Ctrl+N')})` : `New prompt (${kb('Ctrl+N')})`;
     col.newRow.hidden = composing;
 
     syncList(col.activeList, active, project, query, seen);
@@ -965,11 +1014,16 @@
       allowDelete: true,
       onSave: (text, images) => {
         const current = locate(id);
-        if (current && (current.note.text !== text || imageKey(current.note.images) !== imageKey(images))) {
+        const changed = current && (current.note.text !== text || imageKey(current.note.images) !== imageKey(images));
+        // Saving a sync conflict copy ("Other version") from its editor settles it, changed or not.
+        if (changed || current?.note.syncConflict) {
           checkpoint('Edit note');
-          current.note.text = text;
-          current.note.images = images;
-          current.note.updatedAt = Date.now();
+          if (changed) {
+            current.note.text = text;
+            current.note.images = images;
+            current.note.updatedAt = Date.now();
+          }
+          delete current.note.syncConflict;
           persist();
         }
         stopEditing();
@@ -1017,8 +1071,11 @@
       toast("Couldn't copy to the clipboard.");
       return;
     }
-    note.copied = (note.copied || 0) + 1;
-    note.lastCopiedAt = Date.now();
+    const cur = locate(id); // a sync patch may have moved or removed the note during the await
+    if (cur) {
+      cur.note.copied = (cur.note.copied || 0) + 1;
+      cur.note.lastCopiedAt = Date.now();
+    }
     persist();
     ui.lastProjectId = loc.project.id;
     // Like Explorer: click one, then Ctrl+click more, and the first one is included.
@@ -1134,8 +1191,11 @@
     }
     if (!(await copySelection())) return;
     if (at < 0) {
-      loc.note.copied = (loc.note.copied || 0) + 1;
-      loc.note.lastCopiedAt = Date.now();
+      const cur = locate(id); // as in copyNote: the note may have moved or gone during the await
+      if (cur) {
+        cur.note.copied = (cur.note.copied || 0) + 1;
+        cur.note.lastCopiedAt = Date.now();
+      }
       persist();
     }
     render();
@@ -1599,12 +1659,12 @@
           <span class="rec-time">0:00</span>
           <span class="bars"><i style="--k:.55"></i><i style="--k:1"></i><i style="--k:.75"></i><i style="--k:.4"></i></span>
         </button>
-        <button type="button" class="icon-btn shot-btn" title="Add a screenshot (Ctrl+Shift+S) — or paste an image" aria-label="Add a screenshot">${I.camera}</button>
+        <button type="button" class="icon-btn shot-btn" title="Add a screenshot (${kb('Ctrl+Shift+S')}) — or paste an image" aria-label="Add a screenshot">${I.camera}</button>
         <span class="composer-status"></span>
         <span class="spacer"></span>
         ${allowDelete ? `<button type="button" class="icon-btn danger comp-delete" title="${deleteLabel}" aria-label="${deleteLabel}">${I.trash}</button>` : ''}
         <button type="button" class="icon-btn comp-cancel" title="${closeLabel} (Esc)" aria-label="${closeLabel}">${I.close}</button>
-        <button type="button" class="btn btn-primary comp-save" title="Save (Ctrl+Enter)">Save</button>
+        <button type="button" class="btn btn-primary comp-save" title="Save (${kb('Ctrl+Enter')})">Save</button>
       </div>`;
     const ta = $('textarea', root);
     const micBtn = $('.mic-btn', root);
@@ -1671,7 +1731,7 @@
       root.classList.toggle('is-recording', recState === 'on');
       root.classList.toggle('is-busy', working || capturing);
       ta.readOnly = false; // you can keep typing and editing while it listens
-      micBtn.title = recState === 'on' ? 'Stop dictating (Ctrl+M)' : 'Dictate (Ctrl+M)';
+      micBtn.title = recState === 'on' ? `Stop dictating (${kb('Ctrl+M')})` : `Dictate (${kb('Ctrl+M')})`;
       if (recState === 'starting') statusEl.innerHTML = '<span class="shimmer">Starting mic…</span>';
       else if (recState === 'off' && working) statusEl.innerHTML = `<span class="shimmer">${pendingSave ? 'Saving…' : 'Writing…'}</span>`;
       else if (recState === 'off' && busy) statusEl.textContent = '';
@@ -1736,6 +1796,9 @@
       if (res?.ok) {
         addImage(res.image);
         hideMessage();
+      } else if (IS_MAC && res?.code === 'PERMISSION') {
+        // macOS hasn't allowed Recaller to record the screen yet: offer the settings pane.
+        showMessage(res.error || 'Screenshot failed.', { error: true, actions: [{ label: 'Open System Settings', fn: () => api.openPrivacy('screen') }] });
       } else if (res && res.code !== 'CANCELLED') {
         showMessage(res.error || 'Screenshot failed.', { error: true });
       }
@@ -1779,6 +1842,11 @@
         if (destroyed) return;
         recState = 'off';
         refresh();
+        if (IS_MAC && err.code === 'DENIED') {
+          // macOS blocked the microphone: offer the settings pane.
+          showMessage(err.message || 'Could not start the microphone.', { error: true, actions: [{ label: 'Open System Settings', fn: () => api.openPrivacy('microphone') }] });
+          return;
+        }
         showMessage(err.message || 'Could not start the microphone.', { error: true });
       }
     }
@@ -1985,7 +2053,7 @@
       draft();
     });
     ta.addEventListener('keydown', (e) => {
-      const mod = e.ctrlKey || e.metaKey;
+      const mod = modKey(e);
       const k = e.key.toLowerCase();
       if (e.key === 'Enter' && mod) { e.preventDefault(); save(); }
       else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancel(); }
@@ -2065,6 +2133,8 @@
   const onScrollbar = (e) => e.target instanceof HTMLElement && e.target.matches(SCROLLERS) && e.offsetX >= e.target.clientWidth;
 
   board.addEventListener('pointerdown', (e) => {
+    // On a Mac, Control+click is a right-click: no copy, select, drag or pan (the contextmenu listener edits).
+    if (IS_MAC && e.ctrlKey && e.button === 0) return;
     // Middle button anywhere, or left button on empty canvas: pan the board.
     if (e.button === 1 || (e.button === 0 && e.target === board)) {
       e.preventDefault();
@@ -2073,7 +2143,7 @@
     }
     if (e.button !== 0) return;
     if (onScrollbar(e)) return; // dragging a scrollbar, not the note
-    const ctrlOnCard = (e.ctrlKey || e.metaKey) && e.target.closest('.card-wrap') && !e.target.closest('button');
+    const ctrlOnCard = multiKey(e) && e.target.closest('.card-wrap') && !e.target.closest('button');
     if (!ctrlOnCard) ui.anchor = null;
     const colEl = e.target.closest('.column');
     if (colEl) {
@@ -2133,7 +2203,7 @@
       id: view.id, view, wrap, card: view.card,
       x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, mode: null,
       imageId: e.target.closest('.card-img')?.dataset.img ?? null,
-      multi: e.ctrlKey || e.metaKey,
+      multi: multiKey(e),
     };
     view.card.classList.add('is-pressed');
     const hold = setTimeout(() => { if (!g.mode) beginDrag(g); }, HOLD_MS);
@@ -2981,10 +3051,21 @@
     if (e.target.closest('.final-text') && !String(window.getSelection()) && !onScrollbar(e)) copyFinal(col.id, e);
   });
 
+  // A Mac selects the word under a right-click (or Control+click) before contextmenu fires,
+  // so there the selection is read as the button goes down.
+  let selectionAtPress = '';
+  if (IS_MAC) {
+    board.addEventListener('pointerdown', (e) => {
+      if (e.button === 2 || (e.button === 0 && e.ctrlKey)) selectionAtPress = String(window.getSelection()).trim();
+    }, true);
+  }
+
   // Right-click edits: a prompt card, the Cooked note or the Served text (whole), or one row
   // of their Notes lists (that part alone). With text selected, the usual Copy menu shows instead.
   board.addEventListener('contextmenu', (e) => {
-    if (String(window.getSelection()).trim()) return;
+    const selected = IS_MAC ? selectionAtPress : String(window.getSelection()).trim();
+    if (IS_MAC) selectionAtPress = '';
+    if (selected) return;
     if (e.target.closest('input, textarea, .composer')) return;
     const colEl = e.target.closest('.column');
     const col = colEl && columns.get(colEl.dataset.id);
@@ -2999,6 +3080,7 @@
     if (!edit) return;
     e.preventDefault();
     closeMenu();
+    if (IS_MAC) window.getSelection()?.removeAllRanges(); // drop the word the Mac selected for its menu
     edit();
   });
 
@@ -3019,6 +3101,12 @@
     if (!card || e.target !== card) return;
     const id = card.closest('.card-wrap').dataset.id;
     const key = e.key.toLowerCase();
+    // On a Mac, ⌘, ⌃ and ⌥ keys go to the menus (⌘H hides the app); only ⌘⌫ deletes, like the Finder.
+    if (IS_MAC && (e.metaKey || e.ctrlKey || e.altKey)) {
+      const metaOnly = e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey;
+      if (metaOnly && (key === 'backspace' || key === 'delete')) { e.preventDefault(); deleteNote(id); }
+      return;
+    }
     if (key === 'enter' || key === ' ') { e.preventDefault(); copyNote(id); }
     else if (key === 'e' || key === 'f2') { e.preventDefault(); startEdit(id); }
     else if (key === 'delete' || key === 'backspace') { e.preventDefault(); deleteNote(id); }
@@ -3257,7 +3345,7 @@
     backupStatus: $('#backup-status'),
   };
 
-  const BACKUP_KIND = { upgrade: 'Before update', daily: 'Daily', manual: 'Manual', 'before-restore': 'Before restore' };
+  const BACKUP_KIND = { upgrade: 'Before update', daily: 'Daily', manual: 'Manual', 'before-restore': 'Before restore', 'before-sync': 'Before sync' };
 
   async function paintBackups(selectId) {
     let list = [];
@@ -3281,7 +3369,17 @@
     document.body.classList.add(`theme-${t}`);
   }
 
-  const prettyAccel = (a) => (a || '').replace('CommandOrControl', 'Ctrl').replace(/\+/g, ' + ');
+  // On a Mac a hotkey reads like its menus do: ⌃⌥⇧⌘ in Apple's order, then the key ('Control+Alt+R' → '⌃⌥R').
+  const MAC_MODS = { Control: '⌃', Ctrl: '⌃', Alt: '⌥', Option: '⌥', Shift: '⇧', Command: '⌘', Cmd: '⌘', CommandOrControl: '⌘', CmdOrCtrl: '⌘', Super: '⌘', Meta: '⌘' };
+  const MAC_KEYS = { Up: '↑', Down: '↓', Left: '←', Right: '→', Enter: '↩', Return: '↩', Esc: '⎋', Escape: '⎋', Plus: '+' };
+  function macAccel(a) {
+    const parts = (a || '').split('+').filter(Boolean);
+    const mods = parts.filter((p) => Object.hasOwn(MAC_MODS, p)).map((p) => MAC_MODS[p]);
+    const keys = parts.filter((p) => !Object.hasOwn(MAC_MODS, p)).map((p) => (Object.hasOwn(MAC_KEYS, p) ? MAC_KEYS[p] : p));
+    return ['⌃', '⌥', '⇧', '⌘'].filter((m) => mods.includes(m)).join('') + keys.join('');
+  }
+
+  const prettyAccel = (a) => (IS_MAC ? macAccel(a) : (a || '').replace('CommandOrControl', 'Ctrl').replace(/\+/g, ' + '));
 
   function paintHotkey(input, status, value, ok) {
     input.value = prettyAccel(value);
@@ -3307,7 +3405,7 @@
       f.keyStatus.className = 'help ok';
       f.keyStatus.textContent = s.keySource === 'env'
         ? 'Using OPENAI_API_KEY from your environment. Paste a key here to override it.'
-        : 'Saved and encrypted on this PC. Paste a new key to replace it.';
+        : IS_MAC ? 'Saved in your Mac’s keychain. Paste a new key to replace it.' : 'Saved and encrypted on this PC. Paste a new key to replace it.';
     } else {
       f.key.placeholder = 'sk-…';
       f.keyStatus.className = 'help';
@@ -3365,6 +3463,10 @@
   f.joiner.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-value]');
     if (!b) return;
+    if (data.prefs.joiner !== b.dataset.value) { // the one synced preference
+      contentSeq++;
+      pendingLabels.push('Join setting');
+    }
     data.prefs.joiner = b.dataset.value;
     persist();
     paintDensity();
@@ -3402,7 +3504,11 @@
     const id = f.backup.value;
     if (!id) return;
     const label = f.backup.selectedOptions[0]?.textContent || 'that backup';
-    const sure = window.confirm(`Replace all your projects and notes with the backup from ${label}?\n\nWhat you have now is backed up first, so you can go back to it.`);
+    // Signed in, a restore deletes nothing from the account (5.12), so the question differs.
+    const acc = api.account ? await api.account.get().catch(() => null) : null;
+    const sure = window.confirm(acc?.state === 'signed-in'
+      ? `Bring back the board from ${label}?\n\nYou're signed in, so nothing is deleted from your account: notes in the backup are added back, and notes that are only in your account stay. What you have now is backed up first.`
+      : `Replace all your projects and notes with the backup from ${label}?\n\nWhat you have now is backed up first, so you can go back to it.`);
     if (!sure) return;
     const res = await api.restoreBackup(id);
     if (!res?.ok) toast(res?.error || 'Restore failed.');
@@ -3426,6 +3532,8 @@
   });
 
   const KEY_NAMES = { ' ': 'Space', ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right', Escape: 'Esc', '+': 'Plus' };
+  // On a Mac, Option changes e.key (⌥, types ≤), so punctuation is named from the key itself.
+  const MAC_CODE_KEYS = { Space: 'Space', Comma: ',', Period: '.', Slash: '/', Semicolon: ';', Quote: "'", BracketLeft: '[', BracketRight: ']', Backslash: '\\', Minus: '-', Equal: '=', Backquote: '`' };
 
   for (const input of document.querySelectorAll('.hotkey-input')) {
     const setting = input.dataset.setting;
@@ -3440,17 +3548,18 @@
       }
       if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return;
       const mods = [];
-      if (e.ctrlKey) mods.push('CommandOrControl');
+      if (e.ctrlKey) mods.push(IS_MAC ? 'Control' : 'CommandOrControl');
       if (e.altKey) mods.push('Alt');
       if (e.shiftKey) mods.push('Shift');
-      if (e.metaKey) mods.push('Super');
+      if (e.metaKey) mods.push(IS_MAC ? 'Command' : 'Super');
       let key = e.key;
       if (/^Key[A-Z]$/.test(e.code)) key = e.code.slice(3);
       else if (/^Digit\d$/.test(e.code)) key = e.code.slice(5);
+      else if (IS_MAC && Object.hasOwn(MAC_CODE_KEYS, e.code)) key = MAC_CODE_KEYS[e.code];
       else key = KEY_NAMES[key] || (key.length === 1 ? key.toUpperCase() : key);
       if (!mods.length && !/^F\d{1,2}$/.test(key)) {
         status.className = 'help bad';
-        status.textContent = 'Use at least one of Ctrl, Alt or Shift';
+        status.textContent = IS_MAC ? 'Use at least one of ⌃, ⌥, ⇧ or ⌘' : 'Use at least one of Ctrl, Alt or Shift';
         return;
       }
       saveSetting({ [setting]: [...mods, key].join('+') });
@@ -3470,7 +3579,7 @@
   }
 
   document.addEventListener('keydown', (e) => {
-    const mod = e.ctrlKey || e.metaKey;
+    const mod = modKey(e);
     const k = e.key.toLowerCase();
     if (dialog.open || lightbox.open || helpDialog.open) return;
     if (e.key === 'Escape' && openMenuEl) {
@@ -3523,10 +3632,31 @@
     focusSearch();
   });
 
+  // The Mac menu bar (Settings…, How Recaller Works, Edit › Undo / Redo) and full screen.
+  if (IS_MAC) {
+    api.onCommand((name) => {
+      if (name === 'fullscreen-on' || name === 'fullscreen-off') {
+        // Full screen hides the traffic lights, so the top bar stops making room for them.
+        document.body.classList.toggle('is-fullscreen', name === 'fullscreen-on');
+      } else if (name === 'settings') {
+        if (!dialog.open) openSettings(); // already open: repainting it would wipe what's being typed
+      } else if (name === 'help') {
+        openHelp();
+      } else if (name === 'undo' || name === 'redo') {
+        // Typing in a field: the field's own undo. Otherwise the board's, unless a dialog is open.
+        if (isTyping(document.activeElement)) document.execCommand(name);
+        else if (dialog.open || helpDialog.open || lightbox.open) return;
+        else if (name === 'undo') undo();
+        else redo();
+      }
+    });
+  }
+
   // Screenshot taken with the global shortcut while Recaller was in the background.
   api.onScreenshot((result) => {
     if (!result?.ok) {
-      if (result?.error) toast(result.error);
+      if (IS_MAC && result?.code === 'PERMISSION') toast(result.error, { action: 'Open Settings', onAction: () => api.openPrivacy('screen'), duration: 12000 });
+      else if (result?.error) toast(result.error);
       return;
     }
     const composer = activeComposer() || openComposer(currentProjectId());
@@ -3538,6 +3668,200 @@
 
   // Keep "5m ago" labels fresh.
   setInterval(() => { if (!dragActive) render(); }, 60_000);
+
+  // ---- sync (1.17): the page's side of accounts and sync (ai_memory/15, 5.8 and 6.5)
+  // Main does the network. The account's changes arrive as patches, applied only while nothing
+  // is mid-edit and acknowledged by the save that follows; every save carries the bookkeeping.
+  // Without sync (signed out, or a preload without it) none of this does anything.
+
+  const SESSION = uid();    // this page load: a patch made for another is stale
+  let saveSeq = 0;
+  let contentSeq = 0;       // raised by every content change: a patch based on an older one is stale
+  const pendingLabels = []; // undo labels since the last save, for main's mass-delete guard
+  let pendingPatch = null;
+  let patchTimer = null;
+  let pageReady = false;    // init() has loaded the board
+  const HERE = IS_MAC ? 'this Mac' : 'this PC';
+  const HERE_CAP = IS_MAC ? 'This Mac' : 'This PC';
+
+  const tally = (v) => Math.max(0, Math.floor(Number(v) || 0));
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const holdsDraft = (p) => Boolean(p && (p.draft.trim() || p.draftImages.length));
+
+  // "your Mac", "your other PC", … from a DeviceRef.
+  function deviceName(ref) {
+    if (ref?.platform === 'darwin') return ref.sameAsThis ? 'your other Mac' : 'your Mac';
+    if (ref?.platform === 'win32') return ref.sameAsThis ? 'your other PC' : 'your Windows PC';
+    return 'another computer';
+  }
+
+  // A notice's toast. `own` counts the patch's new conflict copies that hold this computer's
+  // version: all of them, except after a restore with no base to compare (5.7).
+  function noticeText(n, own) {
+    const k = tally(n.count) || 1;
+    const device = deviceName(n.device);
+    const name = n.name || 'Untitled';
+    switch (n.code) {
+      case 'CONFLICT': {
+        const mine = own >= k;
+        return k === 1
+          ? `A note was changed on two computers. Both versions are kept; ${mine ? `${HERE}'s` : 'the copy'} is marked Check again.`
+          : `${k} notes were changed on two computers. Both versions of each are kept; ${mine ? `${HERE}'s` : 'the copies'} are marked Check again.`;
+      }
+      case 'KEPT_NOTE':
+        return k === 1
+          ? `A note you deleted was changed on ${device}, so it was kept.`
+          : `${k} notes you deleted were changed on ${device}, so they were kept.`;
+      case 'KEPT_PROJECT':
+        return `“${name}” was deleted on ${device}, but it had changes here, so it was kept.`;
+      case 'KEPT_PROJECT_DRAFT':
+        return `“${name}” was deleted on ${device}, but it had an unsaved draft here, so it was kept.`;
+      case 'REMOTE_DELETES':
+        return `${device[0].toUpperCase()}${device.slice(1)} deleted ${plural(tally(n.count), 'note')}. ${HERE_CAP}'s board was backed up first (Settings › Backups).`;
+      case 'RESTORED_FROM_ACCOUNT':
+        return `${HERE_CAP}'s notes file couldn't be read, so your board was restored from your account. The unreadable file was kept in the data folder.`;
+      case 'COMBINED':
+        return `Combined: ${plural(tally(n.a), 'project')} from your account and ${tally(n.b)} from ${HERE}.`;
+      case 'USED_ACCOUNT':
+        return `${HERE_CAP} now shows your account's board. Its previous board is in Settings › Backups.`;
+      default:
+        return '';
+    }
+  }
+
+  // How many of a patch's new conflict copies hold this page's own text and pictures, looked at
+  // before the patch puts the account's version in their original's place.
+  function ownCopies(p) {
+    let n = 0;
+    for (const [id, up] of Object.entries(p.notes.upsert || {})) {
+      const f = up?.fields;
+      const original = typeof f?.syncConflict?.of === 'string' && !locate(id) ? locate(f.syncConflict.of)?.note : null;
+      if (original && original.text === f.text && imageKey(original.images) === imageKey(Array.isArray(f.images) ? f.images : [])) n++;
+    }
+    return n;
+  }
+
+  // The card tag's tooltip names the computer a conflict copy came from, by device id. That
+  // needs AccountState's devices with their ids; until main sends them it says less.
+  let deviceNames = new Map();
+  let devicesAsked = false;
+
+  function learnDevices(state) {
+    if (!Array.isArray(state?.devices)) return;
+    const next = new Map();
+    for (const d of state.devices) {
+      if (typeof d?.id === 'string') next.set(d.id, d.current ? HERE : deviceName({ platform: d.platform, sameAsThis: d.platform === api.platform }));
+    }
+    const changed = next.size !== deviceNames.size || [...next].some(([id, name]) => deviceNames.get(id) !== name);
+    deviceNames = next;
+    if (changed && pageReady) render();
+  }
+
+  function syncTagTitle(conflict) {
+    if (!devicesAsked) {
+      devicesAsked = true;
+      api.account?.get().then(learnDevices, () => {});
+    }
+    const from = deviceNames.get(conflict?.device);
+    return `Changed on two computers at once.${from ? ` This copy is the version from ${from}.` : ''}`;
+  }
+
+  // Pointers down on the board: a press can still become a drag of a card, the Cooked note or
+  // a column, and a patch that removed it would break the drag.
+  const pressing = new Set();
+  let releasedAt = 0;
+  if (api.sync) {
+    const release = (e) => { if (pressing.delete(e.pointerId)) releasedAt = Date.now(); };
+    board.addEventListener('pointerdown', (e) => { pressing.add(e.pointerId); }, true);
+    window.addEventListener('pointerup', release, true);
+    window.addEventListener('pointercancel', release, true);
+    window.addEventListener('pointermove', (e) => { if (e.buttons === 0) release(e); }, true);
+    window.addEventListener('blur', () => {
+      if (pressing.size) releasedAt = Date.now();
+      pressing.clear();
+    });
+  }
+
+  // A patch that changes content waits while anything holds the board: an editor, a press, a
+  // delete or swipe still animating, a menu, dictation or an Undo toast.
+  function syncBusy(p) {
+    if (!p.changesContent && !p.resetHistory) return false; // counters are commutative: apply at once
+    if (ui.editing || dragActive || resizing || openMenuEl || Voice.isActive()) return true;
+    if (pressing.size || document.body.classList.contains('is-panning')) return true;
+    if (board.querySelector('.card-wrap.is-removing')) return true; // a deleted card sliding out
+    // A swiped Cooked note moves to Served 220 ms after the release, whatever Cooked then holds.
+    // A class an interrupted swipe left behind must not hold the account's changes back for good.
+    if (Date.now() - releasedAt < 1000 && board.querySelector('.used.is-swiping')) return true;
+    for (const c of columns.values()) if (c.stageEditor || c.renaming || c.composer?.isBusy()) return true;
+    if (ui.composing && p.projects.remove.includes(ui.composing)) return true;
+    return Boolean(toastHost.querySelector('.toast[data-history]:not(.is-leaving)')); // wait out an Undo toast
+  }
+
+  function tryApplyPatch() {
+    clearTimeout(patchTimer);
+    const p = pendingPatch;
+    if (!p || !pageReady) return;
+    if (p.session !== SESSION || (p.changesContent && p.basedOnContentSeq !== contentSeq)) {
+      pendingPatch = null;
+      api.sync?.nack({ patchId: p.id, reason: 'stale' });
+      return;
+    }
+    if (syncBusy(p)) {
+      patchTimer = setTimeout(tryApplyPatch, 700);
+      return;
+    }
+    // A draft typed into a column after main read the file would go with the column. Saved,
+    // it makes main's next merge keep the column (only "Use my account's board" replaces it).
+    if (p.projects.remove.some((id) => holdsDraft(findProject(id))) && !p.notices.some((n) => n?.code === 'USED_ACCOUNT')) {
+      pendingPatch = null;
+      clearTimeout(draftTimer);
+      persist();
+      api.sync?.nack({ patchId: p.id, reason: 'stale' });
+      return;
+    }
+    pendingPatch = null;
+    const own = p.notices.some((n) => n?.code === 'CONFLICT') ? ownCopies(p) : 0;
+    let created;
+    try {
+      ({ created } = window.SyncApply.applyPatch(data, p));
+    } catch (err) {
+      console.error('[sync] patch failed', err);
+      api.sync?.nack({ patchId: p.id, reason: 'invalid' });
+      render();
+      return;
+    }
+    if (p.changesContent) contentSeq++;
+    if (p.changesContent || p.resetHistory) {
+      history.undo.length = 0;
+      history.redo.length = 0;
+      dismissHistoryToasts();
+      paintHistory();
+    }
+    if (created.length <= 10) created.forEach((id) => fresh.add(id));
+    persist({ ack: p.id });
+    render(); // also drops removed ids from ui.selection
+    if (ui.editing && !locate(ui.editing)) ui.editing = null;
+    if (ui.anchor && !locate(ui.anchor.id)) ui.anchor = null;
+    if (dialog.open) paintDensity(); // "Join notes with"
+    for (const n of p.notices) {
+      const text = n && typeof n === 'object' ? noticeText(n, own) : '';
+      if (text) toast(text, { duration: 7000 });
+    }
+  }
+
+  api.sync?.onPatch((p) => {
+    if (!p || typeof p.id !== 'string') return;
+    if (!Array.isArray(p.projects?.remove) || !Array.isArray(p.notes?.remove) || !Array.isArray(p.notices)) {
+      api.sync.nack({ patchId: p.id, reason: 'invalid' });
+      return;
+    }
+    pendingPatch = p;
+    tryApplyPatch();
+  });
+  api.account?.onChanged?.(learnDevices);
+
+  // For account.js, which loads after this file.
+  window.RecallerUI = Object.freeze({ toast, openSettings: () => openSettings(), relTime });
 
   // ================================================================ boot
 
@@ -3570,6 +3894,9 @@
     updatePan();
     // Sweep image files that no note references any more.
     api.gcImages(referencedImageIds()).catch(() => {});
+    pageReady = true;
+    tryApplyPatch(); // one that came in while loading
+    api.sync?.ready({ session: SESSION });
   }
 
   init();

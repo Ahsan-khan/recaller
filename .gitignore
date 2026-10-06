@@ -1,3 +1,22 @@
 node_modules/
 dist/
 tests/e2e/.out/
+.DS_Store
+# The app config written from Terraform's app_config output: it holds the API key
+infra/**/project.json
+# Its checked copy that ships inside the app (written by npm run cloud:config)
+src/cloud/project.json
+# Terraform: local caches, state and plans never go in git (state lives in gs://recaller-cloud-tfstate)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+# Terraform CLI config can hold registry or HCP tokens
+.terraformrc
+terraform.rc

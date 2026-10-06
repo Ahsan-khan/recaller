@@ -2,15 +2,23 @@
 
 ## The product in one paragraph
 
-Recaller keeps prompts and notes that the owner reuses when working with AI tools such as Claude, ChatGPT and Claude Code. Speed of reuse matters most: one click copies a prompt, Ctrl+click copies several at once, and a global shortcut shows or hides the app from anywhere. Prompts are organised per project, with each project as a column on a single board. Inside each column a prompt moves through three stages, named like a kitchen since 1.8: **Cooking** (new prompts) → **Cooked** (joined into one note; Combined in 1.6–1.7, Augmented before) → **Served** (the final text that everything is added to; Final in 1.6–1.7, Used before). The owner can dictate prompts by voice (OpenAI speech-to-text), attach screenshots, highlight prompts to revisit, and undo anything.
+Recaller keeps prompts and notes that the owner reuses when working with AI tools such as Claude, ChatGPT and Claude Code. Speed of reuse matters most: one click copies a prompt, Ctrl+click (⌘-click on a Mac) copies several at once, and a global shortcut shows or hides the app from anywhere. Prompts are organised per project, with each project as a column on a single board. Inside each column a prompt moves through three stages, named like a kitchen since 1.8: **Cooking** (new prompts) → **Cooked** (joined into one note; Combined in 1.6–1.7, Augmented before) → **Served** (the final text that everything is added to; Final in 1.6–1.7, Used before). The owner can dictate prompts by voice (OpenAI speech-to-text), attach screenshots, highlight prompts to revisit, and undo anything.
+
+It is a Windows app first (1.16.0 is the current version). Since the seventh session there is also a **Mac edition of the same 1.16.0**, a second download (`Recaller-1.16.0-arm64.dmg` next to `Recaller Setup 1.16.0.exe`), built on branch `masos`. The owner committed and pushed it there as "mac build" (`16961eb` + `9536853`, 2026-09-29); it isn't merged into `main`.
 
 ## The owner
 
-- **Name and git identity:** "AKhan" (git user.name). Email on file: m.ahsan.k94@gmail.com. Use it only to identify the owner.
-- **Machine:** Windows 11 Home (10.0.26200).
-  - Display: a single ultrawide monitor, 5120×1392, at 100% scaling.
-  - Tools: VS Code with the Claude Code extension; Node 24.19, npm 11.17, Python 3.12, Git Bash and PowerShell.
-- **Other work:** in the same workspace (`C:\Users\User\Documents\iresine`), a Wildfire reinforcement-learning project (`ReinforcementLearning/`), plus `ComputerVision/`, `website/` and `data/`. Two prompt files sit next to Recaller: `Dev Prompts.txt` and `Longterm Prompts.txt`. An import for them was offered but never requested (see `09`).
+- **Name and git identity:** "AKhan" is the git user.name on the PC; every version commit from 1.5.0 to 1.16 carries it. On the Mac, git's identity is "Ahsan-khan <ahsan.k@live.com>", so commits made there carry a different name. Email on file: m.ahsan.k94@gmail.com. Use it only to identify the owner. The privacy contact for accounts is ahsan@ponders.ai.
+- **Machines:** development has happened on two computers since 2026-09-28, when the repo was first cloned on the Mac. The Windows PC is still the main install.
+  - **Windows PC:** Windows 11 Home (10.0.26200).
+    - Display: a single ultrawide monitor, 5120×1392, at 100% scaling.
+    - Tools: VS Code with the Claude Code extension; Node 24.19, npm 11.17, Python 3.12, Git Bash and PowerShell.
+    - Repo: `C:\Users\User\Documents\recaller`.
+  - **MacBook Pro:** macOS 26.5.1 (Darwin 25.5.0), Apple M5 Pro (arm64).
+    - Display: the built-in Retina screen only, 3024×1964 pixels at 2× (1512×982 points).
+    - Tools: VS Code, whose terminal also sets `ELECTRON_RUN_AS_NODE=1`, as on the PC; Node 24.21.0 and npm 11.19.0 in `/usr/local/bin`; Python 3.13 (from python.org); git 2.50.1 (Apple Git-155); zsh; Rosetta. There is no Homebrew, `gh`, PowerShell or Wine.
+    - Repo: `/Users/ahsan/Documents/GitHub/recaller` (origin https://github.com/Ahsan-khan/recaller.git). The GitHub credentials live in GitHub Desktop, and the owner fetches, pulls and pushes themselves.
+- **Other work:** on the PC, in the same workspace (`C:\Users\User\Documents\iresine`), a Wildfire reinforcement-learning project (`ReinforcementLearning/`), plus `ComputerVision/`, `website/` and `data/`. Two prompt files sit next to Recaller: `Dev Prompts.txt` and `Longterm Prompts.txt`. An import for them was offered but never requested (see `09`).
 - **How they communicate:** often by voice dictation. Messages can be fragmented, contain typos, or put the key point in an odd order ("The swap to used and augmented. The used represents. The augmented."). Read for intent. Restate your interpretation in the reply and invite correction. When a request is ambiguous and structural, pick the most coherent reading, build it, and say clearly what you assumed. The owner will correct you, as happened in round 8.
 - **What they value** (in their own words where possible): "robust and fast", "sexy UI", "not like excel", "more modern green", "see differences in the sectors and columns", "more deeper color", "clear and sharp, cool and modern" fonts, and updates where "my notes and every single thing is the exact same".
 
@@ -20,10 +28,10 @@ Recaller keeps prompts and notes that the owner reuses when working with AI tool
 - **Density:** slim and compact, with about 268px columns and actions placed in headers or bars rather than extra rows. They complained that 340px columns wasted space. Since 1.6 they can resize individual columns, and a slim top-bar ↔ button puts them all back to this default.
 - **Distinctness:** neighbouring columns get clearly different hues (emerald, sky, sun, orchid, lime, blossom, teal, bark, then ten more since 1.6). The stages look different too: Cooking is white cards on the column's neutral surface, Cooked is a light blue section (1.13; pickable), and Served is a light sage section (1.10). They asked for more stage contrast twice (rounds 7 and 9), so don't make the stages alike, but keep them light (rounds 10–16).
 - **Muted, "adult" colour, not bright:** in round 10 they rejected the bright violet Combined as "weird", "girly" and "too much brightness", and asked for "modern and adult". They like the dark green background. Keep stage and UI accents low in saturation; the only saturated colour is the column headers they picked.
-- **Typography:** sharp and modern. The UI uses Geist, and numbers and labels use Geist Mono.
+- **Typography:** sharp and modern. The UI uses Geist, including the stage labels and the highlight chips. Geist Mono is only for small figures: card meta and times, stage stats, Notes part numbers, the recording timer and key caps. On a Mac the system font follows Geist in the fallback lists, and key caps use the system font, because the bundled fonts have no ⌘ ⇧ ⌥ ⌃ ↩ symbols.
   - Column titles use Instrument Sans by default (since 1.6; Sora before), with a live picker offering Instrument Sans, Plus Jakarta Sans, Onest, Sora, Space Grotesk, Inter Display, Manrope, Geist and Sora Caps. They have asked for a sharper, cleaner title font three times, so title-font taste isn't settled yet.
-  - They rejected tight negative letter-spacing, small grey labels, and a text-shadow on white titles; all looked "not clear".
-  - Headings stay at 15px or larger and bold.
+  - They rejected tight negative letter-spacing, small grey section labels, and a text-shadow on white titles; all looked "not clear". Section and stage labels have been dark ink since. Small meta text (card times, stage footers, part numbers, key caps, Settings help lines) still uses the muted grey-green `--ink-3` (#718d7d).
+  - Column titles stay at 15px or larger and bold, with little tracking: 0em for the default Instrument Sans, -0.005 to -0.015em for the other options. The exception is the Sora Caps option: 12.5px capitals at +0.08em. The section headings in Settings and Help are small 12px capitals.
 - **Layout:** nothing may overlap. They reported a "Copy all" button overlapping text, and a long column name hidden behind header buttons.
 - **The New prompt button** must be clearly visible and easy to reach, and not sit next to the column name. Since 1.8 the bar under the Cooking header is split in equal halves, **New prompt | Dictate**, because the owner starts about half their prompts by voice.
 - **Stage names are the owner's own:** Cooking → Cooked → Served (round 11). They have renamed the stages three times, so treat names as theirs to choose and keep the data names fixed.
@@ -38,6 +46,7 @@ Recaller keeps prompts and notes that the owner reuses when working with AI tool
 - **Calm with many columns (round 12):** they find a wide board of columns "cluttered" and want it "open" without using more space. Keep per-column furniture (labels, buttons, empty stages) light and uniform; let the header colour and the content carry the weight.
 - **Helpers stay out of the way (1.16):** the always-visible › scroll arrow was "kind of annoying". The ‹ › arrows now appear only when the pointer nears their edge of the board. Don't bring back always-on floating controls over the columns.
 - **A framed board (1.16):** they wanted "a border to organize everything … very sleek, very modern … aesthetic" around the whole board space. The board is a rounded panel with a slim gradient emerald edge in a dark shell the colour of the top bar. Slim and crisp, not heavy.
+- **Windows stays as it is; the Mac gets the same app (seventh session):** the owner asked to "keep the windows app as it is, but create another mac os app", "similar to how software is available online with two different files for windows and mac". So the Mac edition keeps the look and every feature, and takes on Mac habits only: ⌘ keys, Control-click as a right-click, the traffic lights, a menu bar, and a window that hides when closed. Every Mac difference is fenced, so the Windows app can't change by accident.
 - **Data safety is paramount.** Every update must keep everything identical: notes, drafts, images, colours, layout, scroll positions, window position and settings.
 
 ## Every request, in order, and what was built
@@ -175,6 +184,28 @@ Fifth session (2026-09-26, later the same day); 1.15.0 was installed and committ
     - The owner then replied: "yes i meant the whole space not the arror i mean the board frame". So the board became a framed panel: rounded, inset 12px in a dark shell the colour of the top bar, with a 1px gradient emerald edge (bright at the top-left) and a faint glow. Eight edge styles were compared side by side first. The arrow ring was kept because it matches the frame. See `08` (1.16.0) and `11` #48.
     - "and update files … goodbye": this folder was brought up to date for 1.16.0 at the end of the session.
 
+Sixth session (2026-09-28 to 2026-09-29, on a new MacBook Pro). It is known only in part, from the notes inside the discarded stash and from git. 1.16 had been committed and pushed on `v1` by then ("1.16" = `664212a`, 2026-09-26):
+
+23. **"okay make it so i can install on macos as well" and "i want to be able to install on both btw" → a 1.17.0, discarded.**
+    - What was built: a 1.17.0 with a Mac edition (a dmg and a Windows exe), tested on the Mac. It was never installed or opened. (The owner's words are in `10`, messages 28, 30 and 33.)
+    - On 2026-09-29 (18:11–18:12), in a separate short session, the owner said "i made some changes to my project that i dont want to keep anymore" and "since my last push". Everything since the 1.16 push was stashed as `stash@{0}`. No reason was given.
+    - The owner then merged `v1` into `main` (PR #1, `dd5a3b0`), pulled `main`, and created and published a new branch `masos` for the Mac app ("masos" is their spelling; keep it). A likely reading, unconfirmed: they wanted the Mac work kept apart from the Windows app.
+
+Seventh session (2026-09-29, on the MacBook Pro, branch `masos`):
+
+24. **"Read every file … and learn everything so we can proceed to build", then the Mac edition of 1.16.0.**
+    - The owner's words are in `10`, messages 34 to 43.
+    - All 14 files were read. A read-only audit then checked about 1,310 of their claims against the code and git. It found about 49 high or medium mismatches and about 59 low ones, none refuted: mostly Windows-only wording and stale status, plus some real code issues. This update corrected the docs; the code issues are listed in `09` (known issues), not fixed.
+    - "okay so we currently have a windows app right?": yes. 1.16 builds only a Windows installer.
+    - The request: "i want to create a similar mac os app. i want to keep the windows app as it is, but create another mac os app. it should be similar to how software is available online with two different files for windows and mac".
+    - The owner's three answers: reuse the discarded 1.17.0 attempt? **"Start from scratch"**. Who downloads the Mac version? **"Just me for now"**, so an ad-hoc-signed Apple Silicon dmg, approved once in System Settings if macOS blocks it, with proper signing later. Run the Mac-safe test suites on this Mac? **"Yes, run them"**.
+    - What was built: the Mac edition of 1.16.0 on `masos`, which the owner committed and pushed later that evening (the last two points below). It has ⌘ shortcuts and ⌘-click, Control-click to edit, the traffic lights in the top bar, a Mac menu bar, a window that hides when closed, ⌃⌥R to show or hide it, handling for the microphone and Screen Recording permissions, a Mac icon, `npm run dist:mac` → `dist/Recaller-1.16.0-arm64.dmg`, and Mac-safe test suites (12 + 21 + 139 on the Mac). The Windows app is unchanged. See `14_macos.md` for the whole Mac edition, `08` (1.16.0 for Mac) and `11` #49 onward.
+    - "the app window kept crashing when you opened it": nothing of Recaller's had run or crashed; the crash reports came from other programs: Tracer, the owner's own separate `tracer` project (its 20:02 crash started from VS Code, the two at 20:14 opened through Launch Services), and `repro_bigsur` and a copied `python3`, both started from VS Code (see `10`, message 39). The work was stopped anyway as a precaution, then finished after "okay its fine, just lets finish this up".
+    - The session never opened the built Mac app. At the very end (about 20:43 on 2026-09-29) the owner copied it into `/Applications` themselves, then opened the copy inside the mounted dmg, which was still the running one when the session ended. How it went isn't recorded yet.
+    - Status checks while the docs were updated and after the summary ("whats happening", "now?", "now?", "anything running?", "all documentation updated?", "everything done running?"; `10`, message 41): each was answered with a fresh check. "all documentation updated?" led to a final sweep of this folder. At "everything done running?" nothing from the session was running; only the owner's own Recaller was open, still the copy inside the mounted dmg.
+    - "check my latest pushes to github, everything looks good?" (`10`, message 42): the owner had committed the Mac edition on `masos` at 21:45 on 2026-09-29, as two commits both called "mac build", and pushed both. `16961eb` is the snapshot they had staged at 21:13; `9536853` holds the fixes made after that staging, mostly to the docs. A read-only check (`git log`, `git show --stat`, `git ls-remote origin`, and the pushed `src/` compared with the dmg's `app.asar`) found GitHub's `masos` at `9536853`, `main` and `v1` unchanged, and the pushed app code byte-identical to the tested dmg. It was all good except one thing: `16961eb` had also committed Finder's `.DS_Store` by accident.
+    - "fix it" (`10`, message 43): `git rm --cached .DS_Store` took the file out of git (it stays on disk), and ".DS_Store" was added as the last line of `.gitignore`. The owner committed both as "fix" (`f86cf19`, 21:51:53) and pushed it. This update of the docs came after that commit and is left for the owner to commit and push. `masos` isn't merged into `main`; that's the owner's call (a pull request, after running the suites once on the PC).
+
 ## Things the owner has not decided or confirmed
 
 - **Separator:** whether they want a blank line or a single new line between joined notes. The default stays blank line; the setting exists.
@@ -183,8 +214,15 @@ Fifth session (2026-09-26, later the same day); 1.15.0 was installed and committ
 - **Cooked colour:** whether Ocean (1.13) finally pleases them. They have had it installed since the third session and haven't complained, but never said so.
 - **Deleting in Cooked (1.15):** whether "something" meant one prompt (the row trash) or the whole Cooked note (the editor's trash); both were built. Whether the row trash is easy enough to find behind the **Notes** toggle is unconfirmed.
 - **Board frame and arrows (1.16):** whether the frame's edge is the "sleek, modern, aesthetic" border they pictured (strength, the sheen, the 12px margin), whether they want the emerald ring on the arrows now that the frame exists, and whether the 96px arrow reveal zone feels right.
+- **Calm board (1.9):** whether the board is calm enough with many columns (`09` question 9).
+- **Pictures in Cooked and Served (1.14):** whether copying the text and then clicking the picture works where they paste (`09` question 12).
 - **Title font:** Instrument Sans is the new default; whether it finally satisfies "sharp, clean, modern" is unconfirmed.
 - **"All the colors are girly":** whether that included the project palette (pink Blossom, Orchid, Fuchsia), not just the Cooked (then Combined) colours.
 - **Going public:** whether they want to pursue the everyday-user roadmap in `09`, and in what order.
 - **Importing prompt files:** whether to import `Dev Prompts.txt` and `Longterm Prompts.txt`.
-- **Signing and auto-update:** whether they want code signing or auto-update. Both are currently absent.
+- **Signing and auto-update:** whether they want code signing or auto-update. Neither exists; the Mac edition is only ad-hoc signed.
+- **The Mac look (seventh session):** the owner first opened the Mac edition at the very end of the session, and their verdict isn't recorded. Whether it looks right on the Retina screen: 1.5px borders draw at full weight at 2×, so the arrow ring and the composer ring look slightly heavier than on the 1× PC, and the frame edge reads stronger.
+- **Developer ID signing for the Mac:** "Just me for now" meant ad-hoc signing. Whether they will want a Developer ID ($99 a year) and notarization to share the Mac app. It would also stop macOS asking for the microphone, Screen Recording and keychain permissions again after each update.
+- **Intel Macs:** whether a universal build is needed. The dmg is for Apple Silicon only.
+- **Merging `masos`:** whether, and when, the Mac edition should be merged into `main`. It is committed and pushed on `masos`; merging would be a pull request from `masos` into `main`, after running the suites once on the PC (12 + 21 + 134).
+- **Moving data to the Mac:** whether to bring the PC's notes over (copy `recaller-data.json` and `images/` only; the saved API key can't move) or keep a separate board on each computer.

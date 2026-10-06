@@ -24,6 +24,7 @@ window.Voice = (() => {
 
   const MIME = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
     .find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+  const MAC = window.recaller?.platform === 'darwin'; // the Mac edition points to macOS's own settings
 
   class VoiceError extends Error {
     constructor(code, message) {
@@ -54,7 +55,9 @@ window.Voice = (() => {
         });
       } catch (err) {
         if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
-          throw new VoiceError('DENIED', 'Microphone blocked. Allow it in Windows Settings › Privacy & security › Microphone.');
+          throw new VoiceError('DENIED', MAC
+            ? 'Microphone blocked. In System Settings › Privacy & Security › Microphone, turn Recaller on (or off and on again after an update), then try again.'
+            : 'Microphone blocked. Allow it in Windows Settings › Privacy & security › Microphone.');
         }
         if (err.name === 'NotFoundError' || err.name === 'OverconstrainedError') throw new VoiceError('NO_MIC', 'No microphone found.');
         if (err.name === 'NotReadableError') throw new VoiceError('BUSY', 'The microphone is in use by another app.');

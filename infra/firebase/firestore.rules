@@ -1,0 +1,138 @@
+rules_version = '2';
+
+// Recaller accounts and sync (ai_memory/15_accounts_and_sync.md). Deployed by infra/terraform/prod/rules.tf.
+// Every signed-in user whose email is verified owns /users/{uid} and everything under it; nobody else can
+// read or write it. A board change is one commit that also moves users/{uid}.rev up by exactly one, so no
+// board write can succeed while the account is being deleted: the head write in the same commit is refused.
+// Project, note and trash writes make no get()/exists() calls, so a commit of any size stays within the
+// access-call limits (20 per batched write). One ruleset serves every released Recaller version: a new
+// version's rules must keep accepting everything older versions write.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.email_verified == true;
+    }
+
+    function headOf(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    // _sync, the bookkeeping on every project and note. kind is 'project' or 'note'.
+    function validSync(kind) {
+      let s = incoming()._sync;
+      return s is map
+        && s.keys().hasAll(['rev', 'key', 'deleted', 'by', 'at'])
+        && s.keys().hasOnly(['rev', 'key', 'deleted', 'by', 'at', 'id', 'project', 'list'])
+        && s.rev is int && s.rev > 0
+        && s.key is string && s.key.size() > 0 && s.key.size() <= 64
+        && s.deleted is bool
+        && s.by is string && s.by.size() <= 64
+        && s.at == request.time
+        && (!('id' in s) || (s.id is string && s.id.size() <= 1500))
+        && (kind == 'project'
+            || (s.project is string && s.project.size() > 0 && s.project.size() <= 1500
+                && s.list in ['notes', 'used', 'combined']));
+    }
+
+    // A tombstone keeps only _sync; a live item has at most 200 fields.
+    function validShape() {
+      return incoming()._sync.deleted == true
+        ? incoming().keys().hasOnly(['_sync'])
+        : incoming().keys().size() <= 200;
+    }
+
+    // An item's rev only moves forward, so an incremental pull can't miss a later write.
+    function revMovesForward() {
+      return incoming()._sync.rev > resource.data._sync.rev;
+    }
+
+    // Hard deletes: only while the account is being deleted, or tombstones at or below head.minRev.
+    function mayHardDelete(uid) {
+      let head = headOf(uid);
+      return head.get('deleting', false) == true
+        || (resource.data._sync.deleted == true && resource.data._sync.rev <= head.get('minRev', 0));
+    }
+
+    match /users/{uid} {
+      allow get: if isOwner(uid);
+
+      allow create: if isOwner(uid)
+        && incoming().keys().size() <= 50
+        && incoming().schema is int && incoming().schema >= 1
+        && incoming().rev == 1
+        && incoming().minRev == 0
+        && incoming().deleting == false
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isOwner(uid) && incoming().keys().size() <= 50 && (
+          // A board commit: rev goes up by exactly one; a deletion in progress can't be undone.
+          (resource.data.deleting == false
+            && incoming().deleting == false
+            && incoming().rev == resource.data.rev + 1
+            && incoming().schema is int && incoming().schema >= resource.data.schema
+            && incoming().minRev is int && incoming().minRev >= resource.data.minRev
+            && incoming().minRev <= incoming().rev
+            && incoming().createdAt == resource.data.createdAt
+            && incoming().updatedAt == request.time)
+          // The start of an account deletion: only deleting and deletingAt change.
+          || (incoming().diff(resource.data).affectedKeys().hasOnly(['deleting', 'deletingAt'])
+            && incoming().deleting == true
+            && incoming().deletingAt == request.time));
+
+      allow delete: if isOwner(uid) && resource.data.deleting == true;
+
+      match /projects/{projectId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && validSync('project') && validShape();
+        allow update: if isOwner(uid) && validSync('project') && validShape() && revMovesForward();
+        allow delete: if isOwner(uid) && mayHardDelete(uid);
+      }
+
+      match /notes/{noteId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && validSync('note') && validShape();
+        allow update: if isOwner(uid) && validSync('note') && validShape() && revMovesForward();
+        allow delete: if isOwner(uid) && mayHardDelete(uid);
+      }
+
+      match /trash/{itemId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && incoming().keys().hasOnly(['kind', 'data', 'rev', 'project', 'list', 'by', 'deletedAt', 'expireAt'])
+          && incoming().kind in ['project', 'note']
+          && incoming().data is string
+          && incoming().rev is int
+          && incoming().by is string && incoming().by.size() <= 64
+          && incoming().deletedAt == request.time
+          && incoming().expireAt is timestamp
+          && incoming().expireAt > request.time
+          && incoming().expireAt < request.time + duration.value(40, 'd');
+        allow delete: if isOwner(uid) && headOf(uid).get('deleting', false) == true;
+      }
+
+      match /devices/{deviceId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && deviceId.matches('[a-f0-9]{32}')
+          && headOf(uid).get('deleting', false) == false
+          && incoming().keys().hasOnly(['name', 'platform', 'appVersion', 'lastSeenAt', 'lastRev', 'view', 'drafts', 'settings'])
+          && incoming().name is string && incoming().name.size() <= 60
+          && incoming().platform in ['darwin', 'win32', 'linux']
+          && incoming().lastSeenAt == request.time
+          && (!('view' in incoming()) || (incoming().view is string && incoming().view.size() <= 700000))
+          && (!('drafts' in incoming()) || (incoming().drafts is string && incoming().drafts.size() <= 200000))
+          && (!('settings' in incoming()) || (incoming().settings is map
+              && incoming().settings.keys().hasOnly(['theme', 'model', 'language', 'hint', 'hotkey', 'shotHotkey', 'hideAfterCopy'])));
+        allow delete: if isOwner(uid) && headOf(uid).get('deleting', false) == true;
+      }
+    }
+  }
+}
