@@ -11,7 +11,7 @@ The rest of this folder describes the shared app. Read this file before changing
 
 **Status (seventh session, 2026-09-29):** the Mac edition of 1.16.0 is built and verified. The owner **committed and pushed** it on branch `masos` as "mac build" (`16961eb` + `9536853`). A follow-up commit, "fix" (`f86cf19`, also pushed), took Finder's `.DS_Store` back out of git (see "Files" below). It is not merged into `main`. The session itself never opened the packaged app.
 
-**1.17.0 (eighth session, 2026-10-01):** accounts and sync are built and tested on `masos` (uncommitted, not released; the Google Cloud side is live since 2026-10-01). They are the same on both platforms; what differs on a Mac (the keychain item for the sign-in, log out and shut down, the labels) is in section 9.
+**1.17.0 (eighth session, 2026-10-01):** accounts and sync are built and tested on `masos` (released on 2026-10-06 and merged into `main`; the Google Cloud side is live since 2026-10-01). They are the same on both platforms; what differs on a Mac (the keychain item for the sign-in, log out and shut down, the labels) is in section 9.
 
 **Late update:** at about 20:43 on 2026-09-29, while this handoff was being written, the owner copied Recaller.app (1.16.0) into `/Applications` (20:43:22) and then opened the copy on the mounted dmg (20:43:25), not the one in Applications. That first run created `~/Library/Application Support/Recaller`, which now holds their real Mac notes. At the end of the session, that dmg copy was still the running Recaller. Nothing about how it went is recorded. So where this file says something is untested or not tried by a person, read "not verified by a session and not reported by the owner yet", and ask them.
 
@@ -80,7 +80,7 @@ Every Mac difference is gated, so the Windows app behaves exactly as before: the
   - `9536853` (21:45:53): the fixes made after that staging: the docs, plus the stricter capture check in `scripts/make-icon.js` (section 4, "The icon") and a comment in `mac-harness.js`.
   - Both were pushed. A read-only check (`git ls-remote origin`) found GitHub's `masos` at `9536853`, with `main` (`dd5a3b0`) and `v1` (`664212a`) unchanged, and the working tree matched the pushed commit exactly.
   - The pushed app code is byte-identical to the tested dmg: all 33 files under `src/` match its `app.asar`, and `build/icon-mac.png` is the same file. The only `package.json` differences are the `scripts`, `build` and `devDependencies` fields, which electron-builder strips from the packaged copy.
-  - `masos` is not merged into `main`; that is the owner's call. When they want it: a pull request from `masos` into `main`, after running the suites once on the Windows PC (expect 12 + 21 + 134).
+  - `masos` was merged into `main` on 2026-10-06 (PR #2, `9d30f1f`), with 1.17.0, at the owner's request.
 - **`.DS_Store` cleanup:** at the owner's "fix it", after they asked whether their pushes looked good:
   - `git rm --cached .DS_Store` took Finder's file out of git. It stays on disk.
   - `.DS_Store` was added as a new last line of `.gitignore`, so git and GitHub Desktop no longer offer it.
@@ -749,7 +749,7 @@ A person has to check these once (section 8).
 
 ## 9. Accounts and sync on a Mac (1.17.0)
 
-Built and tested on this Mac (2026-10-01), not released (the Google Cloud side is live since 2026-10-01). Accounts and sync are not a Mac difference: the same code runs on both platforms (`15_accounts_and_sync.md`). Only these things differ on a Mac.
+Built and tested on this Mac (2026-10-01) and released on 2026-10-06, though the GitHub Release has only the Windows installer, not the dmg (the Google Cloud side is live since 2026-10-01). Accounts and sync are not a Mac difference: the same code runs on both platforms (`15_accounts_and_sync.md`). Only these things differ on a Mac.
 
 - **Labels,** through `IS_MAC` in `account.js` and in `app.js`'s sync block: "this Mac" and "This Mac" wherever Windows says "this PC"; "Your sign-in is kept in your Mac’s keychain."; this computer's device name "Mac"; other computers called "your Windows PC" or "your other Mac".
 - **The keychain item for the sign-in.** A packaged build seals the account's refresh token with `safeStorage`, which on a Mac uses the login keychain's **"Recaller Safe Storage"** item: the same item that protects the OpenAI key. The sealed token is kept as `{ enc }` in `~/Library/Application Support/Recaller/sync/account.json`; the keychain holds only the key that seals it.

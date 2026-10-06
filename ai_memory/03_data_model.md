@@ -1,8 +1,8 @@
 # 03: Data model, storage and update safety
 
-The Windows app (1.16.0 on `main` and `v1`) and the Mac edition of 1.16.0 (committed and pushed on branch `masos`, not merged into `main`) read and write exactly the same files. Mac-only behaviour is marked **On a Mac**.
+The Windows app and the Mac edition (1.17.0 on `masos` and, since 2026-10-06, `main`; 1.16.0 on `v1`) read and write exactly the same files. Mac-only behaviour is marked **On a Mac**.
 
-1.17.0 (accounts and sync, on `masos`, built and tested but not released) keeps the same files and format. It adds one optional note field (`syncConflict`), a `before-sync` backup kind and, only while signed in, a `sync/` folder. What goes to the cloud is in "Accounts and sync (1.17.0)" below; the full design is `15_accounts_and_sync.md`.
+1.17.0 (accounts and sync, released on 2026-10-06) keeps the same files and format. It adds one optional note field (`syncConflict`), a `before-sync` backup kind and, only while signed in, a `sync/` folder. What goes to the cloud is in "Accounts and sync (1.17.0)" below; the full design is `15_accounts_and_sync.md`.
 
 ## Where data lives
 
@@ -225,7 +225,7 @@ The on-screen names changed three times; the data field names never did, so exis
 
 ## Accounts and sync (1.17.0)
 
-Built and tested on `masos`, not released. The design and every rule are in `15_accounts_and_sync.md`; this is the data view.
+Built and tested on `masos`, released on 2026-10-06 (GitHub Release `v1.17.0`) and merged into `main`. The design and every rule are in `15_accounts_and_sync.md`; this is the data view.
 
 ### The `sync/` folder (only once someone signs in)
 
@@ -311,6 +311,6 @@ Every invariant below still holds, signed in or not:
 - **1.13.0** changed the allowed `cookedColor` values to ocean/teal/midnight/graphite. Stored 1.12 values are not rewritten; they draw as ocean.
 - **1.14.0–1.16.0** added no fields (1.16 only changed the board arrows). 1.14 shows the images already stored on `used` / `combined` notes; 1.15 deletes notes from those lists (the same splice as deleting a card).
 - **The 1.16.0 Mac edition** (branch `masos`, committed and pushed as "mac build" on 2026-09-29) added no data fields and doesn't change the format. Its only settings difference is the default `hotkey` (`"Control+Alt+R"` on a Mac). It adds flushes (`closed`, `will-quit`, the page's `beforeunload` draft save) and the hourly daily-backup check, all on a Mac only.
-- **1.17.0** (accounts and sync, both platforms; built on `masos`, not released) added `note.syncConflict` (only on conflict copies), the `before-sync` backup kind, and, only while signed in, the `sync/` folder and `recaller-data.unreadable-*.json` copies. `DATA_VERSION` is still 2, and the settings file is unchanged.
+- **1.17.0** (accounts and sync, both platforms; built on `masos`, released on 2026-10-06) added `note.syncConflict` (only on conflict copies), the `before-sync` backup kind, and, only while signed in, the `sync/` folder and `recaller-data.unreadable-*.json` copies. `DATA_VERSION` is still 2, and the settings file is unchanged.
 
 `DATA_VERSION` has been 2 since 1.1.0. Every change since then was additive or display-only, so no migration code exists beyond the one-time v1 → v2 rewrite.

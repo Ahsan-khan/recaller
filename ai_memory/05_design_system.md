@@ -213,7 +213,7 @@ The `#monstera` symbol has three paths: a stroked stem, the leaf fill, and a mid
 - **Served flash:** an expanding emerald ring, 0.7s, when text lands in Served or the Served text is copied.
 - **Composer:** busy progress line (1.1s loop); recording ring grows with the input level; a 0.9s flash.
 
-## Accounts and sync (1.17, built on `masos`, not released yet)
+## Accounts and sync (1.17)
 
 One block near the end of `styles.css`, just before the macOS block, styles the Settings section, the top-bar indicator and the conflict-copy tag. `account.js` builds the section and the indicator, and `app.js` fills the card tag. The strings and states are in `15_accounts_and_sync.md`, section 6. The amber used here is the Check-again amber #f59e0b, written as a literal.
 
@@ -238,7 +238,7 @@ One block near the end of `styles.css`, just before the macOS block, styles the 
 
 ## macOS (the Mac edition only)
 
-The Mac edition of 1.16.0 (branch `masos`, committed and pushed on 2026-09-29, not merged into `main`) keeps the same design. Everything Mac-only in the CSS is one block at the end of `styles.css`, under `body.is-mac`. `app.js` adds that class on a Mac only, before the first render, so none of it reaches Windows. (The rest of the Mac edition is in `14_macos.md`.)
+The Mac edition of 1.16.0 (branch `masos`, committed and pushed on 2026-09-29, merged into `main` on 2026-10-06) keeps the same design. Everything Mac-only in the CSS is one block at the end of `styles.css`, under `body.is-mac`. `app.js` adds that class on a Mac only, before the first render, so none of it reaches Windows. (The rest of the Mac edition is in `14_macos.md`.)
 
 - **The top bar:**
   - `body.is-mac .topbar { padding-left: 84px; }` starts the brand after the traffic lights (they end at x 70, plus 14px);

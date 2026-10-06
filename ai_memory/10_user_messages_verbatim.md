@@ -528,3 +528,45 @@ Eighth session (2026-09-29 to 2026-10-01, on the MacBook Pro, branch `masos`). T
 > so the ai memory docs are updated ?
 
 [Checked with a sweep for stale statements and for the day's facts. The sweep found this message log a session behind, so it was brought up to date.]
+
+## Message 56 (2026-10-06, ninth session, on the PC)
+
+> is everything in the folder on github?
+
+[Checked with `git status`, a fetch and `git log --branches --not --remotes`: nothing uncommitted, unpushed or stashed. Only the git-ignored `dist/` (1.7 GB), `node_modules/` (466 MB) and `tests/e2e/.out/` (50 MB) stay on the PC. `masos` was 6 commits ahead of `main`.]
+
+## Message 57
+
+> why dist and node_module remain on this pc and not on github? how do i install on another pc
+
+[Both are rebuilt (`npm install`, `npm run dist`), and the 112 MB installer is over GitHub's 100 MB file limit. A GitHub Release was offered.]
+
+## Message 58 (about 13:00)
+
+> no setup github release. i want to easily install on another pc
+
+[Read as "now set up a GitHub Release". The 1.17.0 installer was published as the release `v1.17.0` at 13:01 (`08`, 1.17.0 status).]
+
+## Message 59
+
+> what about other stuff? like nodes_modules etc
+
+[None of it is needed to install: the installer holds Electron and the app. `node_modules/` matters only for building from source.]
+
+## Message 60 (13:03)
+
+> okay merge masos to main
+
+[PR #2, merged at 13:03 (`9d30f1f`).]
+
+## Message 61
+
+> yes
+
+[To updating the changelog for the release. This folder and the README were brought up to date.]
+
+## Message 62 (while the docs were being updated)
+
+> how woukd i install o another pc now
+
+[Answered with the release steps: sign in to GitHub, download `Recaller-Setup-1.17.0.exe` from `v1.17.0`, run it, then sign in to the account. The README's Install section now says the same.]

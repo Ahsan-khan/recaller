@@ -12,12 +12,16 @@ Recaller is a Windows app, and there is also a Mac edition of the same version f
 
 ## Install
 
+The easy way, on any Windows PC: open the [latest release](https://github.com/Ahsan-khan/recaller/releases/latest) (the repo is private, so sign in to GitHub first), download `Recaller-Setup-1.17.0.exe` and run it. Nothing else is needed: no Git, Node or build. Then sign in to your account in Settings › Account & sync to bring your notes over.
+
+To build the installer yourself:
+
 ```
 npm install
 npm run dist
 ```
 
-This builds `dist/Recaller Setup 1.17.0.exe`. Run it to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
+This builds `dist/Recaller Setup 1.17.0.exe`. It needs `src/cloud/project.json`, which isn't in git: copy it from the computer that has it, or build without accounts with `RECALLER_NO_CLOUD=1`. Run the installer to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
 

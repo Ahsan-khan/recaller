@@ -4,7 +4,7 @@
 
 Recaller keeps prompts and notes that the owner reuses when working with AI tools such as Claude, ChatGPT and Claude Code. Speed of reuse matters most: one click copies a prompt, Ctrl+click (⌘-click on a Mac) copies several at once, and a global shortcut shows or hides the app from anywhere. Prompts are organised per project, with each project as a column on a single board. Inside each column a prompt moves through three stages, named like a kitchen since 1.8: **Cooking** (new prompts) → **Cooked** (joined into one note; Combined in 1.6–1.7, Augmented before) → **Served** (the final text that everything is added to; Final in 1.6–1.7, Used before). The owner can dictate prompts by voice (OpenAI speech-to-text), attach screenshots, highlight prompts to revisit, and undo anything.
 
-It is a Windows app first (1.16.0 is the current version). Since the seventh session there is also a **Mac edition of the same 1.16.0**, a second download (`Recaller-1.16.0-arm64.dmg` next to `Recaller Setup 1.16.0.exe`), built on branch `masos`. The owner committed and pushed it there as "mac build" (`16961eb` + `9536853`, 2026-09-29); it isn't merged into `main`.
+It is a Windows app first (1.17.0, with optional accounts and sync, is the current version). Since the seventh session there is also a **Mac edition of the same version**, a second download (`Recaller-1.17.0-arm64.dmg` next to `Recaller Setup 1.17.0.exe`; first made as 1.16.0), built on branch `masos`. `masos` was merged into `main` on 2026-10-06 (PR #2), and the Windows installer is on GitHub as the release `v1.17.0`.
 
 ## The owner
 
@@ -206,6 +206,14 @@ Seventh session (2026-09-29, on the MacBook Pro, branch `masos`):
     - "check my latest pushes to github, everything looks good?" (`10`, message 42): the owner had committed the Mac edition on `masos` at 21:45 on 2026-09-29, as two commits both called "mac build", and pushed both. `16961eb` is the snapshot they had staged at 21:13; `9536853` holds the fixes made after that staging, mostly to the docs. A read-only check (`git log`, `git show --stat`, `git ls-remote origin`, and the pushed `src/` compared with the dmg's `app.asar`) found GitHub's `masos` at `9536853`, `main` and `v1` unchanged, and the pushed app code byte-identical to the tested dmg. It was all good except one thing: `16961eb` had also committed Finder's `.DS_Store` by accident.
     - "fix it" (`10`, message 43): `git rm --cached .DS_Store` took the file out of git (it stays on disk), and ".DS_Store" was added as the last line of `.gitignore`. The owner committed both as "fix" (`f86cf19`, 21:51:53) and pushed it. This update of the docs came after that commit and is left for the owner to commit and push. `masos` isn't merged into `main`; that's the owner's call (a pull request, after running the suites once on the PC).
 
+Ninth session (2026-10-06, on the PC, branch `masos`). 1.17.0 had been committed and pushed by then ("huge" = `4370072`, 2026-10-01) and installed on the PC:
+
+25. **"is everything in the folder on github?", then a GitHub Release and the merge.** (The owner's words are in `10`, messages 56 to 62.)
+    - Yes: nothing was uncommitted, unpushed or stashed. Only the git-ignored `dist/`, `node_modules/` and `tests/e2e/.out/` stay on the PC. Asked why, and how to install on another PC: both are rebuilt (`npm install`, `npm run dist`), and a 112 MB installer is over GitHub's 100 MB file limit anyway.
+    - "i want to easily install on another pc": the 1.17.0 Windows installer was published as the GitHub Release `v1.17.0` (`08`, 1.17.0 status). On another PC: sign in to GitHub, download `Recaller-Setup-1.17.0.exe` from the release, run it, then sign in to the account to bring the notes over. No Git, Node or `node_modules` is needed. The README's Install section now says so.
+    - "okay merge masos to main": PR #2 merged `masos` into `main` (`9d30f1f`). The suites hadn't run on the PC first.
+    - "yes" (to updating the changelog for the release): this folder and the README were brought up to date.
+
 ## Things the owner has not decided or confirmed
 
 - **Separator:** whether they want a blank line or a single new line between joined notes. The default stays blank line; the setting exists.
@@ -224,5 +232,4 @@ Seventh session (2026-09-29, on the MacBook Pro, branch `masos`):
 - **The Mac look (seventh session):** the owner first opened the Mac edition at the very end of the session, and their verdict isn't recorded. Whether it looks right on the Retina screen: 1.5px borders draw at full weight at 2×, so the arrow ring and the composer ring look slightly heavier than on the 1× PC, and the frame edge reads stronger.
 - **Developer ID signing for the Mac:** "Just me for now" meant ad-hoc signing. Whether they will want a Developer ID ($99 a year) and notarization to share the Mac app. It would also stop macOS asking for the microphone, Screen Recording and keychain permissions again after each update.
 - **Intel Macs:** whether a universal build is needed. The dmg is for Apple Silicon only.
-- **Merging `masos`:** whether, and when, the Mac edition should be merged into `main`. It is committed and pushed on `masos`; merging would be a pull request from `masos` into `main`, after running the suites once on the PC (12 + 21 + 134).
 - **Moving data to the Mac:** whether to bring the PC's notes over (copy `recaller-data.json` and `images/` only; the saved API key can't move) or keep a separate board on each computer.
