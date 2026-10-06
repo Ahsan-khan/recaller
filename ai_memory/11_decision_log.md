@@ -52,7 +52,7 @@ Read this before reversing any of these choices. Each entry gives the decision, 
 20. **Tests are end-to-end suites driving the real app.**
     - Why: the value is in gestures, timing, IPC and persistence, which unit tests wouldn't catch.
     - How: they run mostly off-screen without focus (a 200px or 60px strip stays visible on the PC), and the features suite adds a mock OpenAI server and a fake microphone. On a Mac the windows are 2px slivers with no Dock icon (#57).
-21. **No git commits unless the owner asks.** This follows the operating rules this project was built under. Since 2026-09-24 the project is its own repo on GitHub; new work stays uncommitted until the owner asks. The owner commits and pushes each version themselves (on the Mac through GitHub Desktop). They committed and pushed the Mac edition on `masos` on 2026-09-29 as "mac build" (`16961eb` + `9536853`); it is not merged into `main`. At their "fix it" the session took Finder's `.DS_Store` (committed by accident) out of git with `git rm --cached`, which leaves it on disk, and git-ignored it; the owner committed and pushed that as "fix" (`f86cf19`).
+21. **No git commits unless the owner asks.** This follows the operating rules this project was built under. Since 2026-09-24 the project is its own repo on GitHub; new work stays uncommitted until the owner asks. The owner commits and pushes each version themselves (on the Mac through GitHub Desktop). They committed and pushed the Mac edition on `masos` on 2026-09-29 as "mac build" (`16961eb` + `9536853`), and 1.17.0 there on 2026-10-01 ("huge"); at their request `masos` was merged into `main` on 2026-10-06 (PR #2). At their "fix it" the session took Finder's `.DS_Store` (committed by accident) out of git with `git rm --cached`, which leaves it on disk, and git-ignored it; the owner committed and pushed that as "fix" (`f86cf19`).
 22. **Stage names changed on screen only (1.6: Augmented → Combined, Used → Final).**
     - Why: same reason as #12. The owner's files keep `used` and `combined`; `STAGE_NAME` maps them to screen names. The price is that data `combined` is the stage called Final.
 23. **Column widths live in `prefs.colWidths`, not on each project.**
@@ -103,7 +103,7 @@ Read this before reversing any of these choices. Each entry gives the decision, 
     - Not chosen: framing each column (the columns already have edges and shadows; more frames would add clutter, which the owner disliked in round 12).
     - Revisit if the owner finds it too bright or too faint: the strength is all in `--frame-edge` (and `--frame-glow`) in `styles.css`.
 
-The Mac edition of 1.16.0 (seventh session, 2026-09-29, branch `masos`). The owner committed and pushed it as "mac build" (`16961eb` + `9536853`); it is not merged into `main`. How each piece works is in `14_macos.md`; the lessons are in `07`.
+The Mac edition of 1.16.0 (seventh session, 2026-09-29, branch `masos`). The owner committed and pushed it as "mac build" (`16961eb` + `9536853`); it was merged into `main` with 1.17.0 on 2026-10-06 (PR #2). How each piece works is in `14_macos.md`; the lessons are in `07`.
 
 49. **One codebase, two downloads, with every Mac difference fenced.**
     - What: the Mac edition reuses the Windows code. Each Mac difference sits behind `IS_MAC` (`process.platform === 'darwin'` in `main.js` and `screenshot.js`; `api.platform === 'darwin'` in `app.js`) or `voice.js`'s own `MAC` (`window.recaller?.platform === 'darwin'`), behind `body.is-mac` in the CSS, in `data-mac` / `data-mac-title` attributes that only Mac code applies, in the `mac` and `dmg` build sections and new npm scripts, or in `tests/e2e/mac-harness.js`, which does nothing on Windows. Helpers such as `kb()` return their input unchanged on Windows. The data format, the userData path, `productName`, `appId`, the NSIS settings, `build/icon.png` and the `dist` and `pack` scripts are unchanged.
@@ -240,3 +240,14 @@ Decided in the last fix round (2026-10-01), after the final review.
     - What: the 15 CAD budget (amount unchanged, Q7) emails at 10 % (1.50 CAD), 50 %, 90 % and 100 % of actual spend (`budget_alert_thresholds` in `variables.tf`), and once when the month's forecast passes 100 % (`budget.tf`). Still alerts only: nothing is capped.
     - Why: normal spend is about 0.00 CAD, so 1.50 CAD of real spend is an early sign of abuse, and a forecast alert can come before the money is spent. Google's cost data can lag a day, so earlier is better.
     - Revisit when: the budget is raised for public sign-up (Q7); with many users, 10 % becomes ordinary spend.
+
+## Release and merge (ninth session, 2026-10-06)
+
+81. **Installers go out as GitHub Releases in the private repo.** (2026-10-06, at the owner's "i want to easily install on another pc".)
+    - What: `v1.17.0`, the repo's first tag and release, on `f724f71`, with the Windows installer as its one asset, named `Recaller-Setup-1.17.0.exe` (no spaces). The dmg isn't attached (it is on the Mac). Recipe: `06`, release checklist, Windows step 11.
+    - Why: `dist/` and `node_modules/` stay git-ignored (build output; 1.7 GB and 466 MB on the PC), and the 112 MB installer is over GitHub's 100 MB limit for a file in git, while a release asset can be up to 2 GB. Another PC then needs only a browser: no Git, Node or build.
+    - Revisit when: the app goes to other people (the repo is private, so only the owner can download), or auto-update arrives (`09`).
+82. **`masos` was merged into `main` before the suites ran on the PC.** (2026-10-06, the owner's "okay merge masos to main".)
+    - What: PR #2, merge commit `9d30f1f`; `main`'s tree is identical to `masos` (`f724f71`). `v1` stays at 1.16.
+    - Why: the owner asked for it. The docs had advised running the suites on the PC first; 1.17.0 was tested on the Mac, and its Windows installer has been installed on the PC since 2026-10-01.
+    - Revisit if: a suite fails on the PC. Fix it on a branch and merge again.

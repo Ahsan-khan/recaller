@@ -2,6 +2,9 @@
 
 This folder is the complete handoff for **Recaller**. It lets any person, AI agent or LLM continue development without the original conversation. Everything here is plain text, and every user flow is described in words.
 
+Status as of **2026-10-06**, ninth session (on the PC):
+- **1.17.0 is committed, released and merged.** The owner committed and pushed it on `masos` on 2026-10-01 ("huge", `4370072`, then the docs, `f724f71`). On 2026-10-06 its Windows installer became the GitHub Release [`v1.17.0`](https://github.com/Ahsan-khan/recaller/releases/tag/v1.17.0) (tag on `f724f71`; its one asset, `Recaller-Setup-1.17.0.exe`, has the same SHA-256 as the PC's `dist/Recaller Setup 1.17.0.exe`), and PR #2 merged `masos` into `main` (`9d30f1f`, whose tree is identical to `f724f71`). The repo is private, so the download needs a GitHub sign-in. The PC has had 1.17.0 installed since 2026-10-01 (about 20:23). No suite has run on the PC yet. The cloud items under "Still open" below weren't rechecked in this session.
+
 Status as of **2026-10-01**, eighth session (on the owner's Mac):
 - **1.17.0, accounts and sync, is built, tested and live on Google Cloud, but not committed or released.** Optional email-and-password accounts and local-first sync of the board to Google Cloud (project `recaller-cloud`, us-east1), for Windows and Mac alike, from `masos`. The design, its status and where the code differs from it: `15_accounts_and_sync.md`.
   - **Tested** (the final gates on 2026-10-01, all passing, from source and packaged on the Mac): 702 unit tests in 20 files (`tests/unit/`, plain Node), 216 rules cases passing on Google's real rules engine (`npm run rules:test`, which deploys nothing), and the sync e2e suite 43/43 on the Mac, against a local mock of Google Cloud. The older suites stay at 12 + 21 + 139 on the Mac, and `npm run test:accounts-on` runs them again with accounts on and nobody signed in. Since the storage-overwrite fix (below): 714 unit tests, and all 219 rules cases (185 Firestore, 34 Storage) pass on Google's rules engine.
@@ -51,7 +54,7 @@ Recaller is a desktop app for Windows and macOS (Electron 44, vanilla JavaScript
 | `05_design_system.md` | Colours, themes, fonts, sizes, stage colours, palettes and design rules learned from user feedback |
 | `06_build_test_release.md` | How to run, build, test and release. What the end-to-end suites check and how they work |
 | `07_gotchas_and_lessons.md` | Every pitfall hit so far: symptom, cause and fix |
-| `08_changelog.md` | Versions 1.0.0 to 1.17.0 (with the 1.16.0 Mac edition, the discarded first 1.17.0, and the accounts-and-sync 1.17.0, built but not released) and what changed in each |
+| `08_changelog.md` | Versions 1.0.0 to 1.17.0 (with the 1.16.0 Mac edition, the discarded first 1.17.0, and the accounts-and-sync 1.17.0, released on 2026-10-06) and what changed in each |
 | `09_backlog_and_open_questions.md` | The roadmap for making Recaller usable by everyone, known issues, untested areas, ideas the user may want, technical debt and suggested next steps |
 | `10_user_messages_verbatim.md` | Every message the owner sent, word for word, with notes on how each was interpreted |
 | `11_decision_log.md` | Why each major choice was made (Electron, vanilla JS, voice design, undo, storage, fonts, …) and when to revisit it |
@@ -119,12 +122,12 @@ AI agents should read `13` first, then continue with the order above. Read `14` 
   - PC: `C:\Users\User\Documents\recaller\` (moved out of `Documents\iresine\recaller` on 2026-09-24).
   - Mac: `/Users/ahsan/Documents/GitHub/recaller`.
 - **Branches:**
-  - `main` holds 1.16.0, through the PR #1 merge of `v1` (`dd5a3b0`, 2026-09-29). Its tree is identical to `664212a`. Before that merge it was `296fd32` "initial commits" (1.6.0), whose parent `3876950` is 1.5.0.
+  - `main` holds 1.17.0 since the PR #2 merge of `masos` (`9d30f1f`, 2026-10-06), whose tree is identical to `f724f71`. Before that it held 1.16.0, through the PR #1 merge of `v1` (`dd5a3b0`, 2026-09-29). Its tree is identical to `664212a`. Before that merge it was `296fd32` "initial commits" (1.6.0), whose parent `3876950` is 1.5.0.
   - `v1` is the Windows working branch. The owner commits each version there with a short message and pushes: "1.8", "1.9", … "1.12" = `290c74d`, "1.13" = `0f7ceea`, "1.14" = `8776a32`, "1.15" = `7f101e6`, "1.16" = `664212a`.
   - `masos` is the Mac edition. The owner created it from `main` (`dd5a3b0`) on 2026-09-29 and published it.
     - **Committed and pushed:** at 21:45 that evening the owner committed the Mac edition there as two commits, both "mac build": `16961eb` (the snapshot they had staged at about 21:13, which also took in Finder's `.DS_Store` by accident) and `9536853` (the fixes made after that staging, mostly docs). Both were pushed: a read-only check (`git ls-remote origin`) found GitHub's `masos` at `9536853`, and `main` and `v1` unchanged there. The pushed app code is byte-identical to the tested dmg (`14`, "Files").
     - **`.DS_Store` cleanup:** at the owner's "fix it", `git rm --cached .DS_Store` took Finder's file out of git (it stays on disk), and `.DS_Store` was added as a new last line of `.gitignore`. The owner committed both as "fix" (`f86cf19`, 21:51) and pushed it. The doc updates that recorded this followed as "done" (`33f62ed`, 22:04, pushed), so `masos` = `origin/masos` = `33f62ed`. 1.17.0 (accounts and sync) is uncommitted on top of it (2026-10-01).
-    - **Not merged into `main`:** that is the owner's call. When they want it: a pull request from `masos` into `main`, after running the suites once on the PC (expect 12 + 21 + 134).
+    - **1.17.0 and the merge:** the owner committed 1.17.0 on top as "huge" (`4370072`, 2026-10-01) and the docs as `f724f71`, and pushed both. At their request PR #2 merged `masos` into `main` on 2026-10-06 (`9d30f1f`), before any suite had run on the PC. The tag `v1.17.0` carries the GitHub Release with the Windows installer.
   - `stash@{0}` ("On v1: Discarded changes since 1.16 push (1.17.0 macOS work) — 2026-09-29") is the sixth session's discarded Mac attempt. The Mac edition was built without it: the build never read, applied or popped it. Leave it alone unless the owner asks.
 - **Source:** `src/`.
 - **Tests:** `tests/e2e/`; since 1.17 also `tests/unit/`, `tests/mock-gcp/`, `tests/rules/` and `tests/support/`. Run them with `npm test`; on a Mac, read `14` first.

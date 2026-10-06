@@ -2,7 +2,7 @@
 
 Function and variable names below are real; search for them in the files. Line numbers drift, names don't.
 
-The recipes apply to both platforms unless marked **On a Mac** or **On Windows**. The Windows app is 1.16.0 on `main` and `v1`; the Mac edition of 1.16.0 is on branch `masos`, committed and pushed as "mac build" (`16961eb` + `9536853`, 2026-09-29) and not merged into `main`. Every Mac difference must stay fenced so Windows behaves exactly as before (see "Add a Mac-only behaviour"). Before any Mac work, read `14_macos.md`, which describes the whole Mac edition. 1.17.0 (accounts and sync, both platforms) is built on `masos` and not committed yet; before touching it, read the last recipe, "Work on accounts and sync safely".
+The recipes apply to both platforms unless marked **On a Mac** or **On Windows**. The Windows app and the Mac edition are 1.17.0 on `masos` and, since 2026-10-06, on `main` (PR #2); `v1` holds the Windows 1.16.0. Every Mac difference must stay fenced so Windows behaves exactly as before (see "Add a Mac-only behaviour"). Before any Mac work, read `14_macos.md`, which describes the whole Mac edition. 1.17.0 (accounts and sync, both platforms) is built on `masos`; before touching it, read the last recipe, "Work on accounts and sync safely".
 
 ## Before any change
 

@@ -189,7 +189,7 @@ These come from building the Mac edition of 1.16.0 on the Mac (branch `masos`, 2
 
 ## Added in the accounts and sync session (eighth)
 
-These come from designing and building 1.17.0's accounts and sync on the Mac (2026-09-30 to 10-01, branch `masos`, uncommitted). The design is `15`; its section 0 lists where the code ended up differing from it.
+These come from designing and building 1.17.0's accounts and sync on the Mac (2026-09-30 to 10-01, branch `masos`; committed that evening as "huge"). The design is `15`; its section 0 lists where the code ended up differing from it.
 
 86. **Verification by fresh eyes found real bugs that the authors' own tests passed.** The work ran as a workflow: agents built each work package to the spec, then separate verify-and-fix rounds checked the code against the spec and the tests, and the engine got several rounds of its own. The rounds kept finding real defects in code whose tests were green, every time; several of the fixes are the deliberate differences listed in `15` section 0. What each round found:
     - the phase-2 review: 6 high and 6 medium;
