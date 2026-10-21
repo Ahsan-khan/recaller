@@ -34,5 +34,12 @@ window.ICONS = (() => {
     cloud: svg('<path d="M7.5 18.5H17a4 4 0 0 0 1-7.87 5.5 5.5 0 0 0-10.91-1.11A4.5 4.5 0 0 0 7.5 18.5Z"/>'),
     cloudOff: svg('<path d="m3.5 3.5 17 17"/><path d="M7.74 7.74a5.5 5.5 0 0 0-.65 1.78 4.5 4.5 0 0 0 .41 8.98H17a4 4 0 0 0 1.29-.21"/><path d="M10.27 5.47A5.5 5.5 0 0 1 18 10.63a4 4 0 0 1 2.73 5.3"/>'),
     cloudAlert: svg('<path d="M7.5 18.5H17a4 4 0 0 0 1-7.87 5.5 5.5 0 0 0-10.91-1.11A4.5 4.5 0 0 0 7.5 18.5Z"/><path d="M12 9.6v3.2"/><path d="M12 15.5v.1"/>'),
+    // 1.18: Eating (a fork and knife), Claude Code format (a prompt), Clear (an eraser),
+    // minimize a column (two arrows in), and column groups (two columns under one band)
+    utensils: svg('<path d="M5 3v6a2.5 2.5 0 0 0 5 0V3M7.5 3v18"/><path d="M19 15V3a4.5 4.5 0 0 0-4.5 4.5V13a2 2 0 0 0 2 2H19Zm0 0v6"/>'),
+    terminal: svg('<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="m7 9.5 3 2.5-3 2.5M12.5 15H17"/>'),
+    eraser: svg('<path d="m7 20-3.3-3.3a2 2 0 0 1 0-2.8L13.9 3.7a2 2 0 0 1 2.8 0l3.6 3.6a2 2 0 0 1 0 2.8L10.5 20"/><path d="M7 20h13M8.5 9.5l6 6"/>'),
+    minimize: svg('<path d="M10 4v6H4M14 20v-6h6M10 10 3.5 3.5M14 14l6.5 6.5"/>'),
+    group: svg('<rect x="3" y="3.5" width="18" height="4" rx="1.5"/><rect x="4" y="10" width="7" height="10.5" rx="1.5"/><rect x="13" y="10" width="7" height="10.5" rx="1.5"/>'),
   };
 })();

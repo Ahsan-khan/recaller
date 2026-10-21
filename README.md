@@ -2,7 +2,7 @@
 
 A desktop board for prompts and notes you want to reuse. Each project is a column with three stages, top to bottom:
 
-1. **Cooking**: new prompts, one card each. Type one with **New prompt** or speak one with **Dictate**.
+1. **Cooking**: new prompts, one card each. Type one with **New text** or speak one with **Dictate**.
 2. **Cooked**: the prompts you move down, automatically joined into one note.
 3. **Served**: the final text. Each time you move the Cooked note down, its text is added to the end of Served.
 
@@ -21,7 +21,7 @@ npm install
 npm run dist
 ```
 
-This builds `dist/Recaller Setup 1.17.0.exe`. It needs `src/cloud/project.json`, which isn't in git: copy it from the computer that has it, or build without accounts with `RECALLER_NO_CLOUD=1`. Run the installer to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
+This builds `dist/Recaller Setup 1.18.0.exe`. It needs `src/cloud/project.json`, which isn't in git: copy it from the computer that has it, or build without accounts with `RECALLER_NO_CLOUD=1`. Run the installer to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
 
@@ -52,14 +52,20 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Copy a combined text | Click the Cooked note or the Served text |
 | Copy a screenshot from Cooked or Served | Screenshots follow their prompt down and show as small pictures under the text. Click one to copy it. The text and the pictures are copied separately (paste the text, then click the picture and paste again), because Claude, ChatGPT and most chat boxes keep only the picture when you paste both at once |
 | Empty a stage | Project menu **⋯ → Clear Cooked** or **Clear Served** (undoable) |
+| Turn Cooked into a Claude Code prompt | Click **>_** under the Cooked note. Its prompts are wrapped in a Claude Code task: the request (numbered when there are several), how to work, and what to report back. Clicking or copying it gives the formatted text. Click **>_** again for the original. Moving it to Served serves the formatted text, and the next batch starts plain again. Undoable |
+| Mark a served prompt as running ("Eating") | Once you've given the Served text to an agent, click **Eating** on the Served header. It turns green and counts the minutes, the column's header gets a pulsing dot, and the bottom right of the board lists every column that's eating. Click a name there to jump to its column |
+| When the agent is done ("Eaten") | Click **✓** beside the column in the bottom-right strip, or **Eating › Done: move it to Eaten**. The Served text moves to **Eaten**, Served is empty for the next batch, and Eating ends (**Undo** on the toast puts it all back). **Eating › Stop eating, keep it in Served** stops without moving it |
+| Find what's been eaten | The fork and knife in the top bar (it appears once something is eaten; the badge counts the rounds) opens **Eaten**: every finished prompt, newest first, by day, with its column, the time it finished and how long it was eating. Filter by column, or search. Click a text to read it all; **Copy** copies it, **Serve again** puts it back into its column's Served, and the trash deletes it (undoable). A column's **⋯ → Eaten from this column** opens it filtered. Eaten is kept on this computer (the latest 300), in its backups, and doesn't sync |
+| Minimize a column | **⋯ → Minimize column** folds it to a slim strip with its name and count. Click the strip to open it. Kept on this computer only |
+| Group columns | **⋯ → New group…** puts the column in a group (named "Important" at first; type a new name). Other columns join it from their **⋯** menu (**Move to group "…"**). Click the group's name to fold all its columns into a strip, and click the strip to open it again. The group's **⋯** renames it, moves it left or right, or ungroups it (the columns stay) |
 | Blank line or new line | **Settings → Join notes with** sets how notes are joined in Cooked, Served and Ctrl+click copies |
 | Highlight a note | Hover, click the highlighter and pick a colour: *Check again*, *Important*, *Idea* or *Ready*. Or focus a note and press `H` |
 | Move to another project | Drag it onto another column |
-| Reorder projects | Drag a column by its title |
-| New prompt | Click **New prompt** under the column name to type one, or **Dictate** (the other half of the bar) to speak one. New prompts are added at the bottom of **Cooking**, just above Cooked. Saving closes the editor and the buttons come back |
+| Reorder projects | Drag a column by its title (inside a group, it moves among that group's columns) |
+| New text | Click **New text** under the column name to type a prompt, or **Dictate** (the other half of the bar) to speak one. New prompts are added at the bottom of **Cooking**, just above Cooked. Saving closes the editor and the buttons come back. The eraser in the editor clears what you typed or dictated (dictation keeps listening); **Undo** on its toast brings it back |
 | Fold a stage away | Click its name: **Cooking**, **Cooked** or **Served** |
 | Put older prompts in date order | **⋯ → Sort prompts oldest first** (prompts saved before 1.7 were newest-first). Undoable |
-| Dictate | Click the mic beside **New prompt**. Text appears phrase by phrase as you speak, and you can keep typing and editing while it listens. Click the red **Stop** pill when done |
+| Dictate | Click the mic beside **New text**. Text appears phrase by phrase as you speak: after each short pause, and every few seconds even if you don't pause. The editor says *Listening…* while it waits for the next phrase. You can keep typing and editing while it listens. Click the red **Stop** pill when done |
 | Add a screenshot | Click the camera in the editor, then drag over the area you want. Click once to capture the whole screen, or press `Esc` to cancel. You can also paste an image or drop an image file |
 | View an image | Hover the thumbnail and click the expand icon |
 | Edit | Right-click a prompt, the Cooked note or the Served text (or focus a prompt and press `E`). Right-click a row under **Notes** to edit just that part |
@@ -78,12 +84,12 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Keys | Does |
 | --- | --- |
 | `Ctrl+K` | Search. Matches are marked in cards and in the Cooked and Served texts. `Enter` copies the top matching card |
-| `Ctrl+N` | New prompt in the current project |
+| `Ctrl+N` | New text in the current project |
 | `Ctrl+M` | Start or stop dictation |
 | `Ctrl+Shift+S` | Add a screenshot to the note you're writing (or start a new one) |
 | `Ctrl+Enter` | Save (during dictation, it finishes transcribing first) |
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo |
-| `Ctrl+Shift+N` | New project (or the **+ New project** tile at the end of the board) |
+| `Ctrl+Shift+N` | New project (or the **+** in the top bar, or the **+ New project** tile at the end of the board) |
 | `Ctrl+,` | Settings |
 | `Ctrl+Alt+R` | Show or hide Recaller from any app (change it in Settings) |
 | `F1` or `?` | How Recaller works: stages, handy moves and shortcuts |
@@ -146,9 +152,9 @@ To bring your PC's notes to your Mac: create the account on the PC and click **U
 
 | Syncs between your computers | Stays on each computer |
 | --- | --- |
-| Projects: name, colour and column order | Column widths, folded stages and scroll positions |
+| Projects: name, colour, column order, their group, **Eating** and the Claude Code format of Cooked | Column widths, folded stages, minimized columns, folded groups and scroll positions |
 | Notes in Cooking, Cooked and Served: text, pictures, order, highlights and copy counts | **Column width** (Compact, Slim, Roomy), **Column title font**, **Cooked colour** and **Colour** (Deep or Soft) |
-| **Join notes with** | Unsaved drafts in New prompt |
+| **Join notes with** | Unsaved drafts in New text |
 | | Shortcuts, voice settings and **Minimize Recaller after copying** (**Hide Recaller after copying** on a Mac) |
 | | Your OpenAI API key and your local backups, which are never uploaded |
 
@@ -235,7 +241,7 @@ This is the note shown under **What's stored and where** when you create an acco
 
 ## Recaller on a Mac
 
-The Mac edition is the same Recaller 1.17.0 with Mac keys, the traffic lights and a menu bar. It's for Apple Silicon Macs (M1 or newer) with macOS 13 or later. It's new: the install steps, the permission prompts and the keychain prompt below haven't been confirmed yet.
+The Mac edition is the same Recaller 1.18.0 with Mac keys, the traffic lights and a menu bar. It's for Apple Silicon Macs (M1 or newer) with macOS 13 or later. It's new: the install steps, the permission prompts and the keychain prompt below haven't been confirmed yet.
 
 ### Install on a Mac
 
@@ -244,7 +250,7 @@ npm install
 npm run dist:mac
 ```
 
-This builds `dist/Recaller-1.17.0-arm64.dmg`. Open it, drag **Recaller** onto **Applications**, then eject the "Recaller 1.17.0" disk (the eject button beside it in Finder's sidebar) and open Recaller from Applications. Don't open Recaller from the disk image's window: that copy runs from the disk image, which then can't be ejected. If you already did, quit it (⌘Q), eject the disk and open Recaller from Applications; your notes are the same either way.
+This builds `dist/Recaller-1.18.0-arm64.dmg`. Open it, drag **Recaller** onto **Applications**, then eject the "Recaller 1.18.0" disk (the eject button beside it in Finder's sidebar) and open Recaller from Applications. Don't open Recaller from the disk image's window: that copy runs from the disk image, which then can't be ejected. If you already did, quit it (⌘Q), eject the disk and open Recaller from Applications; your notes are the same either way.
 
 - **A copy built on your own Mac** opens straight away.
 - **A downloaded or AirDropped copy** is blocked the first time, because it isn't signed with an Apple Developer ID: macOS says it can't verify the developer. Close that message, open **System Settings › Privacy & Security**, and click **Open Anyway** next to the note about Recaller. You only do this once. (On macOS 15 and later, Control-click › Open no longer gets past this.)
@@ -267,7 +273,7 @@ This builds `dist/Recaller-1.17.0-arm64.dmg`. Open it, drag **Recaller** onto **
 | ⌘-click | Copy several notes at once, in click order (Ctrl+click on Windows) |
 | Right-click or Control-click | Edit a prompt, the Cooked note or the Served text |
 | `⌘K` | Search. `↩` copies the top matching card |
-| `⌘N` | New prompt in the current project |
+| `⌘N` | New text in the current project |
 | `⌘M` | Start or stop dictation |
 | `⇧⌘S` | Add a screenshot to the note you're writing (or start a new one) |
 | `⌘↩` | Save (during dictation, it finishes transcribing first) |

@@ -485,8 +485,9 @@ body.is-dragging .col-resize { display: none; }
   min-height: 46px;
   padding: 7px 5px 7px 11px;
   border-radius: 15px 15px 0 0;
-  background: var(--accent-tint);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  /* Soft theme (1.18): a little deeper than --accent-tint (15%), so columns stand out from the canvas */
+  background: color-mix(in srgb, var(--accent) 24%, #ffffff);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
   box-shadow: inset 0 3px 0 var(--accent);
   cursor: grab;
   user-select: none;
@@ -1799,6 +1800,332 @@ body.theme-deep .sel-hint { color: var(--ink-3); }
 .title-opt small { font-size: 10.5px; font-weight: 600; color: rgba(255, 255, 255, 0.72); }
 .title-opt[aria-checked="true"] { outline-color: var(--primary); }
 .title-opt[aria-checked="true"] small::after { content: " ✓"; }
+
+/* ------------------------------------------------------------------ 1.18: eating, groups, minimized columns, Claude Code */
+
+/* Eating: a switch on the Served header. Quiet outline when off; filled emerald with a pulsing
+   dot while an agent is running the served prompt. */
+.eat-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  margin-right: 2px;
+  padding: 0 9px 0 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #047857 26%, transparent);
+  color: var(--final-ink);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.eat-btn .icon { width: 13px; height: 13px; }
+.eat-btn:hover { background: rgba(4, 120, 87, 0.08); }
+.eat-dot { display: none; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+.eat-btn[aria-pressed="true"] { background: #047857; border-color: #047857; color: #fff; box-shadow: 0 3px 8px -3px rgba(4, 120, 87, 0.7); }
+.eat-btn[aria-pressed="true"]:hover { background: #065f46; }
+.eat-btn[aria-pressed="true"] .eat-dot { display: block; animation: eat-blink 1.6s ease-in-out infinite; }
+.eat-btn[aria-pressed="true"] .icon { display: none; }
+@keyframes eat-blink { 50% { opacity: 0.35; transform: scale(0.7); } }
+.final.is-collapsed .eat-btn { margin-right: 2px; }
+
+/* the column's own sign that it's eating: a small pulsing dot in its header */
+.col-mini { display: none; flex: none; align-items: center; gap: 6px; }
+.column.is-eating .col-mini, .column.is-minimized .col-mini { display: flex; }
+.mini-eat { display: none; width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: eat-ring 1.8s ease-out infinite; }
+.column.is-eating .mini-eat { display: block; }
+@keyframes eat-ring { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); } 100% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); } }
+.mini-count { display: none; }
+
+/* the strip at the bottom right of the board: every column that's eating, in board order.
+   The board keeps room for it underneath the columns, so it never covers a card. */
+.eating {
+  position: absolute;
+  z-index: 5;
+  right: 16px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: max(280px, calc(50% - 230px));
+  padding: 5px 5px 5px 12px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--col-edge);
+  box-shadow: var(--shadow-md);
+}
+body.has-eating .board { padding-bottom: 58px; }
+/* with the Eaten drawer open, the strip moves left of it rather than under it */
+body.eaten-open .eating { right: calc(min(400px, 100vw - 44px) + 22px); transition: right 0.22s var(--ease); }
+.eating-label { flex: none; display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #047857; }
+.eat-pulse { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: eat-ring 1.8s ease-out infinite; }
+.eating-list { display: flex; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.eat-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 230px;
+  height: 28px;
+  padding: 0 3px 0 8px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent) 12%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.eat-chip:hover { background: color-mix(in srgb, var(--accent) 20%, #ffffff); }
+.eat-leaf { flex: none; width: 13px; height: 14px; color: var(--accent); --rib: rgba(255, 255, 255, 0.5); transform: rotate(-14deg); }
+.eat-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eat-time { flex: none; font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; color: var(--ink-3); }
+.eat-done { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; color: #047857; }
+.eat-done .icon { width: 14px; height: 14px; stroke-width: 2.2; }
+.eat-done:hover { background: #047857; color: #fff; }
+body.theme-deep .eating { background: #f0fdf6; border-color: transparent; box-shadow: 0 18px 40px -10px rgba(0, 0, 0, 0.6); }
+
+/* a minimized column: a slim strip in its header colour (leaf, name, count); a click opens it */
+.column.is-minimized { width: 46px !important; min-height: 190px; }
+.column.is-minimized > :not(.col-head) { display: none; }
+.column.is-minimized .col-head {
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 0;
+  padding: 13px 0 12px;
+  border-radius: 15px;
+  border-bottom: 0;
+  cursor: pointer;
+}
+.column.is-minimized .col-name {
+  display: block;
+  writing-mode: vertical-rl;
+  max-height: 300px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  line-height: 1;
+}
+.column.is-minimized .col-menu { display: none; }
+.column.is-minimized .col-mini { flex-direction: column; margin-top: auto; }
+.column.is-minimized .mini-count {
+  display: block;
+  min-width: 22px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-align: center;
+}
+.column.is-minimized:hover .col-head { filter: brightness(1.04); }
+body.theme-deep .column.is-minimized .mini-count { background: rgba(255, 255, 255, 0.2); color: #fff; }
+
+/* a group of columns: a faint lane with a slim labelled band on top; folded, a narrow strip */
+.col-group {
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0 8px 8px;
+  border-radius: 18px;
+  background: rgba(12, 42, 29, 0.045);
+  border: 1px solid rgba(12, 42, 29, 0.09);
+}
+.group-head { flex: none; display: flex; align-items: center; gap: 4px; height: 36px; padding: 4px 0 4px 1px; }
+.group-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 8px;
+  color: var(--ink-2);
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.group-toggle:hover { background: rgba(12, 42, 29, 0.06); }
+.group-toggle .chev { display: inline-flex; }
+.group-toggle .icon { width: 14px; height: 14px; }
+.group-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group-count { flex: none; color: var(--ink-3); font-weight: 600; }
+.group-head .head-btn { color: var(--ink-2); }
+.group-name-input { margin: 0 2px; font-family: var(--font-ui); font-size: 13px; }
+.group-cols { flex: 1 1 auto; min-height: 0; display: flex; align-items: flex-start; gap: var(--board-gap); }
+.group-strip { display: none; }
+.col-group.is-folded { align-self: flex-start; width: 46px; min-height: 190px; padding: 0; cursor: pointer; }
+.col-group.is-folded .group-head, .col-group.is-folded .group-cols { display: none; }
+.col-group.is-folded .group-strip { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 14px 0 12px; }
+.strip-name {
+  writing-mode: vertical-rl;
+  max-height: 260px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.strip-dots { display: flex; flex-direction: column; gap: 5px; margin-top: auto; }
+.strip-dots svg { width: 13px; height: 14px; --rib: rgba(255, 255, 255, 0.5); transform: rotate(-14deg); }
+.col-group.is-folded:hover { background: rgba(12, 42, 29, 0.07); }
+body.theme-deep .col-group { background: rgba(255, 255, 255, 0.045); border-color: rgba(236, 253, 245, 0.13); }
+body.theme-deep .group-toggle { color: #d1fae5; }
+body.theme-deep .group-toggle:hover { background: rgba(255, 255, 255, 0.08); }
+body.theme-deep .group-count { color: rgba(236, 253, 245, 0.55); }
+body.theme-deep .group-head .head-btn { color: rgba(236, 253, 245, 0.85); }
+body.theme-deep .group-head .head-btn:hover, body.theme-deep .group-head .head-btn.is-open { background: rgba(255, 255, 255, 0.12); }
+body.theme-deep .strip-name { color: #d1fae5; }
+body.theme-deep .col-group.is-folded:hover { background: rgba(255, 255, 255, 0.08); }
+
+/* Eaten: a top-bar button (shown once something is eaten) with a count, and a drawer over the board's
+   right side. Light in both themes, like the dialogs: a quiet, organised list, newest first, by day. */
+.eaten-btn { position: relative; }
+.eaten-btn.is-open { background: rgba(12, 42, 29, 0.08); }
+body.theme-deep .topbar .eaten-btn.is-open { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.eaten-badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #10b981;
+  box-shadow: 0 0 0 1.5px var(--topbar);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+}
+.eaten-panel {
+  position: fixed;
+  z-index: 900;
+  top: calc(var(--topbar-h) + 10px);
+  right: 22px;
+  bottom: 22px;
+  width: min(400px, calc(100vw - 44px));
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--col-edge);
+  box-shadow: var(--shadow-lg);
+  color: var(--ink);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  translate: 18px 0;
+  transition: opacity 0.18s var(--ease), translate 0.22s var(--ease), visibility 0s linear 0.22s;
+}
+.eaten-panel.is-open { opacity: 1; visibility: visible; pointer-events: auto; translate: 0 0; transition: opacity 0.18s var(--ease), translate 0.22s var(--ease); }
+body.theme-deep .eaten-panel { border-color: transparent; box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.7); }
+.eaten-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 12px 10px 8px 16px; }
+.eaten-head > .icon { width: 18px; height: 18px; color: #047857; }
+.eaten-head h2 { margin: 0; font-family: var(--font-head); font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.eaten-total { padding: 1px 7px; border-radius: 999px; background: rgba(4, 120, 87, 0.1); color: #047857; font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+.eaten-total:empty { display: none; }
+.eaten-search { flex: none; display: flex; align-items: center; gap: 7px; height: 34px; margin: 0 14px 8px; padding: 0 10px; border-radius: 10px; background: #f1f5f3; color: var(--ink-3); }
+.eaten-search .icon { width: 15px; height: 15px; }
+.eaten-search input { flex: 1; min-width: 0; border: 0; background: transparent; font-size: 13px; color: var(--ink); outline: none; }
+.eaten-search:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent); background: #fff; }
+.eaten-filters { flex: none; display: flex; flex-wrap: wrap; gap: 5px; padding: 0 14px 8px; }
+.eaten-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.eaten-filter span { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
+.eaten-filter:hover { background: rgba(12, 42, 29, 0.05); }
+.eaten-filter.is-active { background: color-mix(in srgb, var(--accent, #047857) 14%, #fff); border-color: color-mix(in srgb, var(--accent, #047857) 45%, transparent); color: var(--ink); }
+.eaten-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 0 14px 12px; }
+.eaten-list::-webkit-scrollbar { width: 8px; }
+.eaten-list::-webkit-scrollbar-thumb { background: rgba(12, 42, 29, 0.16); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+.eaten-day {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 4px 0 -2px;
+  padding: 6px 0 4px;
+  background: #fff;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.eaten-item {
+  flex: none;
+  padding: 9px 10px 7px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--card-edge);
+  background: #fff;
+  box-shadow: inset 3px 0 0 var(--accent), var(--shadow-sm);
+}
+.eaten-item-head { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12.5px; }
+.eaten-item-head b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; }
+.eaten-meta { flex: none; margin-left: auto; font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
+.eaten-text {
+  margin-top: 5px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: calc(1.45em * 4);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, #000 60%, transparent);
+  cursor: pointer;
+}
+.eaten-item.is-open .eaten-text { max-height: 360px; overflow-y: auto; -webkit-mask-image: none; }
+.eaten-text mark { background: var(--highlight); color: inherit; border-radius: 3px; }
+.eaten-pics { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.eaten-pic { width: 56px; height: 40px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line-strong); }
+.eaten-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.eaten-pic:hover { box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 55%, transparent); }
+.eaten-item-foot { display: flex; align-items: center; gap: 2px; margin-top: 6px; }
+.eaten-stats { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
+.eaten-act { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 7px; border-radius: 7px; color: var(--ink-2); font-size: 11.5px; font-weight: 600; }
+.eaten-act .icon { width: 13px; height: 13px; }
+.eaten-act:hover:not(:disabled) { background: rgba(12, 42, 29, 0.06); color: var(--ink); }
+.eaten-act:disabled { opacity: 0.35; }
+.eaten-again { color: #047857; }
+.eaten-again:hover:not(:disabled) { background: rgba(4, 120, 87, 0.1); color: #047857; }
+.eaten-del { padding: 0 5px; }
+.eaten-del:hover:not(:disabled) { background: rgba(220, 79, 58, 0.1); color: var(--danger); }
+.eaten-empty { margin: auto; padding: 24px 18px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; color: var(--ink-2); font-size: 12.5px; line-height: 1.5; }
+.eaten-empty > .icon { width: 28px; height: 28px; color: #10a874; }
+.eaten-empty b { color: var(--ink); }
+.eaten-foot { flex: none; margin: 0; padding: 8px 16px 10px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 11px; }
+
+/* Format for Claude Code: a small toggle in the Cooked footer, filled while on */
+.aug-cc { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; color: var(--ink-2); }
+.aug-cc .icon { width: 14px; height: 14px; }
+.aug-cc:hover { background: var(--aug-bg); color: var(--aug-ink); }
+.aug-cc[aria-pressed="true"] { background: var(--aug-bar); color: #fff; }
+.aug-cc[aria-pressed="true"]:hover { background: var(--aug-bar-hover); color: #fff; }
 
 /* ------------------------------------------------------------------ account & sync (1.17) */
 

@@ -570,3 +570,76 @@ Eighth session (2026-09-29 to 2026-10-01, on the MacBook Pro, branch `masos`). T
 > how woukd i install o another pc now
 
 [Answered with the release steps: sign in to GitHub, download `Recaller-Setup-1.17.0.exe` from `v1.17.0`, run it, then sign in to the account. The README's Install section now says the same.]
+
+---
+
+Tenth session (2026-10-20, on a freshly set-up Mac: home `/Users/ahsankhan`, Node 26 and gcloud/Terraform from Homebrew; branch `main`, then `v1.18`).
+
+## Message 63 (the whole request, sent as pasted, dictated text)
+
+After "read everthing in  ai_memory learn every file" (every file was read, then the git and machine state checked against it):
+
+> I want the option. To toggle a button after it's served. identify that I have served and that after serving the agent is runnning the served prompt, so that, like, basically. In the board, in the very bottom right. Have. Something like the icons. Of the. Column name. That shows me that. The, what I've served is running by the agent. But I should be able to toggle it off as well. call it "Eating"
+>
+> There should be a clear or delete button. Or when I'm speaking or typing in the. Cooking new note or prompt section.
+>
+> Like basically. I am, what I'm doing, I'm using this application called Recaller for making large prompts as they come into my mind, and then accumulating the prompts and then submitting it to an AI. So I need like an indicator that's saying like, okay, this thing is running now. Like I need to be able to toggle it or... Like something, you know what I mean?
+>
+> In the soft color theme. Make it so that the. Column name color is slightly, slightly deeper, darker, so that we can see a bit more difference between the columns and the background.
+>
+> Make, make it, make a new feature that turns the final. Cooked. Prompt into a Claude code. Optimal input. Because essentially we're creating prompts with this. But that shouldn't be there by default. We shouldn't have the option to. Turn it into that. Cloud code input or. Go back to original. Before we serve it.
+>
+> i want to be able to minimize some columns and also group up some columns for like 'important' or something
+>
+> change the new prompt button to new text
+>
+> text needs to show up while im speaking
+>
+> make a + button in top menu bar to create a new column, i shouldnt have to scroll all the way to create a new one
+
+[Built as 1.18.0 (`04` §27). How each item was read:
+- "Eating": a per-column switch on the Served header, plus a strip at the board's bottom right with each eating column's leaf icon ("the icons of the column name") and name, each with × to turn it off.
+- "a clear or delete button when I'm speaking or typing in the Cooking new note": an eraser in the new-text editor that empties it (dictation keeps listening), with Undo on its toast.
+- "column name color slightly deeper" in Soft: the header background (the column colour behind the name), 15% → 24%.
+- "turns the final Cooked prompt into a Claude Code optimal input … shouldn't be there by default … turn it into that … or go back to original before we serve it": an off-by-default toggle on the Cooked note; serving it serves the formatted text. "Cloud code" = Claude Code.
+- "minimize some columns and also group up some columns for like 'important'": ⋯ › Minimize column, and named groups whose first name is "Important".
+- "text needs to show up while im speaking": phrases are now cut every few seconds even without a pause, and the editor says Listening…. The text already streamed phrase by phrase; it waited for a pause, up to 20 s (45 s at most) for someone talking without one.
+- "+ button in top menu bar": a slim + before undo.]
+
+## Message 64: the owner's answers to three questions
+
+> No AI, a fixed template
+
+[The question: how should "turn Cooked into Claude Code input" work: Claude rewrites it (an Anthropic key, about a cent a use), the same with the OpenAI key, or a fixed template offline? So the format is a template: `<request>`, `<how_to_work>`, `<when_done>`.]
+
+> Toggle by hand only (Recommended)
+
+[The question: when should a column switch to Eating: by hand only, or also on its own when the Served text is copied? So nothing turns it on or off by itself.]
+
+> Named groups on the board (Recommended)
+
+[The question: named groups with a foldable band, or only an "Important" pin? "(Recommended)" was the assistant's tag on the option picked.]
+
+## Message 65 (sent while the work was starting)
+
+> also make neew branch
+
+[The branch `v1.18` was made from `main` (`e096680`) before any change, carrying the only local change, `package-lock.json` (its version field brought to 1.17.0 by an `npm install`).]
+
+## Message 66 (after the summary)
+
+> okay reinstall
+
+[The 1.18.0 dmg's Recaller.app was copied into `/Applications` (the old 1.17.0 moved aside to the scratchpad first); Recaller wasn't running. The session didn't open it.]
+
+## Message 67
+
+> its not working its completely green
+
+[The window stayed empty green: the page never finished its first load. Recaller's own code was fine (a copy of the notes loaded with all 10 columns, no errors). The running app's network service had restarted at start-up ("Network service crashed or was terminated, restarting service") and its page had started about 40 s after the app: most likely the new ad-hoc signature made macOS hold the "Recaller Safe Storage" keychain item, which Chromium's network service also reads. Relaunched with a local debugging port, a reload brought the board up. The owner then quit and reopened it: "Board shows, all good" (an answer to a question with three options). A Mac-only watchdog now reloads a page that hasn't asked for its notes after 12 s (`07` #101).]
+
+## Message 68 (sent while that was being checked)
+
+> okay so logically afted eating is down it should move elsewhere and organized, make it good we are senior UX UI engineers and experts
+
+[Read as: when Eating is finished, the served prompt should leave Served and go somewhere organised. Built without further questions, as asked: **Done** (✓ on the strip, or Eating › Done) moves the Served text to **Eaten**, a drawer from the top bar with every finished round by day, filters by column, search, and Copy / Serve again / Delete; "Stop eating, keep it in Served" for an agent that didn't finish. Kept per computer, because a synced history inside each project's cloud document would outgrow its size limit (`11` #90). See `04` §27.]

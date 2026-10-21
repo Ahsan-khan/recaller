@@ -78,7 +78,7 @@ The `--aug-*` values are the Ocean palette (since 1.13), identical to `body.cook
 
 The Soft theme is simply the `:root` values. `applyTheme()` adds a `theme-soft` class, but no CSS rule targets it; all theme styling lives in `body.theme-deep` rules. So to change Soft, edit `:root` and check that the matching Deep override still wins.
 
-The canvas is a light green-grey gradient (#e4efe8 → #dce9e1 → #cddfd4) and the top bar is near-white (#fbfdfc). Column bodies are #f6f8f7. The column header is `--accent-tint` with a 3px accent line on top, and the title is in dark ink.
+The canvas is a light green-grey gradient (#e4efe8 → #dce9e1 → #cddfd4) and the top bar is near-white (#fbfdfc). Column bodies are #f6f8f7. The column header is 24% of the column colour on white (1.18; it was `--accent-tint`, 15%) with a 34% edge below and a 3px accent line on top, and the title is in dark ink.
 
 ### Stage colours (the same in both themes)
 
@@ -270,3 +270,16 @@ The Mac edition of 1.16.0 (branch `masos`, committed and pushed on 2026-09-29, m
   - the capture is checked before any scaling: if it is empty, not square or smaller than 1024px, the script prints "icon:mac: no usable capture", exits with code 1 and writes nothing. That way the Mac app can't quietly ship with the Windows icon, or with a clipped capture stretched to fit. Only then is a larger capture (2048px on this Retina Mac) scaled down to exactly 1024px. The check was made this strict after the 1.16.0 dmg was built; re-run with it, the script wrote an icon byte-identical to the one the dmg was built with;
   - `package.json` `build.mac.icon` points at it, and electron-builder makes the app's 1024px `icon.icns` from it. A run from source also puts it in the Dock (`app.dock.setIcon`);
   - `npm run icon` without `--mac` behaves exactly as before, and `build/icon.png` is unchanged.
+
+## 1.18 additions (one block before the account block in `styles.css`)
+
+- **Eating switch** (`.eat-btn`, on the Served header): off, a quiet pill with a 26% emerald outline, the fork-and-knife icon and "Eating" in `--final-ink`; on, filled #047857 with white text, a 7px white dot blinking every 1.6 s instead of the icon, and the minutes ("Eating · 7m").
+- **The column's eating dot** (`.mini-eat`): 8px #10b981 with an expanding ring (`eat-ring`, 1.8 s), before ⋯ in the header.
+- **The Eating strip** (`#eating`, bottom right of `.stage`, 16px in, 18px up): white at 94% (Deep: #f0fdf6, like the toasts), radius 13, `--shadow-md`. An uppercase "EATING" label in #047857 with a ringing dot, then chips: 12% of the column colour on white with a 30% edge, radius 9, the leaf in the column colour, the name (ellipsis at 230px), the time in mono `--ink-3`, and ×. At most `max(280px, 50% − 230px)` wide, so it clears the toasts in the middle; the chips scroll sideways. While it shows, `body.has-eating .board` has 58px of bottom padding, so no column runs under it.
+- **Minimized column** (`.column.is-minimized`): 46px wide, at least 190px tall, only the header showing: a full-height rounded strip in the header colour, the leaf, the name written vertically (`writing-mode: vertical-rl`, 14px, ellipsis at 300px), and at the bottom the eating dot and a count pill.
+- **Groups** (`.col-group`): a lane at the board's full height, radius 18, 1px edge, a 4.5% ink tint (Deep: 4.5% white, the edge 13% mint). Its band is 36px: a chevron, the name in 11.5px / 700 / +0.06em capitals in `--ink-2` (Deep #d1fae5), "· n" in `--ink-3`, and ⋯. Folded, a 46px strip: the name written vertically in capitals and a leaf per member in its colour.
+- **Claude Code toggle** (`.aug-cc`, the `terminal` icon): 22px like the pencil; filled `--aug-bar` while on.
+- **Icons:** `utensils`, `terminal`, `eraser`, `minimize`, `group` join `icons.js`.
+- **Eaten drawer** (`.eaten-panel`, fixed over the board's right side: 10px under the top bar, 22px in, 400px wide or the window less 44px): white, radius 16, `--shadow-lg` (Deep: a deeper shadow, no border), sliding in from the right (18px, 0.22 s). A header (fork and knife in #047857, "Eaten" 16px / 700, a count pill), a soft search field (#f1f5f3, an emerald ring on focus), filter chips (26px pills; the active one tinted in its column's colour), day labels (11px capitals in `--ink-3`, sticky), and round cards (white, radius 12, a 3px inset bar in the column's colour like a prompt card; the name 12.5px / 650, the time and "ate for" in mono `--ink-3`; the text 12.5px clamped to 4 lines with a fade; quiet text buttons Copy, Serve again in #047857, and a trash that turns red). A footer note says it is kept on this computer. While it is open the Eating strip slides left of it.
+- **Eaten button** (`#open-eaten`): the fork and knife in the top bar, shown once something is eaten, with a 15px #10b981 count badge ringed in the top bar's colour.
+- **Done on the strip** (`.eat-done`): a ✓ in #047857 that fills emerald on hover, where the × was.

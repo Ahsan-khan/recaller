@@ -235,9 +235,9 @@ async function run() {
     const a = c.querySelector('.col-add').getBoundingClientRect();
     const m = c.querySelector('.col-mic').getBoundingClientRect();
     const lbl = c.querySelector('.col-add .np-label');
-    return { add: Math.round(a.width), mic: Math.round(m.width), micLabel: c.querySelector('.col-mic').textContent.trim(), fits: lbl.scrollWidth <= lbl.clientWidth + 1 };
+    return { add: Math.round(a.width), mic: Math.round(m.width), micLabel: c.querySelector('.col-mic').textContent.trim(), addLabel: c.querySelector('.col-add .lbl-long').textContent, fits: lbl.scrollWidth <= lbl.clientWidth + 1 };
   })()`);
-  check('New prompt and Dictate share the bar in equal halves, both fully labelled', Math.abs(bar.add - bar.mic) <= 1 && bar.mic > 100 && bar.micLabel === 'Dictate' && bar.fits, JSON.stringify(bar));
+  check('New text and Dictate share the bar in equal halves, both fully labelled', Math.abs(bar.add - bar.mic) <= 1 && bar.mic > 100 && bar.micLabel === 'Dictate' && bar.addLabel === 'New text' && bar.fits, JSON.stringify(bar));
   const cook = await js(`[document.querySelector('.column[data-id="p1"] .cook-head').textContent.trim(), !!document.querySelector('.column[data-id="p1"] .col-head .col-count')]`);
   check('prompts sit under a "Cooking · n" header; the count left the column title', /^Cooking\s*· 4$/.test(cook[0]) && !cook[1], JSON.stringify(cook));
   const savedProject = (id) => JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8')).projects.find((p) => p.id === id);
@@ -277,7 +277,8 @@ async function run() {
   check('columns and sections have distinct colours', headBg !== head2Bg && usedBg !== cardBg, `${headBg} | ${head2Bg} | used ${usedBg} | card ${cardBg}`);
   const titleFamily = await js(`getComputedStyle(document.querySelector('.col-name')).fontFamily`);
   check('column titles use the new default font, Instrument Sans', /Instrument Sans/.test(titleFamily) && await js(`document.fonts.check('650 16px "Instrument Sans"')`), titleFamily);
-  check('the top bar has no + Project button', !(await js(`!!document.querySelector('#new-project')`)) && await js(`!!document.querySelector('.column') && !!document.querySelector('.add-column')`));
+  // 1.6 took the top bar's + Project button away; 1.18 brought a slim + back (#new-column), next to undo
+  check('the top bar has a slim + for a new project, and the board keeps its "+ New project" tile', await js(`!!document.querySelector('.topbar-actions #new-column.icon-btn') && !document.querySelector('#new-project') && !!document.querySelector('.add-column')`));
   const emptyAug = await js(`(() => { const s = getComputedStyle(document.querySelector('.column[data-id="p2"] .used')); return [s.backgroundColor, s.borderTopStyle]; })()`);
   const emptyHelp = await js(`getComputedStyle(document.querySelector('.column[data-id="p2"] .aug-empty')).display`);
   check('an empty Cooked section is just its quiet name: no block, no helper sentence at rest', emptyAug[0] === 'rgba(0, 0, 0, 0)' && emptyHelp === 'none', `${emptyAug.join(' ')} | helper ${emptyHelp}`);
@@ -707,6 +708,7 @@ async function run() {
   await clickSel('.column[data-id="p1"] .col-mic');
   await sleep(700);
   check('mic starts recording from header', await js(`!!document.querySelector('.composer.is-recording')`));
+  check('while it records, the editor says it is listening', /Listening…|Writing…/.test(await js(`document.querySelector('.composer .composer-status').textContent`)));
   const reqBefore = received.length;
   let liveSeen = '';
   for (let t = 0; t < 40 && !liveSeen; t++) {
@@ -997,6 +999,171 @@ async function run() {
   key('Z', [MOD]);
   await sleep(700);
   check('Sort prompts oldest first reorders by date, and Ctrl+Z undoes it', !ascending(beforeSort) && ascending(afterSort) && JSON.stringify(createdOrder()) === JSON.stringify(beforeSort), `${beforeSort.length} prompts`);
+
+  // ---------------------------------------------------------------- 1.18: + in the top bar, Clear, Claude Code, Eating, minimize, groups
+  const pickFrom = async (anchorSel, label) => {
+    await js(`document.querySelector(${JSON.stringify(anchorSel)}).click()`);
+    await sleep(200);
+    const ok = await js(`(() => { const b = [...document.querySelectorAll('.menu .menu-item')].find((x) => x.textContent === ${JSON.stringify(label)}); if (b && !b.disabled) { b.click(); return true; } return false; })()`);
+    await sleep(400);
+    return ok;
+  };
+  const colCount = await js(`document.querySelectorAll('.column').length`);
+  await clickSel('#new-column');
+  await sleep(600);
+  const NEW = await js(`document.querySelector('.col-name-input')?.closest('.column').dataset.id ?? null`);
+  check('the + in the top bar makes a new project, ready to name', Boolean(NEW) && (await js(`document.querySelectorAll('.column').length`)) === colCount + 1);
+  await js(`(() => { const i = document.querySelector('.col-name-input'); i.value = 'Agent run'; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); })()`);
+  await sleep(300);
+  const C = `.column[data-id="${NEW}"]`;
+
+  // Clear in the new-text editor, with Undo on its toast
+  await clickSel(`${C} .col-add`);
+  await sleep(250);
+  await type('Scrap this');
+  await sleep(150);
+  await clickSel(`${C} .comp-clear`);
+  await sleep(250);
+  const clearedTo = await composerValue();
+  await js(`[...document.querySelectorAll('.toast')].find((t) => t.textContent.includes('Text cleared'))?.querySelector('.toast-action').click()`);
+  await sleep(250);
+  const undoneTo = await composerValue();
+  check('Clear in the new-text editor empties it, and Undo on its toast puts it back', clearedTo === '' && undoneTo === 'Scrap this', JSON.stringify([clearedTo, undoneTo]));
+  await clickSel(`${C} .comp-clear`);
+  await sleep(200);
+  await type('Fix the login bug');
+  key('Enter', [MOD]);
+  await sleep(400);
+  await clickSel(`${C} .col-add`);
+  await sleep(250);
+  await type('Add a test for it');
+  key('Enter', [MOD]);
+  await sleep(400);
+  await js(`[...document.querySelectorAll('${C} .active-list .act-used')].forEach((b) => b.click())`);
+  await sleep(500);
+
+  // Cooked › Format for Claude Code, and back
+  const plainCooked = await augOf(NEW);
+  await js(`document.querySelector('${C} .aug-cc').click()`);
+  await sleep(300);
+  const ccText = await augOf(NEW);
+  await clipboard.writeText('');
+  await clickSel(`${C} .aug-text`);
+  await sleep(400);
+  const ccCopied = await clipboard.readText();
+  check('Cooked › >_ formats the note for Claude Code, and a click copies that', /^Complete the request below/.test(ccText) && ccText.includes('1. Fix the login bug') && ccText.includes('2. Add a test for it') && ccText.includes('<how_to_work>') && ccCopied === ccText && savedProject(NEW).cookedFormat === 'claude-code', JSON.stringify({ plain: plainCooked, cc: ccText.slice(0, 60), copied: ccCopied.slice(0, 40) }));
+  await js(`document.querySelector('${C} .aug-cc').click()`);
+  await sleep(300);
+  check('clicking it again shows the original text', (await augOf(NEW)) === plainCooked && !('cookedFormat' in savedProject(NEW)));
+  await js(`document.querySelector('${C} .aug-cc').click()`);
+  await sleep(300);
+  await js(`document.querySelector('${C} .aug-move').click()`);
+  await sleep(700);
+  const servedCC = savedProject(NEW);
+  check('serving a Claude Code note serves the formatted text, and the next batch starts plain', servedCC.combined.length === 1 && servedCC.combined[0].text === ccText && !servedCC.used.length && !('cookedFormat' in servedCC), JSON.stringify({ served: servedCC.combined.length, used: servedCC.used.length, fmt: servedCC.cookedFormat }));
+
+  // Eating: the Served switch, and the strip at the bottom right of the board
+  check('Served has an Eating switch, off at first, and no strip yet', await js(`(() => { const b = document.querySelector('${C} .eat-btn'); return !b.hidden && b.getAttribute('aria-pressed') === 'false' && document.querySelector('#eating').hidden; })()`));
+  await js(`document.querySelector('${C} .eat-btn').click()`);
+  await sleep(400);
+  const eatNow = await js(`({ pressed: document.querySelector('${C} .eat-btn').getAttribute('aria-pressed'), bar: !document.querySelector('#eating').hidden, chips: [...document.querySelectorAll('#eating .eat-chip')].map((c) => c.dataset.id), name: document.querySelector('#eating .eat-name')?.textContent, dot: getComputedStyle(document.querySelector('${C} .mini-eat')).display })`);
+  check('switching Eating on lists the column at the bottom right, and its header shows a dot', eatNow.pressed === 'true' && eatNow.bar && eatNow.chips.join() === NEW && eatNow.name === 'Agent run' && eatNow.dot === 'block' && Number.isFinite(savedProject(NEW).eating), JSON.stringify(eatNow));
+  const clearOfStrip = await js(`(() => { const top = document.querySelector('#eating').getBoundingClientRect().top; return Math.max(...[...document.querySelectorAll('.column')].map((c) => c.getBoundingClientRect().bottom)) <= top + 1; })()`);
+  check('the Eating strip sits below every column, never over one', clearOfStrip);
+  key('Z', [MOD]); // undo the move to Served: Eating is a state, not an edit, so it stays on
+  await sleep(400);
+  const eatAfterUndo = Number.isFinite(savedProject(NEW).eating);
+  key('Y', [MOD]);
+  await sleep(400);
+  check('undo leaves Eating alone', eatAfterUndo && savedProject(NEW).combined.length === 1);
+  // Done: ✓ on the strip moves the Served text to Eaten, Served empties, Eating ends; Undo puts all three back
+  const savedData = () => JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8'));
+  await js(`document.querySelector('#eating .eat-done').click()`);
+  await sleep(500);
+  const done = { p: savedProject(NEW), eaten: savedData().localEaten || [], strip: await js(`document.querySelector('#eating').hidden`), btn: await js(`!document.querySelector('#open-eaten').hidden && document.querySelector('#open-eaten .eaten-badge').textContent`) };
+  check('✓ Done on the strip moves the served text to Eaten: Served empties, Eating ends, the top bar shows Eaten', !done.p.combined.length && !('eating' in done.p) && done.eaten.length === 1 && done.eaten[0].text === ccText && done.eaten[0].project === NEW && done.strip && done.btn === '1', JSON.stringify({ served: done.p.combined.length, eaten: done.eaten.length, strip: done.strip, btn: done.btn }));
+  key('Z', [MOD]);
+  await sleep(500);
+  const undone = { p: savedProject(NEW), eaten: savedData().localEaten };
+  check('Ctrl+Z after Done puts the served text and Eating back, and takes it out of Eaten', undone.p.combined.length === 1 && Number.isFinite(undone.p.eating) && !undone.eaten, JSON.stringify({ served: undone.p.combined.length, eating: undone.p.eating, eaten: undone.eaten?.length }));
+  // the Served switch while eating offers Done, or stopping with the text kept in Served
+  const menuNow = async () => { await js(`document.querySelector('${C} .eat-btn').click()`); await sleep(250); return texts('.menu .menu-item'); };
+  const eatMenu = await menuNow();
+  await js(`[...document.querySelectorAll('.menu .menu-item')].find((b) => b.textContent.startsWith('Stop eating')).click()`);
+  await sleep(400);
+  check('the Eating switch offers Done, or Stop eating that keeps the text in Served', eatMenu.join('|') === 'Done: move it to Eaten|Stop eating, keep it in Served' && !('eating' in savedProject(NEW)) && savedProject(NEW).combined.length === 1, eatMenu.join('|'));
+  await js(`document.querySelector('${C} .eat-btn').click()`); // on again, then Done from the switch
+  await sleep(300);
+  await menuNow();
+  await js(`[...document.querySelectorAll('.menu .menu-item')].find((b) => b.textContent.startsWith('Done')).click()`);
+  await sleep(500);
+  await clickSel('#open-eaten');
+  await sleep(400);
+  const drawer = await js(`({ open: document.querySelector('#eaten-panel').classList.contains('is-open'), day: document.querySelector('.eaten-day')?.textContent, items: [...document.querySelectorAll('.eaten-item')].map((i) => i.querySelector('.eaten-item-head b').textContent), text: document.querySelector('.eaten-text')?.textContent.slice(0, 30) })`);
+  check('the Eaten drawer lists it under Today, with its column', drawer.open && drawer.day === 'Today' && drawer.items.join() === 'Agent run' && drawer.text === ccText.slice(0, 30), JSON.stringify(drawer));
+  await shot('11c-eaten');
+  await clipboard.writeText('');
+  await js(`document.querySelector('.eaten-item .eaten-copy').click()`);
+  await sleep(300);
+  check('Copy in Eaten copies the round', (await clipboard.readText()) === ccText);
+  await js(`document.querySelector('.eaten-item .eaten-again').click()`);
+  await sleep(500);
+  check('Serve again puts it back into its column’s Served and out of Eaten', savedProject(NEW).combined.length === 1 && savedProject(NEW).combined[0].text === ccText && !savedData().localEaten && await js(`!!document.querySelector('.eaten-empty')`));
+  key('Escape');
+  await sleep(300);
+  check('Esc closes the Eaten drawer', !(await js(`document.querySelector('#eaten-panel').classList.contains('is-open')`)));
+
+  // ⋯ › Minimize column: a slim strip, and a click opens it
+  const minimized = await pickFrom(`${C} .col-menu`, 'Minimize column');
+  const miniBox = await rect(C);
+  check('⋯ › Minimize column folds it to a slim strip (kept on this computer only)', minimized && miniBox.w < 60 && savedProject(NEW).localMinimized === true && await js(`getComputedStyle(document.querySelector('${C} .col-scroll')).display === 'none'`), `${Math.round(miniBox.w)}px`);
+  await clickSel(`${C} .col-head`);
+  await sleep(500);
+  check('a click on the strip opens the column again', (await rect(C)).w > 200 && !('localMinimized' in savedProject(NEW)));
+
+  // groups: ⋯ › New group…, another column joins it, it folds and opens, and undo takes it all back
+  const made = await pickFrom(`${C} .col-menu`, 'New group…');
+  const naming = await js(`!!document.querySelector('.col-group .group-name-input')`);
+  await js(`(() => { const i = document.querySelector('.group-name-input'); if (i) { i.value = 'Important'; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); } })()`);
+  await sleep(300);
+  const joined = await pickFrom('.column[data-id="p2"] .col-menu', 'Move to group “Important”');
+  const grp = await js(`(() => { const g = document.querySelector('.col-group'); return g && { name: g.querySelector('.group-name').textContent, cols: [...g.querySelectorAll('.column')].map((c) => c.dataset.id) }; })()`);
+  check('⋯ › New group puts the column in a named group, and another column can join it', made && naming && joined && grp?.name === 'Important' && grp.cols.join() === `${NEW},p2` && savedProject('p2').group === 'Important', JSON.stringify(grp));
+  await shot('11b-group');
+  await js(`document.querySelector('.col-group .group-toggle').scrollIntoView({ inline: 'nearest' })`);
+  await sleep(300);
+  await clickSel('.col-group .group-toggle');
+  await sleep(500);
+  const foldedGroup = { w: (await rect('.col-group')).w, prefs: prefsNow().foldedGroups, hidden: await js(`document.querySelector('.column[data-id="p2"]').offsetWidth === 0`) };
+  check('clicking the group name folds its columns into a strip (kept on this computer only)', foldedGroup.w < 60 && JSON.stringify(foldedGroup.prefs) === '["Important"]' && foldedGroup.hidden, JSON.stringify(foldedGroup));
+  await clickSel('.col-group .group-strip');
+  await sleep(500);
+  check('a click on the strip opens the group again', !('foldedGroups' in prefsNow()) && await js(`document.querySelector('.column[data-id="p2"]').offsetWidth > 200`));
+  key('Z', [MOD]);
+  await sleep(400);
+  key('Z', [MOD]);
+  await sleep(500);
+  check('Ctrl+Z takes both columns out of the group again, p2 back in its place', !(await js(`!!document.querySelector('.col-group')`)) && !('group' in savedProject('p2')) && (await js(`[...document.querySelectorAll('.column')].map((c) => c.dataset.id).slice(0, 2).join()`)) === 'p1,p2');
+
+  // Soft theme: column headers are a little deeper than the light accent tint (1.18)
+  const softHead = await js(`(() => {
+    document.body.classList.replace('theme-deep', 'theme-soft');
+    const c = document.querySelector('.column[data-id="p1"]');
+    // rgb(…) in 0–255, or color(srgb …) in 0–1 (what color-mix() can compute to): channels summed in 0–765
+    const sum = (v) => { const n = (v.match(/[\\d.]+/g) || []).slice(0, 3).map(Number); return n.reduce((a, b) => a + b, 0) * (v.startsWith('color(') ? 255 : 1); };
+    const r = { head: sum(getComputedStyle(c.querySelector('.col-head')).backgroundColor) };
+    const probe = document.createElement('div');
+    probe.style.background = 'var(--accent-tint)';
+    c.appendChild(probe);
+    r.tint = sum(getComputedStyle(probe).backgroundColor);
+    probe.remove();
+    document.body.classList.replace('theme-soft', 'theme-deep');
+    return r;
+  })()`);
+  check('Soft theme: column headers are deeper than the light accent tint', softHead.head > 0 && softHead.head < softHead.tint - 30, JSON.stringify(softHead));
+  await pickFrom(`${C} .col-menu`, 'Delete project');
+  await js('document.querySelector("#board").scrollLeft = 0'); // the checks after this one aim at the first columns
+  await sleep(300);
 
   await shot('11-final-board');
 

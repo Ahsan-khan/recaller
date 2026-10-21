@@ -346,7 +346,7 @@ One IIFE. After the top constants comes a short `// ---- macOS (1.16 Mac edition
 17. global keys
 18. boot
 
-Since 1.17 a `// ---- sync (1.17)` block sits at the end of section 17, just before boot: `SESSION`, `saveSeq`, `contentSeq`, `pendingLabels`, `syncBusy()`, `tryApplyPatch()`, `noticeText()` (the sync toasts), the "Other version" tag's tooltip, `window.RecallerUI`, and the `api.sync.onPatch` handler. `init()` ends with `api.sync?.ready({ session })`.
+Since 1.18, right after `render()`, come `// ---- column groups (1.18)` (`boardLayout()`, the group views and menu, `setGroup()`, `renameGroup()`, `moveGroup()`), `// ---- Eating (1.18)` (`setEating()`, `paintEating()`, `revealColumn()`), the minimize helpers (`unhide()`, `setMinimized()`) and the Claude Code format (`setClaudeCode()`, `settleCooked()`); `claudeCodeText()` and `CC_GUIDE` sit with the top constants, and `cookedText()` (what Cooked shows and copies) next to `augmentedText()`. `render()` draws `boardLayout()`: a lone column goes straight on the board, a group's columns go inside its `.col-group > .group-cols`. Since 1.17 a `// ---- sync (1.17)` block sits at the end of section 17, just before boot: `SESSION`, `saveSeq`, `contentSeq`, `pendingLabels`, `syncBusy()`, `tryApplyPatch()`, `noticeText()` (the sync toasts), the "Other version" tag's tooltip, `window.RecallerUI`, and the `api.sync.onPatch` handler. `init()` ends with `api.sync?.ready({ session })`.
 
 - **State:**
   - `data` is the persisted document (see `03`).

@@ -150,7 +150,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **Counts:** Windows 12 + 21 + 134 (unchanged). Mac 12 + 21 + 139 (134 − 3 skipped + 8 Mac checks). Seventh session, on source on the Mac: 12/12, 21/21 (synthetic) and 139/139, all 8 Mac checks passing.
 - **Windows after the Mac edition:** the Windows side was not run in the seventh session (the Mac can't run the Windows app). That Windows behaves exactly as 1.16.0 rests on every Mac difference being fenced (`07` #65) and a hunk-by-hunk review, plus a plain-Node run of `main.js` against a mocked Electron with the platform set to `win32`, whose log of Electron calls matched 1.16's apart from stack-trace line numbers (run before the last reviewer fixes, which are all Mac-only). The first real check is `npm test` on the PC: 12 + 21 + 134.
 
-### `features.e2e.js` (134 checks on Windows, about 4 minutes; 139 on a Mac)
+### `features.e2e.js` (158 checks on Windows since 1.18, 134 before; 163 on a Mac, 139 before; about 4 minutes)
 
 **Setup:**
 - **Seed data:** seven projects in the old v1 format, which also exercises loading old data.
@@ -240,6 +240,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **Settings:** the Compact density narrows columns; the Soft theme can be picked and is saved.
 - **Column widths:** the ↔ button starts disabled; dragging two column edges resizes them (+90px, −40px) and saves `prefs.colWidths`; the button enables; it resets every column and removes the key; Undo on its toast restores; double-clicking an edge resets one column.
 - **Columns:** reorder, then undo.
+- **1.18** (24 checks, on a column made with the top-bar +, deleted again afterwards; the board is scrolled back to the start for the checks after it): the top-bar + (the old "no + Project button" check expects it now); New text; Listening… while recording; Clear and its Undo; the Claude Code format, its copy and back; serving it as one formatted note; Eating on, its strip and dot, the strip clear of every column, undo leaving Eating alone; Done moving the round to Eaten and its undo; the Eating menu (Done, or Stop eating); the Eaten drawer (Today, Copy, Serve again, Esc); minimize and open; a group made, joined, folded, opened and undone; the Soft header deeper than `--accent-tint`.
 - **Mac only** (8 checks, seventh session; they run just before the snip, and each puts back what it changes):
   - the logo clears the traffic lights and is centred on them (`getWindowButtonPosition()` is {x: 16, y: 16}; `.brand` starts at x ≥ 16 + 54 + 8 and its centre is within 3px of y 24);
   - key names use ⌘: the search box reads ⌘K, every Help key uses ⌘ (F1 reads ?), the Settings button's title has ⌘, and the Undo title has ⌘Z;
@@ -360,8 +361,8 @@ Run these from the repo root after `npm run dist:mac`. They only read (the mount
 Nothing here talks to the real Google Cloud except the two owner-run `rules:*` scripts and the manual two-computer check. The unit and rules counts are as of the storage-overwrite fix (2026-10-01, `15` section 0, item 34), the e2e counts as of the final gates the same morning; confirm them before quoting.
 
 **Expected totals for `npm test` with 1.17:**
-- Mac: unit tests (714), then 12 + 21 + 139, then the same 12 + 21 + 139 with accounts on (`test:accounts-on`, no request), then 43.
-- PC: unit tests (714), then 12 + 21 + 134, then the same 12 + 21 + 134 with accounts on, then 43. Never run on the PC yet.
+- Mac: unit tests (714), then 12 + 21 + 163, then the same 12 + 21 + 163 with accounts on (`test:accounts-on`, no request), then 43.
+- PC: unit tests (714), then 12 + 21 + 158, then the same 12 + 21 + 158 with accounts on, then 43. Never run on the PC yet.
 
 ### Unit tests (`tests/unit/`, `npm run test:unit`)
 
@@ -441,7 +442,7 @@ After the deploy and a build: two source runs with their own data folders (`RECA
 1. Work on `masos` until the owner decides otherwise. Keep every Mac difference fenced (`IS_MAC`, `body.is-mac`, the `mac` / `dmg` build sections) so that Windows stays exactly as it is (`07` #65).
 2. Run `node --check` on every edited JavaScript file.
 3. Look at it: `SCALE=2 npm run capture` shows what the Retina screen shows (not run on the Mac yet); view the PNGs.
-4. Run the suites on source: 12 + 21 + 139, with one `SKIP` line. Put checks for Mac-only behaviour inside the `if (IS_MAC)` block of `features.e2e.js`.
+4. Run the suites on source: 12 + 21 + 163, with one `SKIP` line. Put checks for Mac-only behaviour inside the `if (IS_MAC)` block of `features.e2e.js`.
 5. If the version changes, bump it as its own step and confirm it (Windows step 5). The Mac edition of 1.16.0 kept 1.16.0 so that the two downloads match.
 6. Update `README.md` and the affected `ai_memory` files (Windows step 6).
 7. Run `npm run icon:mac` only if the icon changed. It rewrites `build/icon-mac.png`. It checks the capture before any scaling: if it is empty, not square or smaller than 1024px, the script prints "icon:mac: no usable capture", exits with code 1 and writes nothing. A Retina 2048px capture is then scaled down to exactly 1024px.

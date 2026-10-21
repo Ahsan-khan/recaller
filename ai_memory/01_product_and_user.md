@@ -214,6 +214,13 @@ Ninth session (2026-10-06, on the PC, branch `masos`). 1.17.0 had been committed
     - "okay merge masos to main": PR #2 merged `masos` into `main` (`9d30f1f`). The suites hadn't run on the PC first.
     - "yes" (to updating the changelog for the release): this folder and the README were brought up to date.
 
+Tenth session (2026-10-20, on a freshly set-up Mac, branch `v1.18`):
+
+26. **"read everthing in ai_memory learn every file", then Round 20 → v1.18.0.** (The owner's words are in `10`, messages 63 to 65.)
+    - The request: an **Eating** switch for a Served prompt an agent is running, with an indicator at the board's bottom right that can turn it off; a clear button in the new-prompt editor; deeper column headers in the Soft theme; turning the Cooked prompt into Claude Code input and back, off by default; minimizing and grouping columns ("important"); "New prompt" → "New text"; text while speaking; a + in the top bar for a new column; and a new branch.
+    - Three questions were asked first: the Claude Code format (**"No AI, a fixed template"**), when Eating switches (**"Toggle by hand only"**) and how groups look (**"Named groups on the board"**).
+    - What was built: all of it, on the new branch `v1.18`. See `04` §27 and `08` (1.18.0).
+
 ## Things the owner has not decided or confirmed
 
 - **Separator:** whether they want a blank line or a single new line between joined notes. The default stays blank line; the setting exists.
@@ -232,4 +239,5 @@ Ninth session (2026-10-06, on the PC, branch `masos`). 1.17.0 had been committed
 - **The Mac look (seventh session):** the owner first opened the Mac edition at the very end of the session, and their verdict isn't recorded. Whether it looks right on the Retina screen: 1.5px borders draw at full weight at 2×, so the arrow ring and the composer ring look slightly heavier than on the 1× PC, and the frame edge reads stronger.
 - **Developer ID signing for the Mac:** "Just me for now" meant ad-hoc signing. Whether they will want a Developer ID ($99 a year) and notarization to share the Mac app. It would also stop macOS asking for the microphone, Screen Recording and keychain permissions again after each update.
 - **Intel Macs:** whether a universal build is needed. The dmg is for Apple Silicon only.
+- **1.18 (tenth session):** whether the fixed Claude Code template says the right things (its "how to work" lines include "don't commit, push or delete anything unless the request asks for it"); whether Eating should also show elsewhere (the Mac's Dock badge, the window title); whether groups should be dragged as a whole, or columns dragged into and out of them; and whether text now shows soon enough while talking.
 - **Moving data to the Mac:** whether to bring the PC's notes over (copy `recaller-data.json` and `images/` only; the saved API key can't move) or keep a separate board on each computer.
