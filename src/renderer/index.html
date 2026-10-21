@@ -56,6 +56,9 @@
       <kbd data-mac="⌘K">Ctrl K</kbd>
     </label>
     <div class="topbar-actions">
+      <button class="icon-btn" id="new-column" title="New project (Ctrl+Shift+N)" data-mac-title="New project (⇧⌘N)" aria-label="New project">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+      </button>
       <div class="history">
         <button class="icon-btn" id="undo" disabled aria-label="Undo">
           <svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>
@@ -66,6 +69,9 @@
       </div>
       <button class="icon-btn" id="reset-widths" disabled aria-label="Reset column widths">
         <svg class="icon" viewBox="0 0 24 24"><path d="M4 5v14M20 5v14M8 12h8" /><path d="m11 9-3 3 3 3M13 9l3 3-3 3" /></svg>
+      </button>
+      <button class="icon-btn eaten-btn" id="open-eaten" hidden aria-label="Eaten: finished prompts">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M5 3v6a2.5 2.5 0 0 0 5 0V3M7.5 3v18" /><path d="M19 15V3a4.5 4.5 0 0 0-4.5 4.5V13a2 2 0 0 0 2 2H19Zm0 0v6" /></svg><span class="eaten-badge"></span>
       </button>
       <button class="icon-btn sync-btn" id="sync-status" hidden aria-label="Sync"></button>
       <button class="icon-btn" id="open-help" title="How Recaller works (F1)" data-mac-title="How Recaller works (?)" aria-label="Help">
@@ -89,7 +95,31 @@
     <button class="pan-btn pan-right" id="pan-right" hidden aria-label="Scroll right" title="Scroll right">
       <svg class="icon" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" /></svg>
     </button>
+    <!-- 1.18: every column whose Served text an agent is running ("Eating") -->
+    <div class="eating" id="eating" hidden aria-live="polite">
+      <span class="eating-label"><span class="eat-pulse"></span>Eating</span>
+      <span class="eating-list" id="eating-list"></span>
+    </div>
   </div>
+
+  <!-- 1.18: Eaten, the rounds an agent finished (Done on an Eating column moves its Served text here) -->
+  <aside class="eaten-panel" id="eaten-panel" aria-hidden="true" aria-label="Eaten">
+    <header class="eaten-head">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M5 3v6a2.5 2.5 0 0 0 5 0V3M7.5 3v18" /><path d="M19 15V3a4.5 4.5 0 0 0-4.5 4.5V13a2 2 0 0 0 2 2H19Zm0 0v6" /></svg>
+      <h2>Eaten</h2><span class="eaten-total" id="eaten-total"></span>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="eaten-close" title="Close (Esc)" aria-label="Close">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      </button>
+    </header>
+    <label class="eaten-search">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
+      <input id="eaten-search" type="search" placeholder="Search what's been eaten" spellcheck="false" autocomplete="off" />
+    </label>
+    <div class="eaten-filters" id="eaten-filters" hidden></div>
+    <div class="eaten-list" id="eaten-list"></div>
+    <p class="eaten-foot">Kept on this computer, newest first (the latest 300).</p>
+  </aside>
 
   <div class="selection-bar" id="selection-bar" hidden>
     <span class="sel-count" id="sel-count"></span>
@@ -119,7 +149,7 @@
 
       <p class="help-lead">Each project is a column. Inside it, prompts move down through three stages: cooking, cooked, served.</p>
       <ol class="help-stages">
-        <li><span class="hs-dot hs-prompts"></span><div><b>Cooking</b><span>New prompts: type one (New prompt) or speak one (Dictate). Click any card to copy it.</span></div></li>
+        <li><span class="hs-dot hs-prompts"></span><div><b>Cooking</b><span>New prompts: type one (New text) or speak one (Dictate). Click any card to copy it.</span></div></li>
         <li><span class="hs-dot hs-combined"></span><div><b>Cooked</b><span>Hover a prompt and click <b>↓ Cooked</b> (or drag it down) and they join into one note.</span></div></li>
         <li><span class="hs-dot hs-final"></span><div><b>Served</b><span>Move the Cooked note down (button, swipe left or drag) and it's added to the end of the final text.</span></div></li>
       </ol>
@@ -130,6 +160,9 @@
         <li><b>Delete:</b> hold a card and swipe it left. In Cooked or Served, open <b>Notes</b> and click the trash on one note, or right-click the text and use the editor's trash to delete all of it. <kbd data-mac="⌘Z">Ctrl Z</kbd> undoes anything.</li>
         <li><b>Edit anything:</b> right-click a prompt, the Cooked note or the Served text (Cooked and Served also have a pencil). In <b>Notes</b>, right-click one part to edit just that part, or reorder, send back or delete it.</li>
         <li><b>Fold a stage away:</b> click its name (Cooking, Cooked or Served).</li>
+        <li><b>Eating, then Eaten:</b> once you've handed the Served text to an agent, switch on <b>Eating</b> in Served. The board's bottom right shows every column that's eating. When the agent is done, click ✓ there (or <b>Eating › Done</b>): the prompt moves to <b>Eaten</b> (the fork and knife in the top bar) and Served is ready for the next batch. Eaten keeps every finished prompt by day, to copy, search or serve again.</li>
+        <li><b>Claude Code:</b> the <b>&gt;_</b> button under the Cooked note wraps its prompts in a Claude Code task (request, how to work, what to report). Click it again for the original. Moving it to Served serves the formatted text.</li>
+        <li><b>Tidy the board:</b> a column's <b>⋯</b> menu can minimize it to a slim strip (click the strip to open it), or put it in a group such as “Important”. Click a group's name to fold all its columns away.</li>
         <li><b>Highlight a prompt</b> to check it again later: hover, then click the marker.</li>
         <li><b>Resize a column:</b> drag its right edge. The <b>↔</b> button in the top bar resets every width.</li>
         <li><b>Screenshots:</b> the camera in the editor, or paste an image. They follow the prompt into Cooked and Served, shown under the text: click the text, paste, then click the picture and paste again.</li>
@@ -139,7 +172,7 @@
       <h3 class="modal-section">Shortcuts</h3>
       <div class="help-keys">
         <kbd data-mac="⌘K">Ctrl K</kbd><span>Search (Enter copies the top match)</span>
-        <kbd data-mac="⌘N">Ctrl N</kbd><span>New prompt</span>
+        <kbd data-mac="⌘N">Ctrl N</kbd><span>New text</span>
         <kbd data-mac="⌘M">Ctrl M</kbd><span>Dictate</span>
         <kbd data-mac="⌘↩">Ctrl Enter</kbd><span>Save</span>
         <kbd data-mac="⇧⌘S">Ctrl Shift S</kbd><span>Screenshot into a prompt</span>

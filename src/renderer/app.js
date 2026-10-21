@@ -72,6 +72,52 @@
   const joiner = () => (data.prefs.joiner === 'line' ? '\n' : '\n\n');
   const IMAGE_ID = /^[a-f0-9]{32}$/;
 
+  // 1.18. Column groups: a project's `group` is the name of the group it sits in (synced, like the
+  // name). Members are drawn together where the first one is; folded groups are per computer
+  // (prefs.foldedGroups). `localMinimized` folds one column to a slim strip (per computer: keys
+  // starting with "local" never sync). `eating` is when "Eating" was switched on: an agent is
+  // running that column's Served text.
+  const groupOf = (p) => (typeof p.group === 'string' && p.group.trim() ? p.group.trim() : '');
+  const foldedGroups = () => (Array.isArray(data.prefs.foldedGroups) ? data.prefs.foldedGroups.filter((g) => typeof g === 'string') : []);
+  const isEating = (p) => Number.isFinite(p.eating) && p.eating > 0;
+
+  // Eaten (1.18): the rounds an agent finished. Done on an eating column moves its Served text here, newest
+  // first: { id, project, name, color, text, images, parts, startedAt, doneAt }. Kept on this computer only
+  // (a top-level "local" key never syncs), in the local backups, and undoable with the board.
+  const EATEN_MAX = 300;
+  const eatenList = () => (Array.isArray(data.localEaten)
+    ? data.localEaten.filter((r) => r && typeof r === 'object' && typeof r.id === 'string' && typeof r.text === 'string')
+    : []);
+  function setEatenList(list) {
+    if (list?.length) data.localEaten = list.slice(0, EATEN_MAX);
+    else delete data.localEaten;
+  }
+
+  // The Cooked note as a Claude Code prompt (1.18, a fixed template: no AI involved). Only while the
+  // column's `cookedFormat` is 'claude-code'; moving it to Served serves the formatted text.
+  const CC_GUIDE = [
+    '<how_to_work>',
+    '- Read the relevant files first, and follow the existing code style and conventions.',
+    '- If something is ambiguous, choose the most sensible reading, say which one, and carry on.',
+    '- Keep the change focused on the request; leave unrelated code alone.',
+    '- Check your work: run the tests or the app, and say what you verified.',
+    "- Don't commit, push or delete anything unless the request asks for it.",
+    '</how_to_work>',
+    '',
+    '<when_done>',
+    'Reply with a short summary: one line per request item, what changed, and anything left open.',
+    '</when_done>',
+  ].join('\n');
+
+  function claudeCodeText(parts) {
+    const items = parts.map((t) => t.trim()).filter(Boolean);
+    if (!items.length) return '';
+    const body = items.length === 1
+      ? items[0]
+      : items.map((t, i) => `${i + 1}. ${t.replace(/\n/g, '\n   ')}`).join('\n\n');
+    return `Complete the request below in this codebase.\n\n<request>\n${body}\n</request>\n\n${CC_GUIDE}`;
+  }
+
   // ---- macOS (1.16 Mac edition). These only change anything when IS_MAC is true.
 
   // A Windows key label as a Mac writes it: 'Ctrl+Shift+S' → '⇧⌘S', 'Ctrl+Enter' → '⌘↩'.
@@ -263,7 +309,7 @@
       `Click a note to copy it, then paste anywhere with ${kb('Ctrl+V')}.`,
       `Swipe a note to the left (hold the mouse button and drag) to delete it. ${kb('Ctrl+Z')} brings it back.`,
       'Press and hold a note, then drag it down into “Cooked”. Drop it on another project to move it.',
-      'Click Dictate next to New prompt to speak a prompt — text appears as you talk. Add your OpenAI key in Settings first.',
+      'Click Dictate next to New text to speak a prompt — text appears as you talk. Add your OpenAI key in Settings first.',
       'Tap the camera in the editor to snip part of your screen into a note. Click an image on a card to copy it.',
       `Hold ${IS_MAC ? '⌘' : 'Ctrl'} and click several notes to copy them all at once, with a blank line between each.`,
       'New prompts start in “Cooking”. Move them down into “Cooked” and they join into one note. Move that note down into “Served” (swipe it left, drag it, or click Move to Served) and it is added to the final text. Click either one to copy it; the pencil edits it.',
@@ -325,6 +371,7 @@
       for (const n of p.notes.concat(p.used, p.combined)) n.images.forEach((i) => ids.push(i.id));
       p.draftImages.forEach((i) => ids.push(i.id));
     }
+    for (const round of eatenList()) for (const i of cleanImages(round.images)) ids.push(i.id);
     return ids;
   }
 
@@ -336,10 +383,12 @@
   const history = { undo: [], redo: [] };
   const snapshot = () => JSON.stringify(data.projects);
 
-  function pushHistory(label, snap) {
+  // Each entry also holds the Eaten list as it was (1.18): its rounds are never changed in place,
+  // so a copy of the array is enough, and Done / Serve again undo together with the board.
+  function pushHistory(label, snap, eaten = eatenList()) {
     contentSeq++; // every checkpointed edit, dragEnd's included: a sync patch from before it is stale
     pendingLabels.push(label);
-    history.undo.push({ label, snap });
+    history.undo.push({ label, snap, eaten });
     if (history.undo.length > HISTORY_LIMIT) history.undo.shift();
     history.redo.length = 0;
     dismissHistoryToasts();
@@ -348,7 +397,8 @@
 
   const checkpoint = (label) => pushHistory(label, snapshot());
 
-  function applySnapshot(snap) {
+  // `restore` names carried-over keys the snapshot should rewind after all (Done puts Eating back on).
+  function applySnapshot(snap, restore = []) {
     const next = normalize({ projects: JSON.parse(snap) });
     const liveProjects = new Map(data.projects.map((p) => [p.id, p]));
     const liveNotes = new Map();
@@ -364,6 +414,12 @@
         p.augCollapsed = live.augCollapsed;
         p.augExpanded = live.augExpanded;
         p.usedExpanded = live.usedExpanded;
+        // Eating and a minimized column are states, not edits: undo leaves them as they are.
+        for (const k of ['eating', 'localMinimized']) {
+          if (restore.includes(k)) continue;
+          if (live[k] !== undefined) p[k] = live[k];
+          else delete p[k];
+        }
       }
       for (const n of p.notes.concat(p.used, p.combined)) {
         nextNoteIds.add(n.id);
@@ -392,10 +448,11 @@
     }
     if (ui.editing) stopEditing();
     closeStageEditors();
-    history.redo.push({ label: entry.label, snap: snapshot() });
+    history.redo.push({ label: entry.label, snap: snapshot(), eaten: eatenList(), restore: entry.restore });
     contentSeq++;
     pendingLabels.push('Undo');
-    applySnapshot(entry.snap);
+    setEatenList(entry.eaten);
+    applySnapshot(entry.snap, entry.restore);
     paintHistory();
     dismissHistoryToasts();
     toast(`Undone: ${entry.label}`, { action: 'Redo', onAction: redo, history: true });
@@ -406,10 +463,11 @@
     if (!entry) return;
     if (ui.editing) stopEditing();
     closeStageEditors();
-    history.undo.push({ label: entry.label, snap: snapshot() });
+    history.undo.push({ label: entry.label, snap: snapshot(), eaten: eatenList(), restore: entry.restore });
     contentSeq++;
     pendingLabels.push('Redo');
-    applySnapshot(entry.snap);
+    setEatenList(entry.eaten);
+    applySnapshot(entry.snap, entry.restore);
     paintHistory();
     dismissHistoryToasts();
     toast(`Redone: ${entry.label}`, { action: 'Undo', onAction: undo, history: true });
@@ -479,6 +537,8 @@
 
   const addColumnEl = el('button', 'add-column', `${I.plus}<span>New project</span>`);
   addColumnEl.addEventListener('click', () => createProject());
+  // 1.18: the same from the top bar, so a new column doesn't need a scroll to the end of the board.
+  $('#new-column').addEventListener('click', () => createProject());
 
   const emptyEl = el('div', 'empty-board', `
     <svg><use href="#monstera"/></svg>
@@ -494,13 +554,14 @@
       <header class="col-head">
         <svg class="col-leaf"><use href="#monstera"/></svg>
         <h2 class="col-name"></h2>
+        <span class="col-mini" aria-hidden="true"><span class="mini-eat"></span><span class="mini-count"></span></span>
         <button class="head-btn col-menu" title="Project options" aria-label="Project options">${I.more}</button>
       </header>
       <div class="cook-headrow">
         <button class="cook-head" title="Cooking: prompts you're still working on"><span class="chev">${I.chevron}</span>${I.flame}<span>Cooking</span><span class="cook-count"></span></button>
       </div>
       <div class="col-new">
-        <button class="new-prompt col-add"><span class="np-icon">${I.plus}</span><span class="np-label"><span class="lbl-long">New prompt</span><span class="lbl-short">New</span><span class="lbl-draft">Draft</span></span></button>
+        <button class="new-prompt col-add"><span class="np-icon">${I.plus}</span><span class="np-label"><span class="lbl-long">New text</span><span class="lbl-short">New</span><span class="lbl-draft">Draft</span></span></button>
         <button class="new-prompt new-voice col-mic" title="Dictate a new prompt (${kb('Ctrl+M')})" aria-label="Dictate a new prompt"><span class="np-icon">${I.mic}</span><span class="np-label">Dictate</span></button>
       </div>
       <div class="col-compose"></div>
@@ -517,7 +578,7 @@
               <div class="aug-text"></div>
               <button class="aug-more stage-more" hidden></button>
               <div class="aug-images stage-images" hidden></div>
-              <div class="aug-foot"><span class="aug-stats"></span><span class="spacer"></span><button class="aug-parts-btn">Notes</button><button class="aug-edit" title="Edit the cooked note" aria-label="Edit the cooked note">${I.edit}</button></div>
+              <div class="aug-foot"><span class="aug-stats"></span><span class="spacer"></span><button class="aug-parts-btn">Notes</button><button class="aug-cc" aria-pressed="false">${I.terminal}</button><button class="aug-edit" title="Edit the cooked note" aria-label="Edit the cooked note">${I.edit}</button></div>
               <div class="aug-parts" hidden></div>
             </div>
           </div>
@@ -527,6 +588,7 @@
         <section class="final" hidden>
           <div class="final-head">
             <button class="final-toggle" title="Served: the final text, every note added from Cooked, joined"><span class="chev">${I.chevron}</span>${I.used}<span>Served</span></button>
+            <button class="eat-btn" aria-pressed="false"><span class="eat-dot"></span>${I.utensils}<span class="eat-label">Eating</span></button>
           </div>
           <div class="final-body">
             <div class="final-text" title="Click to copy it all"></div>
@@ -565,6 +627,10 @@
       augParts: $('.aug-parts', root),
       augPartsBtn: $('.aug-parts-btn', root),
       augMoveBtn: $('.aug-move', root),
+      augCcBtn: $('.aug-cc', root),
+      eatBtn: $('.eat-btn', root),
+      eatLabel: $('.eat-label', root),
+      miniCount: $('.mini-count', root),
       augSig: null,
       // Cooked and Served always start at their fixed size; "Show more" opens them up
       // for the session only. (Older versions saved that as usedExpanded / augExpanded;
@@ -763,6 +829,11 @@
 
   function updateColumn(col, project, query, seen) {
     col.root.style.setProperty('--accent', colorOf(project));
+    const minimized = Boolean(project.localMinimized);
+    col.root.classList.toggle('is-minimized', minimized);
+    col.root.classList.toggle('is-eating', isEating(project));
+    col.miniCount.textContent = String(project.notes.length + project.used.length);
+    col.head.title = minimized ? `${project.name} · click to open the column` : '';
     if (resizing !== col) {
       const w = colWidth(project.id);
       const width = w ? `${w}px` : '';
@@ -780,7 +851,7 @@
     // Cooking can be collapsed like the other stages (a search always shows the matches).
     col.root.classList.toggle('cooking-collapsed', Boolean(project.notesCollapsed) && !searching);
     col.usedCount.textContent = project.used.length ? `· ${project.used.length}` : '';
-    col.emptyText.textContent = searching ? 'No matches' : 'Nothing cooking yet. Click New prompt or Dictate.';
+    col.emptyText.textContent = searching ? 'No matches' : 'Nothing cooking yet. Click New text or Dictate.';
     col.usedSection.classList.toggle('is-collapsed', project.usedCollapsed);
 
     // The composer survives re-renders; it's only created/destroyed here.
@@ -791,6 +862,7 @@
         images: project.draftImages,
         placeholder: 'Type a prompt, tap the mic, or paste a screenshot…',
         closeLabel: 'Close',
+        allowClear: true,
         onDraft: (text, images) => {
           const p = findProject(col.id);
           if (!p) return;
@@ -812,17 +884,22 @@
     }
     const hasDraft = Boolean(project.draft.trim() || project.draftImages.length);
     col.addBtn.classList.toggle('has-draft', hasDraft && !composing);
-    col.addBtn.title = hasDraft ? `Resume draft (${kb('Ctrl+N')})` : `New prompt (${kb('Ctrl+N')})`;
+    col.addBtn.title = hasDraft ? `Resume draft (${kb('Ctrl+N')})` : `New text (${kb('Ctrl+N')})`;
     col.newRow.hidden = composing;
 
     syncList(col.activeList, active, project, query, seen);
 
     // Cooked (data `used`): the prompts moved here, joined into one note in the order they were added.
     // A search also highlights matches here, and opens the text up if it matches.
-    const augText = augmentedText(project);
+    const augText = cookedText(project);
     const nAug = project.used.length;
     const augEditing = col.stageEditor?.list === 'used';
+    const cc = isClaudeCode(project);
     col.usedSection.classList.toggle('is-empty', !nAug);
+    col.usedSection.classList.toggle('is-cc', cc);
+    col.augCcBtn.hidden = !augmentedText(project);
+    col.augCcBtn.setAttribute('aria-pressed', String(cc));
+    col.augCcBtn.title = cc ? 'Formatted for Claude Code · click for the original text' : 'Format for Claude Code (a task structure around your prompts; click again for the original)';
     col.usedSection.classList.toggle('is-expanded', col.augExpanded || hitsAll(augText, query));
     col.usedSection.classList.toggle('is-editing', augEditing);
     col.augMoveBtn.hidden = !nAug || augEditing;
@@ -833,7 +910,7 @@
       col.augText.innerHTML = highlight(augText, query);
       renderStageImages(col.augImages, augImages);
       const words = augText.trim() ? augText.trim().split(/\s+/).length : 0;
-      col.augStats.textContent = `${nAug} prompt${nAug === 1 ? '' : 's'} · ${words.toLocaleString()} words`;
+      col.augStats.textContent = cc ? 'Claude Code' : `${nAug} prompt${nAug === 1 ? '' : 's'} · ${words.toLocaleString()} words`;
       col.augParts.hidden = !col.augPartsOpen;
       col.augPartsBtn.setAttribute('aria-pressed', String(col.augPartsOpen));
       col.augPartsBtn.title = col.augPartsOpen ? 'Hide the separate notes' : 'Show the separate notes: reorder, edit, send back or delete one';
@@ -848,6 +925,14 @@
     col.finalSection.classList.toggle('is-expanded', col.finalExpanded || hitsAll(combined, query));
     col.finalSection.classList.toggle('is-empty', !project.combined.length);
     col.finalSection.classList.toggle('is-editing', col.stageEditor?.list === 'combined');
+    // Eating: shown once something is served, or while it is on.
+    const eating = isEating(project);
+    col.eatBtn.hidden = !(project.combined.length || eating);
+    col.eatBtn.setAttribute('aria-pressed', String(eating));
+    col.eatLabel.textContent = eating ? `Eating · ${eatFor(project.eating)}` : 'Eating';
+    col.eatBtn.title = eating
+      ? 'An agent is running this served prompt · click when it is done'
+      : 'Mark as Eating: an agent is running this served prompt';
     const finalImages = stageImages(project.combined);
     const sig = `${combined}\u0001${project.combined.map((n) => n.id).join(',')}\u0001${finalImages.map((i) => i.id).join(',')}\u0001${col.partsOpen}\u0001${query.key}`;
     if (col.finalSig !== sig) {
@@ -867,6 +952,18 @@
 
   const augmentedText = (project) => project.used.map((n) => n.text).filter((t) => t.trim()).join(joiner());
   const finalText = (project) => project.combined.map((n) => n.text).filter((t) => t.trim()).join(joiner());
+  const isClaudeCode = (project) => project.cookedFormat === 'claude-code' && project.used.length > 0;
+  // What the Cooked note shows and copies: its prompts as they are, or formatted for Claude Code.
+  const cookedText = (project) => (isClaudeCode(project) ? claudeCodeText(project.used.map((n) => n.text)) : augmentedText(project));
+
+  // "now", "7m", "1h 4m": how long something has been going (or went on for)
+  function spanText(ms) {
+    const m = Math.floor(Math.max(0, ms) / 60000);
+    if (m < 1) return 'now';
+    if (m < 60) return `${m}m`;
+    return `${Math.floor(m / 60)}h ${m % 60}m`;
+  }
+  const eatFor = (since) => spanText(Date.now() - since);
 
   function render() {
     if (dragActive) return;
@@ -880,14 +977,33 @@
     const query = parseQuery(ui.search);
     const seen = new Set();
     const nodes = [];
-    for (const project of data.projects) {
+    const columnNode = (project) => {
       let col = columns.get(project.id);
       if (!col) {
         col = createColumn(project);
         columns.set(project.id, col);
       }
       updateColumn(col, project, query, seen);
-      nodes.push(col.root);
+      return col.root;
+    };
+    const folded = new Set(foldedGroups());
+    const liveGroups = new Set();
+    for (const unit of boardLayout()) {
+      if (!unit.group) {
+        nodes.push(columnNode(findProject(unit.ids[0])));
+        continue;
+      }
+      const members = unit.ids.map(findProject);
+      const view = groupView(unit.group);
+      liveGroups.add(unit.group);
+      updateGroup(view, unit.group, members, folded.has(unit.group));
+      syncChildren(view.cols, members.map(columnNode));
+      nodes.push(view.root);
+    }
+    for (const [name, view] of groups) {
+      if (liveGroups.has(name) || view.renaming) continue;
+      view.root.remove();
+      groups.delete(name);
     }
     for (const [id, col] of columns) {
       if (findProject(id)) continue;
@@ -909,6 +1025,488 @@
     updatePan();
     paintSelection();
     paintWidthReset();
+    paintEating();
+    paintEaten();
+  }
+
+  // ---- column groups (1.18)
+
+  const groups = new Map(); // group name -> group view
+
+  // The board in drawing order: single columns, and groups holding their members in board order.
+  // A group stands where its first member is.
+  function boardLayout() {
+    const units = [];
+    const byGroup = new Map();
+    for (const p of data.projects) {
+      const g = groupOf(p);
+      if (!g) units.push({ group: null, ids: [p.id] });
+      else if (byGroup.has(g)) byGroup.get(g).ids.push(p.id);
+      else {
+        const unit = { group: g, ids: [p.id] };
+        byGroup.set(g, unit);
+        units.push(unit);
+      }
+    }
+    return units;
+  }
+
+  const groupNames = () => boardLayout().filter((u) => u.group).map((u) => u.group);
+
+  function groupView(name) {
+    let view = groups.get(name);
+    if (view) return view;
+    const root = el('section', 'col-group');
+    root.innerHTML = `
+      <header class="group-head">
+        <button class="group-toggle" title="Fold the group away, or open it"><span class="chev">${I.chevron}</span><span class="group-name"></span><span class="group-count"></span></button>
+        <button class="head-btn group-menu" title="Group options" aria-label="Group options">${I.more}</button>
+      </header>
+      <div class="group-strip" title="Open the group"><span class="strip-name"></span><span class="strip-dots"></span></div>
+      <div class="group-cols"></div>`;
+    view = {
+      root,
+      toggle: $('.group-toggle', root),
+      nameEl: $('.group-name', root),
+      countEl: $('.group-count', root),
+      stripName: $('.strip-name', root),
+      stripDots: $('.strip-dots', root),
+      cols: $('.group-cols', root),
+      renaming: false,
+    };
+    groups.set(name, view);
+    return view;
+  }
+
+  function updateGroup(view, name, members, isFolded) {
+    view.name = name;
+    view.root.dataset.group = name;
+    view.root.classList.toggle('is-folded', isFolded);
+    if (!view.renaming) view.nameEl.textContent = name;
+    view.stripName.textContent = name;
+    view.countEl.textContent = `· ${members.length}`;
+    const dots = members.map((p) => `<svg style="color:${colorOf(p)}"><use href="#monstera"/></svg>`).join('');
+    if (view.stripDots.innerHTML !== dots) view.stripDots.innerHTML = dots;
+  }
+
+  function setGroupFolded(name, fold) {
+    const list = foldedGroups().filter((g) => g !== name);
+    if (fold) list.push(name);
+    if (list.length) data.prefs.foldedGroups = list;
+    else delete data.prefs.foldedGroups;
+    persist();
+    render();
+  }
+
+  function uniqueGroupName() {
+    const taken = new Set(groupNames());
+    if (!taken.has('Important')) return 'Important';
+    for (let i = 2; ; i++) if (!taken.has(`Group ${i}`)) return `Group ${i}`;
+  }
+
+  // A column joins a group (a new one, or an existing one: it then moves to the end of that group).
+  function setGroup(projectId, name) {
+    const project = findProject(projectId);
+    if (!project || groupOf(project) === name) return;
+    checkpoint(name ? 'Move to group' : 'Remove from group');
+    if (name) project.group = name;
+    else delete project.group;
+    const members = data.projects.filter((p) => p !== project && groupOf(p) === name);
+    if (name && members.length) {
+      data.projects.splice(data.projects.indexOf(project), 1);
+      data.projects.splice(data.projects.indexOf(members[members.length - 1]) + 1, 0, project);
+    }
+    persist();
+    render();
+  }
+
+  function newGroupFrom(projectId) {
+    const name = uniqueGroupName();
+    setGroup(projectId, name);
+    const view = groups.get(name);
+    if (view) startGroupRename(view);
+  }
+
+  function ungroup(name) {
+    const members = data.projects.filter((p) => groupOf(p) === name);
+    if (!members.length) return;
+    checkpoint('Ungroup');
+    for (const p of members) delete p.group;
+    if (foldedGroups().includes(name)) setGroupFolded(name, false);
+    persist();
+    render();
+    toast(`Ungrouped “${name}”`, { action: 'Undo', onAction: undo, history: true });
+  }
+
+  function renameGroup(from, to) {
+    to = to.trim().slice(0, 60);
+    if (!to || to === from) return;
+    const members = data.projects.filter((p) => groupOf(p) === from);
+    if (!members.length) return;
+    checkpoint('Rename group');
+    // Renaming into an existing group's name joins the two.
+    for (const p of members) p.group = to;
+    // The fold is per computer and keyed by name, so it follows the rename.
+    const folded = foldedGroups();
+    const next = folded.filter((g) => g !== from);
+    if (folded.includes(from) && !next.includes(to)) next.push(to);
+    if (next.length) data.prefs.foldedGroups = next;
+    else delete data.prefs.foldedGroups;
+    persist();
+  }
+
+  function startGroupRename(view) {
+    if (view.renaming) return;
+    view.renaming = true;
+    const from = view.name;
+    const input = el('input', 'col-name-input group-name-input');
+    input.value = from;
+    input.maxLength = 60;
+    input.spellcheck = false;
+    view.toggle.hidden = true;
+    view.toggle.after(input);
+    input.focus();
+    input.select();
+    let done = false;
+    const finish = (save) => {
+      if (done) return;
+      done = true;
+      if (save) renameGroup(from, input.value);
+      input.remove();
+      view.toggle.hidden = false;
+      view.renaming = false;
+      render();
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(false); }
+    });
+    input.addEventListener('blur', () => finish(true));
+    input.addEventListener('pointerdown', (e) => e.stopPropagation());
+    input.addEventListener('click', (e) => e.stopPropagation());
+  }
+
+  // A whole group moves past its neighbour (a column or another group).
+  function moveGroup(name, delta) {
+    const units = boardLayout();
+    const i = units.findIndex((u) => u.group === name);
+    const j = i + delta;
+    if (i < 0 || j < 0 || j >= units.length) return;
+    checkpoint('Move group');
+    [units[i], units[j]] = [units[j], units[i]];
+    data.projects = units.flatMap((u) => u.ids).map(findProject);
+    persist();
+    render();
+  }
+
+  function openGroupMenu(view, anchor) {
+    const name = view.name;
+    const units = boardLayout();
+    const i = units.findIndex((u) => u.group === name);
+    openMenu(anchor, (menu) => {
+      menuItem(menu, I.pencilLine, 'Rename group', () => startGroupRename(view));
+      menuItem(menu, I.chevron, foldedGroups().includes(name) ? 'Open group' : 'Fold group', () => setGroupFolded(name, !foldedGroups().includes(name)));
+      menu.appendChild(el('div', 'menu-sep'));
+      menuItem(menu, I.arrowLeft, 'Move group left', () => moveGroup(name, -1), { disabled: i <= 0 });
+      menuItem(menu, I.arrowRight, 'Move group right', () => moveGroup(name, 1), { disabled: i < 0 || i >= units.length - 1 });
+      menu.appendChild(el('div', 'menu-sep'));
+      menuItem(menu, I.close, 'Ungroup (keep the columns)', () => ungroup(name));
+    });
+  }
+
+  // ---- Eating (1.18): an agent is running a column's Served text. A switch on the Served
+  // section, and a strip at the bottom right of the board listing every column that's eating.
+
+  const eatingBar = $('#eating');
+  const eatingList = $('#eating-list');
+
+  function setEating(projectId, on) {
+    const project = findProject(projectId);
+    if (!project || isEating(project) === on) return;
+    if (on) project.eating = Date.now();
+    else delete project.eating;
+    contentSeq++; // synced like any project field: a sync patch from before this is stale
+    pendingLabels.push(on ? 'Eating' : 'Done eating');
+    persist();
+    render();
+  }
+
+  function paintEating() {
+    const eating = boardLayout().flatMap((u) => u.ids).map(findProject).filter(isEating);
+    eatingBar.hidden = !eating.length;
+    document.body.classList.toggle('has-eating', eating.length > 0);
+    const html = eating.map((p) => `
+      <span class="eat-chip" data-id="${escapeHtml(p.id)}" style="--accent:${colorOf(p)}" title="${escapeHtml(p.name)} · eating for ${eatFor(p.eating)} · click to show the column">
+        <svg class="eat-leaf"><use href="#monstera"/></svg><span class="eat-name">${escapeHtml(p.name)}</span><span class="eat-time">${eatFor(p.eating)}</span>
+        <button class="eat-done" title="Done: move it to Eaten" aria-label="Done">${I.check}</button>
+      </span>`).join('');
+    if (eatingList.innerHTML !== html) eatingList.innerHTML = html;
+  }
+
+  eatingList.addEventListener('click', (e) => {
+    const chip = e.target.closest('.eat-chip');
+    if (!chip) return;
+    const id = chip.dataset.id;
+    if (e.target.closest('.eat-done')) return finishEating(id);
+    revealColumn(id);
+  });
+
+  // Done (1.18): the agent finished. The Served text moves to Eaten as one round, Served starts
+  // empty for the next batch, and Eating ends. Undo puts all three back.
+  function finishEating(projectId) {
+    const project = findProject(projectId);
+    if (!project) return;
+    const text = finalText(project);
+    const images = stageImages(project.combined);
+    if (!text && !images.length) return setEating(projectId, false); // nothing served: just stop
+    const col = columns.get(projectId);
+    if (col?.stageEditor?.list === 'combined') closeStageEditor(col);
+    checkpoint('Done eating');
+    history.undo[history.undo.length - 1].restore = ['eating'];
+    const round = {
+      id: uid(), project: project.id, name: project.name, color: project.color, text, images,
+      parts: project.combined.length, startedAt: isEating(project) ? project.eating : 0, doneAt: Date.now(),
+    };
+    setEatenList([round, ...eatenList()]);
+    project.combined = [];
+    delete project.eating;
+    persist();
+    render();
+    toast(`“${project.name}” is done · moved to Eaten`, { action: 'Undo', onAction: undo, duration: 7000, history: true });
+  }
+
+  // The Served switch while eating: Done, or stop eating and keep the text in Served.
+  function openEatingMenu(projectId, anchor) {
+    const project = findProject(projectId);
+    if (!project) return;
+    openMenu(anchor, (menu) => {
+      menuItem(menu, I.check, 'Done: move it to Eaten', () => finishEating(projectId));
+      menuItem(menu, I.close, 'Stop eating, keep it in Served', () => setEating(projectId, false));
+    });
+  }
+
+  // ---- the Eaten drawer (1.18): every finished round, newest first, by day; filter by column, search,
+  // and per round Copy, Serve again (back into its column's Served) and Delete.
+
+  const eatenPanel = $('#eaten-panel');
+  const eatenListEl = $('#eaten-list');
+  const eatenFilters = $('#eaten-filters');
+  const eatenSearch = $('#eaten-search');
+  const eatenBtn = $('#open-eaten');
+  const eatenUi = { filter: null, query: '', openIds: new Set() };
+
+  const isEatenOpen = () => eatenPanel.classList.contains('is-open');
+
+  function openEaten(projectId = null) {
+    closeMenu();
+    eatenUi.filter = projectId && eatenList().some((r) => r.project === projectId) ? projectId : null;
+    eatenPanel.classList.add('is-open');
+    document.body.classList.add('eaten-open');
+    eatenPanel.setAttribute('aria-hidden', 'false');
+    eatenBtn.classList.add('is-open');
+    paintEaten();
+  }
+
+  function closeEaten() {
+    eatenPanel.classList.remove('is-open');
+    document.body.classList.remove('eaten-open');
+    eatenPanel.setAttribute('aria-hidden', 'true');
+    eatenBtn.classList.remove('is-open');
+  }
+
+  function dayLabel(ts) {
+    const d = new Date(ts);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return 'Today';
+    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString(undefined, d.getFullYear() === today.getFullYear()
+      ? { weekday: 'short', month: 'short', day: 'numeric' }
+      : { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function paintEaten() {
+    const rounds = eatenList();
+    eatenBtn.hidden = !rounds.length;
+    eatenBtn.title = `Eaten: ${rounds.length} finished prompt${rounds.length === 1 ? '' : 's'}`;
+    $('.eaten-badge', eatenBtn).textContent = rounds.length > 99 ? '99+' : String(rounds.length);
+    if (!isEatenOpen()) return;
+    $('#eaten-total').textContent = rounds.length ? String(rounds.length) : '';
+    // the columns that have rounds, in board order, then any that were deleted since
+    const nameOf = (r) => findProject(r.project)?.name ?? r.name ?? 'Deleted column';
+    const colourOf = (r) => colorOf(findProject(r.project) ?? { color: r.color });
+    const order = data.projects.map((p) => p.id);
+    const ids = [...new Set(rounds.map((r) => r.project))].sort((a, b) => ((order.indexOf(a) + 1 || 1e9) - (order.indexOf(b) + 1 || 1e9)));
+    if (eatenUi.filter && !ids.includes(eatenUi.filter)) eatenUi.filter = null;
+    eatenFilters.hidden = ids.length < 2;
+    eatenFilters.innerHTML = [`<button class="eaten-filter${eatenUi.filter ? '' : ' is-active'}" data-filter="">All<span>${rounds.length}</span></button>`]
+      .concat(ids.map((id) => {
+        const r = rounds.find((x) => x.project === id);
+        const n = rounds.filter((x) => x.project === id).length;
+        return `<button class="eaten-filter${eatenUi.filter === id ? ' is-active' : ''}" data-filter="${escapeHtml(id)}" style="--accent:${colourOf(r)}"><svg class="eat-leaf"><use href="#monstera"/></svg>${escapeHtml(nameOf(r))}<span>${n}</span></button>`;
+      })).join('');
+    const query = parseQuery(eatenUi.query);
+    const shown = rounds.filter((r) => (!eatenUi.filter || r.project === eatenUi.filter)
+      && query.terms.every((t) => r.text.toLowerCase().includes(t) || nameOf(r).toLowerCase().includes(t)));
+    if (!shown.length) {
+      eatenListEl.innerHTML = `<div class="eaten-empty">${rounds.length
+        ? 'Nothing matches.'
+        : `${I.utensils}<b>Nothing eaten yet</b><span>When an agent has finished a served prompt, click <b>Done</b> on its Eating switch. The prompt moves here, and Served is ready for the next batch.</span>`}</div>`;
+      return;
+    }
+    let html = '';
+    let day = '';
+    for (const r of shown) {
+      const label = dayLabel(r.doneAt || Date.now());
+      if (label !== day) {
+        day = label;
+        html += `<h3 class="eaten-day">${escapeHtml(label)}</h3>`;
+      }
+      const at = new Date(r.doneAt || Date.now()).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      const span = r.startedAt && r.doneAt > r.startedAt ? spanText(r.doneAt - r.startedAt) : '';
+      const took = span ? ` · ate for ${span === 'now' ? 'under a minute' : span}` : '';
+      const words = r.text.trim() ? r.text.trim().split(/\s+/).length : 0;
+      const images = cleanImages(r.images);
+      const parts = Number(r.parts) || 1;
+      const alive = Boolean(findProject(r.project));
+      html += `
+        <article class="eaten-item${eatenUi.openIds.has(r.id) ? ' is-open' : ''}" data-id="${escapeHtml(r.id)}" style="--accent:${colourOf(r)}">
+          <header class="eaten-item-head"><svg class="eat-leaf"><use href="#monstera"/></svg><b>${escapeHtml(nameOf(r))}</b><span class="eaten-meta">${escapeHtml(at + took)}</span></header>
+          <div class="eaten-text" title="${eatenUi.openIds.has(r.id) ? 'Click to fold' : 'Click to read it all'}">${highlight(r.text, query)}</div>
+          ${images.length ? `<div class="eaten-pics">${images.map((img) => `<button class="eaten-pic" data-img="${img.id}" title="Copy this picture"><img src="${imgUrl(img.id, true)}" alt="" draggable="false" loading="lazy" /></button>`).join('')}</div>` : ''}
+          <footer class="eaten-item-foot">
+            <span class="eaten-stats">${parts} note${parts === 1 ? '' : 's'} · ${words.toLocaleString()} words</span>
+            <span class="spacer"></span>
+            <button class="eaten-act eaten-copy" title="Copy the text">${I.copy}<span>Copy</span></button>
+            <button class="eaten-act eaten-again" title="${alive ? 'Put it back into this column’s Served' : 'Its column was deleted'}"${alive ? '' : ' disabled'}>${I.restore}<span>Serve again</span></button>
+            <button class="eaten-act eaten-del" title="Delete it from Eaten" aria-label="Delete it from Eaten">${I.trash}</button>
+          </footer>
+        </article>`;
+    }
+    eatenListEl.innerHTML = html;
+  }
+
+  function serveAgain(id) {
+    const round = eatenList().find((r) => r.id === id);
+    const project = round && findProject(round.project);
+    if (!project) return;
+    checkpoint('Serve again');
+    project.combined.push({ ...makeNote(round.text, cleanImages(round.images)), usedAt: Date.now() });
+    setEatenList(eatenList().filter((r) => r.id !== id));
+    persist();
+    render();
+    revealColumn(project.id);
+    toast(`Back in “${project.name}” · Served`, { action: 'Undo', onAction: undo, history: true });
+  }
+
+  function deleteEaten(id) {
+    if (!eatenList().some((r) => r.id === id)) return;
+    checkpoint('Delete from Eaten');
+    setEatenList(eatenList().filter((r) => r.id !== id));
+    persist();
+    render();
+    toast('Deleted from Eaten', { action: 'Undo', onAction: undo, duration: 7000, history: true });
+  }
+
+  eatenBtn.addEventListener('click', () => (isEatenOpen() ? closeEaten() : openEaten()));
+  $('#eaten-close').addEventListener('click', closeEaten);
+  eatenSearch.addEventListener('input', () => {
+    eatenUi.query = eatenSearch.value;
+    paintEaten();
+  });
+  eatenFilters.addEventListener('click', (e) => {
+    const b = e.target.closest('.eaten-filter');
+    if (!b) return;
+    eatenUi.filter = b.dataset.filter || null;
+    paintEaten();
+  });
+  eatenListEl.addEventListener('click', async (e) => {
+    const item = e.target.closest('.eaten-item');
+    const round = item && eatenList().find((r) => r.id === item.dataset.id);
+    if (!round) return;
+    const pic = e.target.closest('.eaten-pic');
+    if (pic) {
+      const ok = await api.copyImage(pic.dataset.img).catch(() => false);
+      toast(ok ? 'Image copied' : "Couldn't copy to the clipboard.");
+      return;
+    }
+    if (e.target.closest('.eaten-copy')) {
+      try {
+        await api.copy(round.text);
+        toast('Copied');
+      } catch {
+        toast("Couldn't copy to the clipboard.");
+      }
+      return;
+    }
+    if (e.target.closest('.eaten-again')) return serveAgain(round.id);
+    if (e.target.closest('.eaten-del')) return deleteEaten(round.id);
+    if (e.target.closest('.eaten-text') && !String(window.getSelection())) {
+      if (eatenUi.openIds.has(round.id)) eatenUi.openIds.delete(round.id);
+      else eatenUi.openIds.add(round.id);
+      paintEaten();
+    }
+  });
+
+  // Scrolls a column into view, opening its group or strip first, and flashes it.
+  function revealColumn(id) {
+    const project = findProject(id);
+    if (!project) return;
+    const g = groupOf(project);
+    if (g && foldedGroups().includes(g)) setGroupFolded(g, false);
+    const col = columns.get(id);
+    if (!col) return;
+    col.root.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+    bump(col.head);
+  }
+
+  // A column about to be written in comes out of its strip or folded group (Ctrl+N, Ctrl+M).
+  function unhide(projectId) {
+    const project = findProject(projectId);
+    if (!project) return;
+    const g = groupOf(project);
+    if (!project.localMinimized && !(g && foldedGroups().includes(g))) return;
+    delete project.localMinimized;
+    const folded = foldedGroups().filter((n) => n !== g);
+    if (folded.length) data.prefs.foldedGroups = folded;
+    else delete data.prefs.foldedGroups;
+    persist();
+  }
+
+  // ---- minimize a column to a slim strip (per computer; ⋯ › Minimize, a click on the strip opens it)
+
+  function setMinimized(projectId, on) {
+    const project = findProject(projectId);
+    if (!project || Boolean(project.localMinimized) === on) return;
+    if (on) {
+      project.localMinimized = true;
+      if (ui.composing === projectId) closeComposer();
+      if (columns.get(projectId)?.stageEditor) closeStageEditor(columns.get(projectId));
+      if (ui.editing && locate(ui.editing)?.project === project) stopEditing();
+    } else {
+      delete project.localMinimized;
+    }
+    persist();
+    render();
+    if (!on) remeasure([columns.get(projectId)]);
+  }
+
+  // ---- the Cooked note as Claude Code input (1.18)
+
+  function setClaudeCode(projectId, on) {
+    const project = findProject(projectId);
+    if (!project || !project.used.length || isClaudeCode(project) === on) return;
+    checkpoint(on ? 'Format for Claude Code' : 'Back to original');
+    if (on) project.cookedFormat = 'claude-code';
+    else delete project.cookedFormat;
+    persist();
+    render();
+  }
+
+  // Once Cooked is empty again, the next batch starts as plain text.
+  function settleCooked(project) {
+    if (project && !project.used.length) delete project.cookedFormat;
   }
 
   // ================================================================ note actions
@@ -965,6 +1563,7 @@
     if (ui.editing) stopEditing();
     closeStageEditors();
     if (ui.composing && ui.composing !== projectId) closeComposer();
+    unhide(projectId);
     ui.composing = projectId;
     ui.lastProjectId = projectId;
     render();
@@ -1257,6 +1856,7 @@
     } else {
       loc.project.notes.push(loc.note); // back to the bottom of Cooking, just above Cooked
       delete loc.project.notesCollapsed; // and show it
+      settleCooked(loc.project);
     }
     fresh.add(id);
     const view = cards.get(id);
@@ -1280,11 +1880,17 @@
     const commit = () => {
       const p = findProject(projectId);
       if (!p || !p.used.length) return;
-      checkpoint('Move to Served');
+      checkpoint(isClaudeCode(p) ? 'Serve as Claude Code' : 'Move to Served');
       const now = Date.now();
-      for (const n of p.used) n.usedAt = now;
-      p.combined.push(...p.used);
+      if (isClaudeCode(p)) {
+        // Formatted for Claude Code: what is served is the formatted text, as one note.
+        p.combined.push({ ...makeNote(cookedText(p), stageImages(p.used)), usedAt: now });
+      } else {
+        for (const n of p.used) n.usedAt = now;
+        p.combined.push(...p.used);
+      }
       p.used = [];
+      settleCooked(p);
       if (col) {
         col.augNote.style.transition = '';
         col.augNote.style.transform = '';
@@ -1311,7 +1917,7 @@
     const col = columns.get(projectId);
     const project = findProject(projectId);
     if (!col || !project) return;
-    const text = augmentedText(project);
+    const text = cookedText(project);
     // Only pictures, no text: copy the first picture, like an image-only card.
     if (!text) return void (col.augImages.firstElementChild && copyStageImage(col, col.augImages.firstElementChild, event));
     try {
@@ -1438,6 +2044,7 @@
     if (col?.stageEditor?.list === list) closeStageEditor(col);
     checkpoint('Delete note');
     p[list].splice(index, 1);
+    settleCooked(p);
     persist();
     render();
     toast('Note deleted', { action: 'Undo', onAction: undo, duration: 7000, history: true });
@@ -1451,6 +2058,7 @@
     const what = STAGE_WHOLE[list];
     checkpoint(`Delete ${what}`);
     p[list] = p[list].filter((n) => !openedIds.has(n.id));
+    settleCooked(p);
     persist();
     render();
     toast(`${what} deleted`, { action: 'Undo', onAction: undo, duration: 7000, history: true });
@@ -1626,20 +2234,38 @@
     const name = STAGE_NAME[list];
     checkpoint(`Clear ${name}`);
     project[list] = [];
+    settleCooked(project);
     persist();
     render();
     toast(`Cleared ${name}`, { action: 'Undo', onAction: undo, duration: 7000, history: true });
   }
 
-  function moveProject(id, delta) {
-    const i = data.projects.findIndex((p) => p.id === id);
+  // Move left / right in drawing order: inside a group a column moves among its group; outside
+  // one it steps past the neighbouring column or the whole neighbouring group.
+  function moveTarget(id, delta) {
+    const project = findProject(id);
+    if (!project) return null;
+    const units = boardLayout();
+    const g = groupOf(project);
+    if (g) {
+      const unit = units.find((u) => u.group === g);
+      const i = unit.ids.indexOf(id);
+      const j = i + delta;
+      return j < 0 || j >= unit.ids.length ? null : { units, swap: () => { [unit.ids[i], unit.ids[j]] = [unit.ids[j], unit.ids[i]]; } };
+    }
+    const i = units.findIndex((u) => !u.group && u.ids[0] === id);
     const j = i + delta;
-    if (i < 0 || j < 0 || j >= data.projects.length) return;
+    return i < 0 || j < 0 || j >= units.length ? null : { units, swap: () => { [units[i], units[j]] = [units[j], units[i]]; } };
+  }
+
+  function moveProject(id, delta) {
+    const move = moveTarget(id, delta);
+    if (!move) return;
     checkpoint('Move project');
     const cols = [...columns.values()].map((c) => c.root);
     flip(cols, () => {
-      const [p] = data.projects.splice(i, 1);
-      data.projects.splice(j, 0, p);
+      move.swap();
+      data.projects = move.units.flatMap((u) => u.ids).map(findProject);
       render();
     }, 260);
     persist();
@@ -1647,7 +2273,7 @@
 
   // ================================================================ composer
 
-  function createComposer({ text = '', images: initialImages = [], placeholder, closeLabel = 'Close', allowDelete = false, deleteLabel = 'Delete note', onSave, onCancel, onDraft, onDelete }) {
+  function createComposer({ text = '', images: initialImages = [], placeholder, closeLabel = 'Close', allowDelete = false, allowClear = false, deleteLabel = 'Delete note', onSave, onCancel, onDraft, onDelete }) {
     const root = el('div', 'composer');
     root.innerHTML = `
       <textarea rows="2" spellcheck="true"></textarea>
@@ -1662,6 +2288,7 @@
         <button type="button" class="icon-btn shot-btn" title="Add a screenshot (${kb('Ctrl+Shift+S')}) — or paste an image" aria-label="Add a screenshot">${I.camera}</button>
         <span class="composer-status"></span>
         <span class="spacer"></span>
+        ${allowClear ? `<button type="button" class="icon-btn comp-clear" title="Clear the text (dictation keeps listening)" aria-label="Clear the text">${I.eraser}</button>` : ''}
         ${allowDelete ? `<button type="button" class="icon-btn danger comp-delete" title="${deleteLabel}" aria-label="${deleteLabel}">${I.trash}</button>` : ''}
         <button type="button" class="icon-btn comp-cancel" title="${closeLabel} (Esc)" aria-label="${closeLabel}">${I.close}</button>
         <button type="button" class="btn btn-primary comp-save" title="Save (${kb('Ctrl+Enter')})">Save</button>
@@ -1688,6 +2315,7 @@
     let destroyed = false;
     let lastValue = ta.value; // to work out what the user changed on each keystroke
     let region = null;        // { start, text }: where the phrase being transcribed is streaming in
+    let epoch = 0;            // raised by Clear: a phrase still landing from before it is dropped
 
     // When the user edits while dictation is landing, shift the dictation point and
     // the streaming region so spoken text keeps going to the right place.
@@ -1733,6 +2361,7 @@
       ta.readOnly = false; // you can keep typing and editing while it listens
       micBtn.title = recState === 'on' ? `Stop dictating (${kb('Ctrl+M')})` : `Dictate (${kb('Ctrl+M')})`;
       if (recState === 'starting') statusEl.innerHTML = '<span class="shimmer">Starting mic…</span>';
+      else if (recState === 'on') statusEl.innerHTML = `<span class="shimmer">${working ? 'Writing…' : 'Listening…'}</span>`;
       else if (recState === 'off' && working) statusEl.innerHTML = `<span class="shimmer">${pendingSave ? 'Saving…' : 'Writing…'}</span>`;
       else if (recState === 'off' && busy) statusEl.textContent = '';
       else statusEl.textContent = '';
@@ -1877,11 +2506,13 @@
       working = true;
       refresh();
       while (queue.length && !destroyed) {
+        const audio = queue[0];
         try {
-          await transcribeInto(queue[0]);
-          queue.shift();
+          await transcribeInto(audio);
+          if (queue[0] === audio) queue.shift(); // Clear may have emptied the queue meanwhile
         } catch (err) {
           if (destroyed) return;
+          if (queue[0] !== audio) continue; // cleared while it was on its way: nothing to retry
           working = false;
           pendingSave = false;
           refresh();
@@ -1906,6 +2537,7 @@
     // Streams one phrase into the textarea at the dictation point, without
     // disturbing the user's own cursor if they are typing at the same time.
     async function transcribeInto(audio) {
+      const mine = epoch;
       anchor = Math.min(anchor, ta.value.length);
       region = { start: anchor, text: '', detached: false };
       let streamed = '';  // everything received for this phrase
@@ -1915,6 +2547,7 @@
         return before && !/\s$/.test(before) ? ' ' : '';
       };
       const put = (t) => {
+        if (mine !== epoch) return; // cleared: this phrase no longer has a place
         const v = ta.value;
         const { start, text: old } = region;
         const focused = document.activeElement === ta;
@@ -1957,11 +2590,12 @@
           },
         });
       } catch (err) {
+        if (mine !== epoch) throw err;
         if (!destroyed && !region.detached) put('');
         region = null;
         throw err;
       }
-      if (destroyed) return;
+      if (destroyed || mine !== epoch) return;
       if (region.detached && owned === 0) owned = streamed.length;
       put(result ? textFor(result) : '');
       anchor = region.start + region.text.length;
@@ -2046,6 +2680,43 @@
       onCancel(ta.value, images.slice());
     }
 
+    // Clear (1.18, the new-text editor): empties the text and pictures. Dictation keeps listening,
+    // and phrases spoken before the Clear are dropped. The toast's Undo puts it all back.
+    function clear() {
+      const before = { text: ta.value, images: images.slice() };
+      if (!before.text && !before.images.length && !queue.length && !working) return ta.focus();
+      epoch++;
+      queue.length = 0;
+      region = null;
+      pendingSave = false;
+      ta.value = '';
+      lastValue = '';
+      images = [];
+      renderImages();
+      anchor = 0;
+      context = '';
+      hideMessage();
+      autosize();
+      refresh();
+      draft();
+      ta.focus();
+      if (!before.text && !before.images.length) return;
+      toast('Text cleared', {
+        action: 'Undo',
+        onAction: () => {
+          if (destroyed) return;
+          ta.value = before.text + (ta.value ? ` ${ta.value}` : '');
+          lastValue = ta.value;
+          for (const img of before.images) if (!images.some((i) => i.id === img.id)) images.push(img);
+          renderImages();
+          anchor = ta.value.length;
+          autosize();
+          draft();
+          ta.focus();
+        },
+      });
+    }
+
     // ---- events
     ta.addEventListener('input', () => {
       followUserEdit();
@@ -2097,6 +2768,7 @@
     $('.comp-save', root).addEventListener('click', save);
     $('.comp-cancel', root).addEventListener('click', cancel);
     $('.comp-delete', root)?.addEventListener('click', () => onDelete?.());
+    $('.comp-clear', root)?.addEventListener('click', clear);
 
     renderImages();
     refresh();
@@ -2113,6 +2785,7 @@
       toggleVoice,
       screenshot,
       addImage,
+      clear,
       value: () => ta.value,
       images: () => images.slice(),
       isBusy: () => recState !== 'off' || working || capturing,
@@ -2136,7 +2809,8 @@
     // On a Mac, Control+click is a right-click: no copy, select, drag or pan (the contextmenu listener edits).
     if (IS_MAC && e.ctrlKey && e.button === 0) return;
     // Middle button anywhere, or left button on empty canvas: pan the board.
-    if (e.button === 1 || (e.button === 0 && e.target === board)) {
+    const canvas = e.target === board || e.target.classList.contains('group-cols') || e.target.classList.contains('col-group');
+    if (e.button === 1 || (e.button === 0 && canvas)) {
       e.preventDefault();
       startPan(e);
       return;
@@ -2429,6 +3103,8 @@
     let bestDist = Infinity;
     for (const col of columns.values()) {
       if (!col.root.isConnected || col.root.classList.contains('is-drag-source')) continue;
+      // A minimized column, or one in a folded group, takes no drops.
+      if (col.root.classList.contains('is-minimized') || !col.root.offsetWidth) continue;
       const r = col.root.getBoundingClientRect();
       const d = x < r.left ? r.left - x : x > r.right ? x - r.right : 0;
       if (d < bestDist) {
@@ -2560,6 +3236,7 @@
         arr.splice(index, 0, loc.note);
         if (t.list !== 'notes' && loc.list !== t.list) loc.note.usedAt = Date.now();
         if (t.list === 'notes') delete dest.notesCollapsed; // a collapsed Cooking opens to show it
+        settleCooked(loc.project);
         const moved = !(from.project === dest && from.list === t.list && from.index === index);
         if (moved) {
           if (t.list === 'combined') moveLabel = 'Add to Served';
@@ -2653,7 +3330,9 @@
     g.placeholder = el('div', 'col-placeholder');
     g.placeholder.style.height = `${rect.height}px`;
     g.placeholder.style.width = `${rect.width}px`;
-    board.insertBefore(g.placeholder, g.colEl);
+    // A column reorders among its neighbours: on the board, or inside its group.
+    g.container = g.colEl.parentNode;
+    g.container.insertBefore(g.placeholder, g.colEl);
     g.colEl.classList.add('is-drag-source');
     document.body.classList.add('is-dragging');
     positionGhost(g);
@@ -2663,12 +3342,14 @@
 
   function columnDragMove(g) {
     positionGhost(g);
-    const cols = [...board.children].filter((n) => n.classList.contains('column') && n !== g.colEl);
-    // Layout positions (offsetLeft) ignore in-flight FLIP transforms, so no jitter.
-    const originX = board.getBoundingClientRect().left - board.scrollLeft;
-    let before = addColumnEl;
+    const inBoard = g.container === board;
+    const cols = [...g.container.children].filter((n) => (n.classList.contains('column') || (inBoard && n.classList.contains('col-group'))) && n !== g.colEl);
+    let before = inBoard ? addColumnEl : null;
     for (const c of cols) {
-      const mid = originX + c.offsetLeft + c.offsetWidth / 2;
+      // Layout boxes, not transformed ones, so in-flight FLIP moves cause no jitter.
+      const r = c.getBoundingClientRect();
+      const shift = c.style.transform ? new DOMMatrix(getComputedStyle(c).transform).m41 : 0;
+      const mid = r.left - shift + r.width / 2;
       if (g.x < mid) {
         before = c;
         break;
@@ -2677,7 +3358,7 @@
     let next = g.placeholder.nextSibling;
     if (next === g.colEl) next = next.nextSibling;
     if (next === before) return;
-    flip(cols, () => board.insertBefore(g.placeholder, before), 240);
+    flip(cols, () => g.container.insertBefore(g.placeholder, before), 240);
   }
 
   function columnDragEnd(g, cancelled) {
@@ -2685,10 +3366,14 @@
     cancelAnimationFrame(g.raf);
     if (!cancelled) {
       const order = [];
-      for (const n of board.children) {
-        if (n === g.placeholder) order.push(g.id);
-        else if (n.classList.contains('column') && n !== g.colEl) order.push(n.dataset.id);
-      }
+      const walk = (parent) => {
+        for (const n of parent.children) {
+          if (n === g.placeholder) order.push(g.id);
+          else if (n.classList.contains('column') && n !== g.colEl) order.push(n.dataset.id);
+          else if (n.classList.contains('col-group')) walk(n.querySelector('.group-cols'));
+        }
+      };
+      walk(board);
       const byId = new Map(data.projects.map((p) => [p.id, p]));
       const next = order.map((id) => byId.get(id)).filter(Boolean);
       if (next.length === data.projects.length && next.some((p, i) => p !== data.projects[i])) {
@@ -2838,7 +3523,7 @@
   stageEl.addEventListener('pointerleave', () => setPanNear(0));
 
   function columnStep() {
-    const col = board.querySelector('.column');
+    const col = board.querySelector('.column:not(.is-minimized)');
     const gap = parseFloat(getComputedStyle(board).columnGap) || 12;
     return col ? col.offsetWidth + gap : 280;
   }
@@ -2978,7 +3663,22 @@
       }
       return;
     }
+    const groupEl = e.target.closest('.col-group');
+    if (groupEl && !col) {
+      const view = groups.get(groupEl.dataset.group);
+      if (!view || view.renaming) return;
+      if (e.target.closest('.group-menu')) return openGroupMenu(view, e.target.closest('.group-menu'));
+      if (e.target.closest('.group-toggle, .group-strip')) return setGroupFolded(view.name, !foldedGroups().includes(view.name));
+      return;
+    }
     if (!col) return;
+    // A minimized column is a slim strip: a click anywhere on it opens it again.
+    if (col.root.classList.contains('is-minimized')) return void (e.target.closest('.col-head') && setMinimized(col.id, false));
+    if (e.target.closest('.eat-btn')) {
+      if (isEating(findProject(col.id))) return openEatingMenu(col.id, e.target.closest('.eat-btn'));
+      return setEating(col.id, true);
+    }
+    if (e.target.closest('.aug-cc')) return setClaudeCode(col.id, !isClaudeCode(findProject(col.id)));
     if (e.target.closest('.col-add')) return openComposer(col.id);
     if (e.target.closest('.col-mic')) return openComposer(col.id, { voice: true });
     if (e.target.closest('.col-menu')) return openColumnMenu(col, e.target.closest('.col-menu'));
@@ -3114,7 +3814,7 @@
     else if (key === 'h') { e.preventDefault(); setHighlight(id, locate(id)?.note.highlight ? null : 'amber'); }
     else if (key === 'arrowdown' || key === 'arrowup') {
       e.preventDefault();
-      const all = [...board.querySelectorAll('.card-wrap:not(.is-editing) > .card')];
+      const all = [...board.querySelectorAll('.card-wrap:not(.is-editing) > .card')].filter((n) => n.offsetParent);
       const i = all.indexOf(card);
       all[i + (key === 'arrowdown' ? 1 : -1)]?.focus();
     }
@@ -3188,7 +3888,6 @@
   function openColumnMenu(col, anchor) {
     const project = findProject(col.id);
     if (!project) return;
-    const index = data.projects.indexOf(project);
     openMenu(anchor, (menu) => {
       menuItem(menu, I.camera, 'New from screenshot', () => openComposer(col.id, { screenshot: true }));
       menuItem(menu, I.pencilLine, 'Rename', () => startRename(col));
@@ -3210,8 +3909,18 @@
       }
       menu.appendChild(swatches);
       menu.appendChild(el('div', 'menu-sep'));
-      menuItem(menu, I.arrowLeft, 'Move left', () => moveProject(col.id, -1), { disabled: index === 0 });
-      menuItem(menu, I.arrowRight, 'Move right', () => moveProject(col.id, 1), { disabled: index === data.projects.length - 1 });
+      const eatenHere = eatenList().filter((r) => r.project === col.id).length;
+      if (eatenHere) menuItem(menu, I.utensils, `Eaten from this column (${eatenHere})`, () => openEaten(col.id));
+      menuItem(menu, I.minimize, 'Minimize column', () => setMinimized(col.id, true));
+      const group = groupOf(project);
+      for (const name of groupNames().filter((g) => g !== group)) {
+        menuItem(menu, I.group, `Move to group “${name}”`, () => setGroup(col.id, name));
+      }
+      menuItem(menu, I.group, 'New group…', () => newGroupFrom(col.id));
+      if (group) menuItem(menu, I.close, `Remove from “${group}”`, () => setGroup(col.id, ''));
+      menu.appendChild(el('div', 'menu-sep'));
+      menuItem(menu, I.arrowLeft, 'Move left', () => moveProject(col.id, -1), { disabled: !moveTarget(col.id, -1) });
+      menuItem(menu, I.arrowRight, 'Move right', () => moveProject(col.id, 1), { disabled: !moveTarget(col.id, 1) });
       menuItem(menu, I.width, 'Reset width', () => resetColumnWidth(col.id), { disabled: !colWidth(col.id) });
       menuItem(menu, I.sort, 'Sort prompts oldest first', () => sortOldestFirst(col.id), { disabled: project.notes.length < 2 || isOldestFirst(project.notes) });
       menu.appendChild(el('div', 'menu-sep'));
@@ -3307,7 +4016,7 @@
       }
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const first = board.querySelector('.active-list > .card-wrap:not(.is-editing)');
+      const first = [...board.querySelectorAll('.active-list > .card-wrap:not(.is-editing)')].find((n) => n.offsetParent);
       if (first) copyNote(first.dataset.id);
       else toast('Nothing matches');
     } else if (e.key === 'ArrowDown') {
@@ -3584,6 +4293,16 @@
     if (dialog.open || lightbox.open || helpDialog.open) return;
     if (e.key === 'Escape' && openMenuEl) {
       closeMenu();
+      return;
+    }
+    if (e.key === 'Escape' && isEatenOpen()) {
+      if (e.target === eatenSearch && eatenSearch.value) {
+        eatenSearch.value = '';
+        eatenUi.query = '';
+        paintEaten();
+      } else {
+        closeEaten();
+      }
       return;
     }
     if (e.key === 'Escape' && (ui.selection.length || ui.anchor)) {

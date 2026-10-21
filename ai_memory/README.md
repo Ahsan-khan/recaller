@@ -2,6 +2,11 @@
 
 This folder is the complete handoff for **Recaller**. It lets any person, AI agent or LLM continue development without the original conversation. Everything here is plain text, and every user flow is described in words.
 
+Status as of **2026-10-20**, tenth session (on a freshly set-up Mac):
+- **1.18.0 is built and tested, uncommitted, on a new branch `v1.18`** (made from `main` at `e096680` at the owner's request). It adds **Eating** (a Served switch plus a strip at the board's bottom right for prompts an agent is running), a **Claude Code format** for the Cooked note (a fixed template, off by default), **Clear** in the new-text editor, **minimized columns**, named **column groups**, a **+** in the top bar, "New prompt" → **New text**, shorter dictation phrases so text appears while talking, deeper Soft-theme headers, and, after a follow-up, **Done → Eaten** (finished rounds move from Served into an Eaten drawer, organised by day) and a Mac watchdog for a first load that stalls after an update (`04` §27, `08`). The owner installed it on this Mac on 2026-10-21 (the session copied the app into `/Applications`); its first start stayed green until a reload (`07` #101).
+- **Built and tested (2026-10-21, on the Mac):** `dist/Recaller-1.18.0-arm64.dmg` (ad-hoc signed; codesign valid) and `dist/Recaller Setup 1.18.0.exe` (x64, by `npm run dist:win`), both with the cloud config; each package's 52 app files are byte-identical to the source. `npm test` passed from source and against the packaged Mac `app.asar` alike: unit 714/714, multi-copy 12/12, update-safety 21/21, features 157/157, the same three with accounts on (no request), sync 43/43. Not run on the PC; not committed, installed or released.
+- **This Mac differs from the paths below:** home `/Users/ahsankhan`, repo `/Users/ahsankhan/Documents/GitHub/recaller`; Node 26, gcloud and Terraform from Homebrew (`/opt/homebrew/bin`); no `stash@{0}`; `/Applications/Recaller.app` was 1.17.0 at the start.
+
 Status as of **2026-10-06**, ninth session (on the PC):
 - **1.17.0 is committed, released and merged.** The owner committed and pushed it on `masos` on 2026-10-01 ("huge", `4370072`, then the docs, `f724f71`). On 2026-10-06 its Windows installer became the GitHub Release [`v1.17.0`](https://github.com/Ahsan-khan/recaller/releases/tag/v1.17.0) (tag on `f724f71`; its one asset, `Recaller-Setup-1.17.0.exe`, has the same SHA-256 as the PC's `dist/Recaller Setup 1.17.0.exe`), and PR #2 merged `masos` into `main` (`9d30f1f`, whose tree is identical to `f724f71`). The repo is private, so the download needs a GitHub sign-in. The PC has had 1.17.0 installed since 2026-10-01 (about 20:23). No suite has run on the PC yet. The cloud items under "Still open" below weren't rechecked in this session.
 
@@ -54,7 +59,7 @@ Recaller is a desktop app for Windows and macOS (Electron 44, vanilla JavaScript
 | `05_design_system.md` | Colours, themes, fonts, sizes, stage colours, palettes and design rules learned from user feedback |
 | `06_build_test_release.md` | How to run, build, test and release. What the end-to-end suites check and how they work |
 | `07_gotchas_and_lessons.md` | Every pitfall hit so far: symptom, cause and fix |
-| `08_changelog.md` | Versions 1.0.0 to 1.17.0 (with the 1.16.0 Mac edition, the discarded first 1.17.0, and the accounts-and-sync 1.17.0, released on 2026-10-06) and what changed in each |
+| `08_changelog.md` | Versions 1.0.0 to 1.18.0 (with the 1.16.0 Mac edition, the discarded first 1.17.0, the accounts-and-sync 1.17.0, released on 2026-10-06, and 1.18.0 on `v1.18`) and what changed in each |
 | `09_backlog_and_open_questions.md` | The roadmap for making Recaller usable by everyone, known issues, untested areas, ideas the user may want, technical debt and suggested next steps |
 | `10_user_messages_verbatim.md` | Every message the owner sent, word for word, with notes on how each was interpreted |
 | `11_decision_log.md` | Why each major choice was made (Electron, vanilla JS, voice design, undo, storage, fonts, …) and when to revisit it |

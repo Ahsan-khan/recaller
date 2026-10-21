@@ -14,13 +14,16 @@ window.Voice = (() => {
   // measured noise floor, so quiet microphones and noisy rooms both work.
   const MIN_SPEECH_LEVEL = 0.025;
   const MIN_SILENCE_LEVEL = 0.015;
-  const PAUSE_MS = 700;            // pause long enough to close a phrase
+  const PAUSE_MS = 550;            // pause long enough to close a phrase
   const MIN_SEGMENT_MS = 1500;
   const MIN_SPEECH_MS = 250;       // per segment, to be worth sending
   const MIN_FINAL_SPEECH_MS = 120; // the last segment may be a single short word
   const MIN_FIRST_MS = 600;        // a whole session this long is always sent, whatever the meter says
-  const SOFT_MAX_MS = 20000;       // after this, cut at the next small dip
-  const HARD_MAX_MS = 45000;
+  // Someone who talks without pausing still sees text every few seconds (1.18; was 20 s and 45 s):
+  // after SOFT_MAX_MS a phrase is cut at the next small dip between words, after HARD_MAX_MS anyway.
+  const SOFT_MAX_MS = 5000;
+  const SOFT_DIP_MS = 100;
+  const HARD_MAX_MS = 9000;
 
   const MIME = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
     .find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
@@ -132,7 +135,7 @@ window.Voice = (() => {
 
           const age = performance.now() - seg.startedAt;
           const pause = seg.silentMs >= PAUSE_MS && seg.speechMs >= MIN_SPEECH_MS && age >= MIN_SEGMENT_MS;
-          const tooLong = (age >= SOFT_MAX_MS && seg.silentMs >= 150) || age >= HARD_MAX_MS;
+          const tooLong = (age >= SOFT_MAX_MS && seg.silentMs >= SOFT_DIP_MS) || age >= HARD_MAX_MS;
           if (pause || tooLong) this.cut();
         }, TICK_MS);
       } catch {

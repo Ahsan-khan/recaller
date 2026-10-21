@@ -15,6 +15,8 @@ The rest of this folder describes the shared app. Read this file before changing
 
 **Late update:** at about 20:43 on 2026-09-29, while this handoff was being written, the owner copied Recaller.app (1.16.0) into `/Applications` (20:43:22) and then opened the copy on the mounted dmg (20:43:25), not the one in Applications. That first run created `~/Library/Application Support/Recaller`, which now holds their real Mac notes. At the end of the session, that dmg copy was still the running Recaller. Nothing about how it went is recorded. So where this file says something is untested or not tried by a person, read "not verified by a session and not reported by the owner yet", and ask them.
 
+**1.18.0 (tenth session, 2026-10-20):** Eating, the Claude Code format, Clear, minimized columns, groups and the top-bar + are the same on both platforms; nothing new is fenced. The + has a Mac tooltip (⇧⌘N). It was built and tested on a freshly set-up Mac (`/Users/ahsankhan`, macOS 26.6, Node 26 from Homebrew), where the features suite counts 163 (139 + 24). One Mac-only addition: a watchdog in `createWindow()` reloads a page that hasn't called `data:load` 12 s after loading began, at most twice, after the first start of the installed 1.18.0 stayed empty green (`07` #101).
+
 ## 1. What it is: one codebase, two downloads
 
 ### The request and the owner's answers

@@ -114,6 +114,7 @@ let pendingData = null;
 let pendingMeta = null; // sync's bookkeeping for pendingData (null while signed out)
 let dataTimer = null;
 let restoring = false; // while true, saves from the page are ignored (a backup is being put back)
+let pageLoads = 0;      // data:load calls: the page asked for the notes, so it is running
 
 function loadData() {
   // A reload must never read a file that is older than the last save it sent.
@@ -241,6 +242,22 @@ function createWindow() {
     w.on('enter-full-screen', () => fullScreen(true));
     w.on('leave-full-screen', () => fullScreen(false));
     w.webContents.on('did-finish-load', () => fullScreen(w.isFullScreen()));
+
+    // 1.18: after an update the first load can stall and leave an empty window (seen on 2026-10-21: the
+    // network service waited on the keychain for the new build's signature, then restarted). If the page
+    // hasn't asked for the notes 12 s after loading began, load it again, at most twice.
+    let reloads = 0;
+    const watchLoad = () => {
+      const seen = pageLoads;
+      setTimeout(() => {
+        if (w.isDestroyed() || pageLoads !== seen || reloads >= 2) return;
+        reloads++;
+        console.warn('[window] the page did not start; loading it again');
+        w.webContents.reloadIgnoringCache();
+        watchLoad();
+      }, 12000);
+    };
+    watchLoad();
   }
 
   win.webContents.on('context-menu', (_e, params) => showContextMenu(params));
@@ -462,6 +479,7 @@ function inOrder(write) {
 
 function registerIpc() {
   ipcMain.handle('data:load', () => {
+    pageLoads++;
     cloud.onPageLoading();
     return loadData();
   });

@@ -251,3 +251,35 @@ Decided in the last fix round (2026-10-01), after the final review.
     - What: PR #2, merge commit `9d30f1f`; `main`'s tree is identical to `masos` (`f724f71`). `v1` stays at 1.16.
     - Why: the owner asked for it. The docs had advised running the suites on the PC first; 1.17.0 was tested on the Mac, and its Windows installer has been installed on the PC since 2026-10-01.
     - Revisit if: a suite fails on the PC. Fix it on a branch and merge again.
+
+## 1.18.0 (tenth session, 2026-10-20)
+
+83. **Eating is a manual switch, synced, outside the undo history.**
+    - Why manual: the owner's answer ("Toggle by hand only"). Copying the Served text doesn't mean an agent got it, and a switch that turned itself on would mislead.
+    - Why synced: it is an ordinary project field (`eating`), so the other computer shows that an agent has the prompt. It raises `contentSeq` and leaves an undo label like any synced change, so a sync patch built before it can't undo it.
+    - Why not undoable: it is a state, like a fold. Undo carries it over (`applySnapshot`), so undoing an edit never flips it.
+    - Why the strip reserves space: the owner wanted it "in the very bottom right" of the board, and nothing may overlap (`05`). While it shows, the board keeps 58 px free under the columns.
+    - Revisit if: the owner wants it to switch off by itself (when Served is cleared, say), or to see it outside the window (a Dock badge, the window title).
+84. **The Claude Code format is a fixed template, a view of Cooked, and served as one note.**
+    - Why a template: the owner's answer ("No AI, a fixed template"): free, instant, offline, and always the same. XML-style sections (`<request>`, `<how_to_work>`, `<when_done>`) are how Claude prompts are best structured.
+    - Why a view: the parts stay as they are, so Notes, ✎, ↩ and the pencil still work on the original prompts, and turning it off is exact.
+    - Why one note in Served: the template wraps the whole batch, and a Served text is batches joined; one formatted note keeps that batch whole.
+    - Why it turns off once Cooked is empty: "that shouldn't be there by default": each batch starts plain.
+    - Revisit if: the owner wants their own wording (a Settings field for the "how to work" lines), or a rewrite by Claude after all (the other option offered).
+85. **Groups are a name on each project, folds per computer.**
+    - What: `project.group` holds the group's name; there is no separate group list. A group exists while some project names it, and stands where its first member is.
+    - Why: it syncs with nothing new (unknown project fields always did), it can't go stale (an empty group simply isn't drawn), older versions keep it, and renaming is one undoable step over the members.
+    - Why folds are per computer: like every other fold (stage folds, minimized columns), the two screens differ.
+    - Not built: dragging a column into or out of a group (the ⋯ menu does it), and dragging a whole group (its ⋯ moves it). Column drags stay inside their container, so the code that reorders by DOM order didn't need a new hit-testing model.
+86. **Minimizing is per computer (`localMinimized`).** A key starting with `local` never syncs (`sync-apply.js`), and the PC's ultrawide and the Mac's Retina screen want different tidying.
+87. **Live text: shorter phrases, not a streaming connection.** Text already streamed phrase by phrase (#7), but someone talking without pausing waited up to 20 s, and 45 s at most. Now a phrase is cut at a short dip after 5 s and always at 9 s, and the editor says Listening…. A cut can fall inside a word now and then; the previous text goes along as context, which keeps that rare. Revisit with the Realtime API (#7) if the owner wants words as they are spoken.
+88. **The top-bar + is back, slim.** 1.6 removed a green "+ Project" button at the owner's request (round 9); in 1.18 they asked for a + so a new column needs no scroll. It is an icon button like ↔, not a filled one, so the top bar stays calm.
+89. **Soft headers at 24%.** "Slightly, slightly deeper": from `--accent-tint`'s 15% to 24%, judged on a full board of colours. `--accent-tint` itself is unchanged, because the mic button, the card actions and the draft dot use it too.
+
+90. **Done moves a round to Eaten, a per-computer drawer, undoable with the board.**
+    - Why Done empties Served: the owner: "after eating is done it should move elsewhere and organized". Served is the workspace for the next batch; finished work goes to its own place, organised by time, which is how people look for it ("what did I send this morning?").
+    - Why a drawer, not a section in each column: a calm board (#38): history in every column would repeat furniture N times. A drawer over the right side keeps it one click away, with search and filters; the column's ⋯ opens it filtered.
+    - Why two ways out of Eating: Done (the usual end, ✓ in the strip) and Stop eating, keep it in Served (an agent that failed, or a prompt to refine). Undo covers a wrong Done.
+    - Why per computer: a synced history would live in each project's cloud document, which is capped (900 KB on the client, 1 MiB in Firestore); a long history would get the project quarantined and stop it syncing. So it is the top-level `localEaten`: a `local` key, out of sync and out of the device record (whose `view` would otherwise grow with it), but in the local backups. Revisit with its own cloud collection if the owner wants Eaten on both computers (a rules change and sync work).
+    - Why undo carries it: history entries hold a copy of the Eaten array (its rounds are never changed in place, so this is cheap), so Done, Serve again and Delete from Eaten undo exactly like board edits, and Done's undo also puts Eating back (`restore`).
+91. **A Mac watchdog reloads a page that never started (12 s, at most twice).** After an update the first load stalled behind the keychain (`07` #101). A reload is harmless for a page that never ran, and the page's `data:load` is a precise "it is running" signal. Windows has no keychain in that path (DPAPI), so the watchdog is fenced to the Mac.

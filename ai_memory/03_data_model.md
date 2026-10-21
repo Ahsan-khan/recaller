@@ -70,9 +70,13 @@ Both editions read and write exactly this; the Mac edition added no fields.
                                       //   Only written when the user resizes; the top-bar reset deletes the whole key.
     "lastProjectId": "<project id>",  // column last worked in; Ctrl+N / Ctrl+M (⌘N / ⌘M on a Mac) target it.
                                       //   Saved through the 400ms persistSoon(), like draft typing
-    "scroll": { "board": 240, "cols": { "<project id>": 120 } }  // only saved when the USER scrolls
+    "scroll": { "board": 240, "cols": { "<project id>": 120 } },  // only saved when the USER scrolls
+    "foldedGroups": ["Important"] // 1.18: groups folded to a strip, by name. Per computer; absent when none
   },
   "projects": [ Project, ... ],       // array order = column order on the board
+  "localEaten": [ Round, ... ],       // 1.18, optional: the Eaten history, newest first, at most 300. Per computer
+                                      //   ("local": never synced, not in the device record); in local backups
+                                      //   Round = { id, project, name, color, text, images: [Image], parts, startedAt, doneAt }
   ...any unknown top-level keys are preserved
 }
 ```
@@ -85,6 +89,14 @@ Both editions read and write exactly this; the Mac edition added no fields.
   "name": "Wildfire RL",
   "color": "monstera",        // palette id, see below. Unknown ids are KEPT and drawn with the first palette colour
   "notesCollapsed": true,     // optional (1.8): Cooking folded away. Only present while folded
+  "group": "Important",       // optional (1.18): the name of the column group it sits in. Synced. Members are drawn
+                              //   together where the first one is; absent or blank = not in a group
+  "eating": 1760900000000,    // optional (1.18): when "Eating" was switched on (an agent is running the Served
+                              //   text). Synced. Not undoable: undo carries it over like a fold
+  "cookedFormat": "claude-code", // optional (1.18): the Cooked note is shown, copied and served formatted for
+                              //   Claude Code. Synced, undoable; removed once Cooked is empty again
+  "localMinimized": true,     // optional (1.18): the column is a slim strip. Per computer (a "local" key never
+                              //   syncs). Only present while minimized
   "usedCollapsed": false,     // Cooked section collapsed (data name "used"; see the naming trap below)
   "augCollapsed": false,      // Served section collapsed
   "usedExpanded": true,       // optional, NOT READ since 1.7 (was: Combined note shows all lines). Kept as-is in the file
@@ -253,7 +265,7 @@ Sign-out deletes `account.json` and keeps `state.json` and `shadow.json`, so the
 | `users/{uid}/devices/{deviceId}` | Each computer's backup of its own things: name, platform, app version, its last sync (`lastSeenAt`, the time; `lastRev`, the board's rev then), its view (`prefs` widths, scroll, density, title font, Cooked colour; folds), its drafts, and the allow-listed settings. Never applied to another computer |
 | `gs://recaller-cloud-data/users/{uid}/images/{id}.png` and `{id}.t.png` | The pictures and thumbnails, byte-identical to `images/` on disk |
 
-**Synced:** projects, notes in all three stages with their order, highlights, copy counts (merged as counters), pictures, and `prefs.joiner`. **Per computer:** every other `prefs` key (`density`, `colWidths`, `scroll`, `lastProjectId`, `titleFont`, `cookedColor`), the fold flags, note `expanded`, `draft` and `draftImages`, unknown top-level keys, and the whole settings file. Keys starting with `local` are reserved for future per-computer fields. **Never uploaded:** the OpenAI API key and local backups.
+**Synced:** projects (since 1.18 with their `group`, `eating` and `cookedFormat`), notes in all three stages with their order, highlights, copy counts (merged as counters), pictures, and `prefs.joiner`. **Per computer:** every other `prefs` key (`density`, `colWidths`, `scroll`, `lastProjectId`, `titleFont`, `cookedColor`, and since 1.18 `foldedGroups`), the fold flags, `localMinimized` (1.18), note `expanded`, `draft` and `draftImages`, unknown top-level keys, and the whole settings file. Keys starting with `local` are reserved for future per-computer fields. **Never uploaded:** the OpenAI API key and local backups.
 
 ### Update safety, signed in
 
@@ -312,5 +324,6 @@ Every invariant below still holds, signed in or not:
 - **1.14.0–1.16.0** added no fields (1.16 only changed the board arrows). 1.14 shows the images already stored on `used` / `combined` notes; 1.15 deletes notes from those lists (the same splice as deleting a card).
 - **The 1.16.0 Mac edition** (branch `masos`, committed and pushed as "mac build" on 2026-09-29) added no data fields and doesn't change the format. Its only settings difference is the default `hotkey` (`"Control+Alt+R"` on a Mac). It adds flushes (`closed`, `will-quit`, the page's `beforeunload` draft save) and the hourly daily-backup check, all on a Mac only.
 - **1.17.0** (accounts and sync, both platforms; built on `masos`, released on 2026-10-06) added `note.syncConflict` (only on conflict copies), the `before-sync` backup kind, and, only while signed in, the `sync/` folder and `recaller-data.unreadable-*.json` copies. `DATA_VERSION` is still 2, and the settings file is unchanged.
+- **1.18.0** (tenth session, branch `v1.18`) added four optional project fields, `group`, `eating`, `cookedFormat` (synced, as unknown project fields always were) and `localMinimized` (per computer), and `prefs.foldedGroups` (per computer, like every pref but `joiner`). Since the same session's follow-up, also the top-level `localEaten` (the Eaten history, per computer). All are written only while set. `DATA_VERSION` is still 2; 1.17 and older keep the fields untouched and simply don't draw them.
 
 `DATA_VERSION` has been 2 since 1.1.0. Every change since then was additive or display-only, so no migration code exists beyond the one-time v1 → v2 rewrite.

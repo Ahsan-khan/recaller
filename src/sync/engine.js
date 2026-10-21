@@ -50,7 +50,10 @@ const VIEW_PROJECT_KEYS = new Set(['notesCollapsed', 'usedCollapsed', 'augCollap
 const LISTS = ['notes', 'used', 'combined'];
 // Undo labels that explain a deletion (5.5 step 4).
 const EXPLAINING = new Set(['Delete note', 'Delete project', 'Clear Cooked', 'Clear Served', 'Delete Cooked note',
-  'Delete Served text', 'Edit Cooked', 'Edit Served', 'Undo', 'Redo']);
+  'Delete Served text', 'Edit Cooked', 'Edit Served', 'Undo', 'Redo',
+  // 1.18: Done moves the Served notes to Eaten (on this computer), and serving a Claude Code note
+  // replaces its parts with the one formatted note
+  'Done eating', 'Serve as Claude Code']);
 const NET = new Set(['NETWORK', 'TIMEOUT']);
 // What getIdToken() or a refresh says once this computer's sign-in has ended (account.js shows why).
 const SIGNED_OFF = new Set(['TOKEN_EXPIRED', 'INVALID_REFRESH_TOKEN', 'PROJECT_NUMBER_MISMATCH', 'USER_DISABLED',
@@ -2779,7 +2782,9 @@ function createSync(deps = {}) {
       }
     }
     const top = {};
-    for (const k of Object.keys(data)) if (k !== 'projects' && k !== 'prefs') put(top, k, data[k]);
+    // A top-level key starting with "local" (1.18: localEaten, the Eaten history) is this computer's own and
+    // can be large; it stays out of the device record, as it stays out of everything synced.
+    for (const k of Object.keys(data)) if (k !== 'projects' && k !== 'prefs' && !k.startsWith('local')) put(top, k, data[k]);
     let view = JSON.stringify({ prefs, projects, notes, top });
     if (view.length > VIEW_MAX) view = JSON.stringify({ prefs, projects, top });
     if (view.length > VIEW_MAX) view = JSON.stringify({ prefs, projects });

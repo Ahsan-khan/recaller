@@ -88,6 +88,8 @@ function imageIds() {
         for (const n of [...(p.notes || []), ...(p.used || []), ...(p.combined || [])]) for (const i of n.images || []) ids.add(i.id);
         for (const i of p.draftImages || []) ids.add(i.id);
       }
+      // 1.18: the Eaten history's pictures (localEaten), so a restored backup shows them too
+      for (const r of Array.isArray(data.localEaten) ? data.localEaten : []) for (const i of (r && r.images) || []) ids.add(i.id);
     } catch {}
   }
   return ids;

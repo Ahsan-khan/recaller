@@ -4,7 +4,7 @@ These suites drive the real Recaller app with synthetic mouse and keyboard input
 
 | Command | Suite | Checks |
 | --- | --- | --- |
-| `npm run test:features` | `features.e2e.js`: layout, copy, swipe, drag, stages, editing, reordering and deleting parts, clearing, pictures in Cooked and Served, highlight, Ctrl+click, live dictation, images, scrolling (and the board arrows showing only near their edge), the board frame, settings, column widths, snip, persistence | 134 |
+| `npm run test:features` | `features.e2e.js`: layout, copy, swipe, drag, stages, editing, reordering and deleting parts, clearing, pictures in Cooked and Served, highlight, Ctrl+click, live dictation, images, scrolling (and the board arrows showing only near their edge), the board frame, settings, column widths, the 1.18 features (the top-bar +, Clear, the Claude Code format, Eating, minimized columns, groups, the Soft header, Done and the Eaten drawer), snip, persistence | 158 |
 | `npm run test:update` | `update-safety.e2e.js`: a new version must leave the user's data byte-for-byte unchanged, back it up and restore it | 21 (9 with `MODE=real`) |
 | `npm run test:multicopy` | `multi-copy.e2e.js`: Ctrl+click as a real person does it | 12 |
 | `npm run test:sync` | `sync.e2e.js`: accounts and sync (1.17) against a local mock of Google Cloud, with a second computer: see below | 43 |
@@ -37,7 +37,7 @@ The same commands work on a Mac. `mac-harness.js` keeps a run out of your way th
 
 - **Out of sight:** there's no Dock icon. Each test window sits just past the outer edge of your displays, with a 2 px sliver left on screen so macOS keeps drawing it, and your pointer passes through it. The app can't take focus or hide itself, and no native menu, System Settings or Finder window opens.
 - **⌘ for Ctrl:** the suites send ⌘ wherever they send Ctrl on Windows (multi-select clicks, ⌘↩, ⌘Z, ⌘Y, ⌘N). Check names still say Ctrl.
-- **Features suite:** it skips the real screen snip (3 checks, printed as `SKIP`), which would need Screen Recording permission and would capture your screen. It adds 8 Mac checks: the logo beside the traffic lights, ⌘ key names, Control+click, a real right-click, the menu bar, hide after copying, ⌘H, and a draft saved on quit. That makes 139 checks on a Mac. An `INFO` line prints the title-bar measurements, for tuning.
+- **Features suite:** it skips the real screen snip (3 checks, printed as `SKIP`), which would need Screen Recording permission and would capture your screen. It adds 8 Mac checks: the logo beside the traffic lights, ⌘ key names, Control+click, a real right-click, the menu bar, hide after copying, ⌘H, and a draft saved on quit. That makes 163 checks on a Mac. An `INFO` line prints the title-bar measurements, for tuning.
 - **Sync suite:** 43 checks, as on the PC. It never touches the keychain.
 - **Test a packaged build:** from the repo root, use an absolute path: `APP_MAIN="$PWD/dist/mac-arm64/Recaller.app/Contents/Resources/app.asar/src/main.js" npm test`. A relative path gets past the `HARNESS FAIL: no app at …` check, but `require()` then fails and Electron shows an error dialog on screen.
 - **Real data:** `MODE=real` copies `~/Library/Application Support/Recaller`. Delete `.out/data-real` afterwards.
