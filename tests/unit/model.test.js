@@ -11,7 +11,8 @@ const vm = require('node:vm');
 const model = require('../../src/sync/model');
 const { diffLocal, pushedEntry } = require('../../src/sync/diff');
 
-const APP = fs.readFileSync(path.join(__dirname, '../../src/renderer/app.js'), 'utf8');
+// CRLF → LF: a Windows checkout (core.autocrlf) has CRLF, and statement() looks for ';\n'.
+const APP = fs.readFileSync(path.join(__dirname, '../../src/renderer/app.js'), 'utf8').replace(/\r\n/g, '\n');
 const HAS_CODEC = fs.existsSync(path.join(__dirname, '../../src/cloud/codec.js'));
 
 function block(start) {
