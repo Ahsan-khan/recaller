@@ -21,7 +21,7 @@ npm install
 npm run dist
 ```
 
-This builds `dist/Recaller Setup 1.19.0.exe`. It needs `src/cloud/project.json`, which isn't in git: copy it from the computer that has it, or build without accounts with `RECALLER_NO_CLOUD=1`. Run the installer to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
+This builds `dist/Recaller Setup 1.19.1.exe`. It needs `src/cloud/project.json`, which isn't in git: copy it from the computer that has it, or build without accounts with `RECALLER_NO_CLOUD=1`. Run the installer to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
 
@@ -61,7 +61,7 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Blank line or new line | **Settings → Join notes with** sets how notes are joined in Cooked, Served and Ctrl+click copies |
 | Highlight a note | Hover, click the highlighter and pick a colour: *Check again*, *Important*, *Idea* or *Ready*. Or focus a note and press `H` |
 | Move to another project | Drag it onto another column |
-| Reorder projects | Drag a column by its title (inside a group, it moves among that group's columns). On a Mac the board zooms out while you drag: every column becomes a slim strip, so a short move reaches any spot, and it opens back up when you let go |
+| Reorder projects | Drag a column by its title (inside a group, it moves among that group's columns). |
 | Widget | The window-in-window button in the top bar turns Recaller into a small window that stays on top of your other apps and shows one column. Click the column's name at the top to pick another (or make a new one). The arrows-out button goes back to the full board at its old size. Recaller remembers the widget's size, place and column, and starts as you left it |
 | New text | Click **New text** under the column name to type a prompt, or **Dictate** (the other half of the bar) to speak one. New prompts are added at the bottom of **Cooking**, just above Cooked. Saving closes the editor and the buttons come back. The eraser in the editor clears what you typed or dictated (dictation keeps listening); **Undo** on its toast brings it back |
 | Fold a stage away | Click its name: **Cooking**, **Cooked** or **Served** |
@@ -251,7 +251,7 @@ npm install
 npm run dist:mac
 ```
 
-This builds `dist/Recaller-1.19.0-arm64.dmg`. Open it, drag **Recaller** onto **Applications**, then eject the "Recaller 1.19.0" disk (the eject button beside it in Finder's sidebar) and open Recaller from Applications. Don't open Recaller from the disk image's window: that copy runs from the disk image, which then can't be ejected. If you already did, quit it (⌘Q), eject the disk and open Recaller from Applications; your notes are the same either way.
+This builds `dist/Recaller-1.19.1-arm64.dmg`. Open it, drag **Recaller** onto **Applications**, then eject the "Recaller 1.19.1" disk (the eject button beside it in Finder's sidebar) and open Recaller from Applications. Don't open Recaller from the disk image's window: that copy runs from the disk image, which then can't be ejected. If you already did, quit it (⌘Q), eject the disk and open Recaller from Applications; your notes are the same either way.
 
 - **A copy built on your own Mac** opens straight away.
 - **A downloaded or AirDropped copy** is blocked the first time, because it isn't signed with an Apple Developer ID: macOS says it can't verify the developer. Close that message, open **System Settings › Privacy & Security**, and click **Open Anyway** next to the note about Recaller. You only do this once. (On macOS 15 and later, Control-click › Open no longer gets past this.)

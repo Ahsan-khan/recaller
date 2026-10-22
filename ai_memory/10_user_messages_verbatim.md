@@ -672,3 +672,27 @@ Eleventh session (2026-10-21, on the Mac, `/Users/ahsankhan`; branch `main` = PR
 > make sure to read everyhthing in ai memeory and then update as we go go along
 
 [Every file in `ai_memory` was read in full before the build, and the docs were updated after each piece.]
+
+## Message 72 (after the summary)
+
+> push
+
+[1.19.0 was committed on `v1.19` as "1.19: Eating strip shows every column, zoomed-out column drag on the Mac, widget mode" (`7bdc4ba`) and pushed (`origin/v1.19`).]
+
+## Message 73 (while that was being pushed)
+
+> commit to main
+
+[The merge into `main` was refused by the session's permission check (a merge without review). Pull request #5 (`v1.19` → `main`) was opened instead, for the owner to merge.]
+
+## Message 74
+
+> how i install
+
+[Answered with the dmg steps (quit with ⌘Q, open `dist/Recaller-1.19.0-arm64.dmg`, drag Recaller onto Applications, Replace, eject). The owner installed 1.19.0 themselves.]
+
+## Message 75
+
+> when i move the column around it brings horizontal like mobile model, i odnt like tht at all go back to normal drag
+
+[The 1.19.0 Mac column drag that zoomed the board out into slim strips was removed: the Mac drags whole columns again, exactly as in 1.18. Released as 1.19.1 (1.19.0 was installed). "Horizontal like mobile model" = the row of slim strips.]

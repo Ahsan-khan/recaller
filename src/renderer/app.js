@@ -3410,7 +3410,6 @@
   }
 
   function beginColumnDrag(g) {
-    if (IS_MAC) return beginColumnSort(g);
     g.mode = 'column';
     dragActive = true;
     closeMenu();
@@ -3461,7 +3460,6 @@
   function columnDragEnd(g, cancelled) {
     g.done = true;
     cancelAnimationFrame(g.raf);
-    if (g.sorting) return columnSortEnd(g, cancelled);
     if (!cancelled) {
       const order = [];
       const walk = (parent) => {
@@ -3498,87 +3496,6 @@
       g.colEl.style.transition = '';
       g.colEl.style.zIndex = '';
     }, 300);
-  }
-
-  // ---- Mac: column drag as a zoomed-out row of strips (1.19)
-  // On a trackpad a column drag is one long held-down swipe, and a wide board needs a lot of travel.
-  // So on a Mac, lifting a column turns every column into a slim strip (the minimized look): the whole
-  // board fits, and any slot is a short move away. The board shifts so the gap sits under the pointer,
-  // a small chip follows the pointer, and on release everything opens up again. Windows is unchanged.
-
-  function beginColumnSort(g) {
-    g.mode = 'column';
-    g.sorting = true;
-    dragActive = true;
-    closeMenu();
-    const project = findProject(g.id);
-    g.container = g.colEl.parentNode;
-    g.placeholder = el('div', 'col-placeholder is-sort');
-    g.placeholder.style.setProperty('--accent', colorOf(project));
-    g.container.insertBefore(g.placeholder, g.colEl);
-    g.colEl.classList.add('is-drag-source');
-    document.body.classList.add('is-dragging', 'col-sorting');
-    // The chip under the pointer: the column's leaf and name in its colour.
-    g.ghost = el('div', 'drag-ghost col-sort-ghost');
-    g.ghost.style.setProperty('--accent', colorOf(project));
-    g.ghost.innerHTML = `<svg class="col-leaf"><use href="#monstera"/></svg><span></span>`;
-    g.ghost.querySelector('span').textContent = project?.name || '';
-    document.body.appendChild(g.ghost);
-    g.offX = 22;
-    g.offY = 20;
-    // Put the gap under the pointer: scroll, or pad the board with a spacer where it can't scroll far enough.
-    g.spacers = [];
-    const pr = g.placeholder.getBoundingClientRect();
-    const want = board.scrollLeft + (pr.left + pr.width / 2 - g.x0);
-    const max = board.scrollWidth - board.clientWidth;
-    const spacer = (w, first) => {
-      const s = el('div', 'col-sort-spacer');
-      s.style.width = `${Math.round(w)}px`;
-      if (first) board.insertBefore(s, board.firstChild);
-      else board.appendChild(s);
-      g.spacers.push(s);
-    };
-    if (want < 0) {
-      spacer(-want, true);
-      board.scrollLeft = 0;
-    } else {
-      if (want > max) spacer(want - max, false);
-      board.scrollLeft = want;
-    }
-    positionGhost(g);
-    requestAnimationFrame(() => g.ghost.classList.add('is-lifted'));
-    g.raf = requestAnimationFrame(() => autoScroll(g, () => columnDragMove(g)));
-  }
-
-  function columnSortEnd(g, cancelled) {
-    if (!cancelled) {
-      const order = [];
-      const walk = (parent) => {
-        for (const n of parent.children) {
-          if (n === g.placeholder) order.push(g.id);
-          else if (n.classList.contains('column') && n !== g.colEl) order.push(n.dataset.id);
-          else if (n.classList.contains('col-group')) walk(n.querySelector('.group-cols'));
-        }
-      };
-      walk(board);
-      const byId = new Map(data.projects.map((p) => [p.id, p]));
-      const next = order.map((id) => byId.get(id)).filter(Boolean);
-      if (next.length === data.projects.length && next.some((p, i) => p !== data.projects[i])) {
-        checkpoint('Reorder projects');
-        data.projects = next;
-        persist();
-      }
-    }
-    g.ghost.remove();
-    g.placeholder.remove();
-    for (const s of g.spacers) s.remove();
-    g.colEl.classList.remove('is-drag-source');
-    document.body.classList.remove('is-dragging', 'col-sorting');
-    dragActive = false;
-    render();
-    // Back to full width: show the column where it landed, and nudge its header.
-    g.colEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    bump(g.colEl.querySelector('.col-head'));
   }
 
   // ---- column width: drag a column's right edge. Widths live in data.prefs.colWidths

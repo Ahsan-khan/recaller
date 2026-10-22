@@ -9,7 +9,7 @@ Terms used below:
 - **Cooked** (Combined in 1.6–1.7, Augmented before 1.6): the middle stage (data field `used`), shown as ONE combined note.
 - **Served** (Final in 1.6–1.7, Used before 1.6): the bottom stage (data field `combined`), the final combined text.
 
-§28 describes 1.19.0 (the Eating strip redesign, the Mac zoomed-out column drag, the widget). §27 describes what 1.18.0 added (Eating, the Claude Code format, Clear, minimized columns, groups, the top-bar +, live text while talking). §1–§24 describe the Windows app, 1.16.0, which is the owner's main install. The Mac edition of the same version (branch `masos`, merged into `main` on 2026-10-06) works the same way except where an "(on a Mac: …)" note says otherwise. §25 describes every Mac flow. §26 describes the accounts and sync of 1.17.0 (both platforms; released on 2026-10-06), briefly; the full design is `15_accounts_and_sync.md`.
+§28 describes 1.19 (the Eating strip redesign and the widget; 1.19.0 also had a Mac zoomed-out column drag, removed in 1.19.1). §27 describes what 1.18.0 added (Eating, the Claude Code format, Clear, minimized columns, groups, the top-bar +, live text while talking). §1–§24 describe the Windows app, 1.16.0, which is the owner's main install. The Mac edition of the same version (branch `masos`, merged into `main` on 2026-10-06) works the same way except where an "(on a Mac: …)" note says otherwise. §25 describes every Mac flow. §26 describes the accounts and sync of 1.17.0 (both platforms; released on 2026-10-06), briefly; the full design is `15_accounts_and_sync.md`.
 
 ## 1. Screen layout (top to bottom, left to right)
 
@@ -698,22 +698,16 @@ The owner's words are in `10`, message 63. Both platforms; nothing here is fence
 - **Mac: a stalled first load reloads itself.** If the page hasn't asked for the notes (`data:load`) 12 s after the window started loading, main reloads it, at most twice (`IS_MAC` only). Seen on 2026-10-21 right after installing 1.18.0 over 1.17.0: the window stayed empty green (`07` #101).
 - **Soft theme:** column headers are 24% of the column colour on white (were 15%, `--accent-tint`), with a 34% edge, so columns stand out from the light canvas. The Deep theme is unchanged.
 
-## 28. What 1.19.0 added (eleventh session, 2026-10-21, branch `v1.19`)
+## 28. What 1.19 added (eleventh session, 2026-10-21, branch `v1.19`)
 
-The owner's words are in `10`, messages 69 to 71.
+The owner's words are in `10`, messages 69 to 75. 1.19.1 is 1.19.0 without the Mac zoomed-out column drag.
 
 - **The Eating strip, redesigned** (both platforms; the 1.18 strip hid every chip after the second):
   - Every eating column has a chip, in board order, and the strip **wraps onto more rows** (right-aligned) instead of scrolling sideways with a hidden scrollbar. It is at most the board's width less 32 px (less the drawer while Eaten is open).
   - The label reads **EATING** with a ringing dot and, with two or more, a count badge.
   - Each chip (40 px): a 28 px rounded badge in the column colour with a white leaf, the name (ellipsis at 260 px) over "eating · 12m" in mono, and a labelled **✓ Done** button. A slow sheen in the column colour runs along the chip's foot while it eats. A click on the chip shows the column (as before); Done moves the round to Eaten (as before).
   - The board keeps the strip's **measured** height free under the columns (`--eating-room`, set by `fitEatingRoom()` with a `ResizeObserver`), so a strip of two or three rows still never covers a card. 1.18 reserved a fixed 58 px.
-- **Mac: moving a column zooms the board out** (`IS_MAC` only; Windows keeps the 1.18 drag exactly):
-  1. Press a column's header and move (7 px, as before). Every column turns into a 52 px strip in its header colour with the name written vertically (the minimized look), so the whole board fits on screen. The "+ New project" tile hides meanwhile; groups keep their band.
-  2. The board shifts (scrolls, or pads itself with a spacer) so the dashed gap sits right under the pointer, and a chip with the column's leaf and name, in its colour, follows the pointer.
-  3. Moving left or right moves the gap one slot every ~64 px. Near the board's edges it still auto-scrolls.
-  4. Release: the order is saved (undoable, "Reorder projects", as before), the board opens back to full width, the moved column is scrolled into view and its header bumps.
-  - Inside a group a column still moves only among its group's columns (`09`, 1.18 limits).
-  - Code: `beginColumnSort()` / `columnSortEnd()` (called from `beginColumnDrag()` / `columnDragEnd()` when `IS_MAC`), `body.col-sorting`, `.col-placeholder.is-sort`, `.col-sort-ghost`, `.col-sort-spacer`; CSS in the macOS block.
+- **Mac: a zoomed-out column drag, removed again in 1.19.1.** 1.19.0 turned every column into a 52 px strip while a column was dragged on a Mac. The owner disliked it ("it brings horizontal like mobile model, i don't like that at all, go back to normal drag", `10` message 75), so 1.19.1 drags whole columns on both platforms exactly as 1.18 did (§3, "Reorder").
 - **The widget** (both platforms; the owner's answer: "Floating mini window", `10` message 70): the same window and page, made small and always on top, showing one column.
   1. **In:** the top-bar button before ? (a window-in-window glyph, `#widget-toggle`, tooltip "Widget: a small window that stays on top, with one column"). The window becomes 360 × 640 at the top right of its display (or the widget's last size and place), always on top (`'floating'`), minimum 300 × 360, not maximizable, and on a Mac not full-screenable. A full-screen Mac window leaves full screen first.
   2. **What it shows:** the column the widget last showed, else the current column, else the first; full width and height, never minimized (a minimized column opens in the widget). The top bar keeps only the column picker, undo, Eaten (when shown), the sync cloud (when shown) and the button back; brand, search, +, redo, ↔, ? and the gear hide. No resize handle, board arrows, background leaves or column drag.

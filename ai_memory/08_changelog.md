@@ -2,12 +2,17 @@
 
 Newest first. Dates run from 2026-09-23 to 2026-10-20. Versions 1.0.0 to 1.5.0 were built in one long session; 1.6.0–1.13.0 in a second session on 2026-09-24; 1.14.0 in a third; 1.15.0 in a fourth on 2026-09-26; 1.16.0 in a fifth, the same day. A sixth session (2026-09-28 to 29, on the owner's new Mac) built a 1.17.0 that the owner discarded, a seventh (2026-09-29, on the Mac) built the Mac edition of 1.16.0, and an eighth (2026-09-30 to 10-01, on the Mac) built accounts and sync as a new 1.17.0. A ninth (2026-10-06, on the PC) published 1.17.0's Windows installer as a GitHub Release and merged `masos` into `main`. A tenth (2026-10-20, on a freshly set-up Mac) built 1.18.0 on a new branch, `v1.18`. Versions refer to `package.json` and the installers: `dist/Recaller Setup <version>.exe` for Windows and, for the Mac edition, `dist/Recaller-<version>-arm64.dmg`.
 
+## 1.19.1: back to the normal column drag on the Mac (eleventh session, branch `v1.19`)
+
+- The owner installed 1.19.0 and disliked the zoomed-out drag ("it brings horizontal like mobile model, i don't like that at all, go back to normal drag", `10` message 75). It is removed: `beginColumnSort()`, `columnSortEnd()`, the `body.col-sorting` CSS and its 2 Mac checks are gone, and the Mac drags whole columns exactly as 1.18 did. Everything else in 1.19.0 stays. Features: Windows 166, Mac 171.
+- **Built and tested (2026-10-21, on the Mac):** `npm test` from source and against the packaged `dist/Recaller-1.19.1-arm64.dmg` alike: unit 714/714, multi-copy 12/12, update-safety 21/21, features 171/171, the same three with accounts on, sync 43/43; the package's 52 app files are byte-identical to the source.
+
 ## 1.19.0: the Eating strip shows everything, a zoomed-out column drag on the Mac, and a widget (eleventh session, branch `v1.19`, not committed)
 
 Eleventh session, 2026-10-21, on the Mac. The owner's words are `10`, messages 69 to 71. Details in `04` §28.
 
 - **Eating strip:** every eating column shows (the 1.18 strip hid all but two); chips wrap onto more rows, with a leaf badge, "eating · 12m", a labelled Done and a running sheen; a count on the label; the board keeps the strip's measured height free.
-- **Mac: dragging a column zooms the board out** into slim strips, so a short move reaches any slot; it opens back up on release. Windows unchanged.
+- **Mac: dragging a column zooms the board out** into slim strips, so a short move reaches any slot; it opens back up on release. Windows unchanged. (Removed in 1.19.1 at the owner's request.)
 - **The widget** (both platforms): a top-bar button turns the window into a 360 × 640 always-on-top widget showing one column, with a column picker; the same button goes back to the board at its own size. Remembered per computer (`widget`, `widgetBounds`, `widgetProject` in the settings file). New IPC `window:widget`.
 - **Built and tested (2026-10-21, on the Mac):** `npm test` from source: unit 714/714, multi-copy 12/12, update-safety 21/21, features 173/173, the same three with accounts on (no request), sync 43/43; `dist/Recaller-1.19.0-arm64.dmg` (52 app files byte-identical to the source) passed the same against its packaged `app.asar` (one multi-copy check failed once and passed on a re-run). Features: Windows 158 → 166, Mac 163 → 173. Not run on the PC; no Windows build; not committed or installed.
 - **Data:** no data-file change. The settings file gains `widget`, `widgetBounds` and `widgetProject`, written only once the widget is used; none syncs (the device record's settings are an allow-list).

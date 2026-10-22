@@ -977,23 +977,15 @@ async function run() {
   // ---------------------------------------------------------------- column drag + undo
   const h1 = await rect('.column[data-id="p1"] .col-name');
   const col2 = await rect('.column[data-id="p2"]');
-  // On a Mac (1.19) lifting a column zooms the board out into 52px strips: one slot is ~64px away.
-  const toX = IS_MAC ? h1.cx + 80 : col2.x + col2.w * 0.8;
   mouse('mouseMove', h1.cx, h1.cy, { modifiers: [] }); mouse('mouseDown', h1.cx, h1.cy);
-  await drag(h1.cx, h1.cy, h1.cx + 12, h1.cy + 4, 4, 18);
-  if (IS_MAC) {
-    const sorting = await js(`({ on: document.body.classList.contains('col-sorting'), widths: [...document.querySelectorAll('.column:not(.is-drag-source)')].map((c) => Math.round(c.getBoundingClientRect().width)), gap: Math.round(document.querySelector('.col-placeholder')?.getBoundingClientRect().width || 0), chip: document.querySelector('.col-sort-ghost')?.textContent })`);
-    check('Mac (1.19): lifting a column turns every column into a slim strip, with a chip under the pointer', sorting.on && sorting.widths.length > 3 && sorting.widths.every((w) => w <= 56) && sorting.gap <= 56 && sorting.chip === savedProject('p1').name, JSON.stringify(sorting));
-  }
-  await drag(h1.cx + 12, h1.cy + 4, toX, h1.cy + 10, 12, 18);
-  mouse('mouseUp', toX, h1.cy + 10);
+  await drag(h1.cx, h1.cy, col2.x + col2.w * 0.8, h1.cy + 10, 16, 18);
+  mouse('mouseUp', col2.x + col2.w * 0.8, h1.cy + 10);
   await sleep(450);
   const order1 = await js(`[...document.querySelectorAll('.column')].map(c => c.dataset.id).slice(0, 2).join(',')`);
   key('Z', [MOD]);
   await sleep(350);
   const order2 = await js(`[...document.querySelectorAll('.column')].map(c => c.dataset.id).slice(0, 2).join(',')`);
   check('column reorder, then undo restores order', order1 === 'p2,p1' && order2 === 'p1,p2', `${order1} → ${order2}`);
-  if (IS_MAC) check('Mac (1.19): after the drop the columns are full width again', !(await js(`document.body.classList.contains('col-sorting')`)) && (await rect('.column[data-id="p1"]')).w > 200);
 
   // ---------------------------------------------------------------- ⋯ › Sort prompts oldest first (for columns saved newest-first)
   const createdOrder = () => JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8')).projects.find((p) => p.id === 'p2').notes.map((n) => n.createdAt);
