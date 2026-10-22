@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('recaller', {
   saveData: (data, meta) => ipcRenderer.send('data:save', data, meta),
   copy: (text) => ipcRenderer.invoke('clipboard:write', text),
   minimize: () => ipcRenderer.invoke('window:minimize'),
+  setWidget: (on, projectId) => ipcRenderer.invoke('window:widget', on, projectId),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
   openDataFolder: () => ipcRenderer.invoke('app:open-data-folder'),

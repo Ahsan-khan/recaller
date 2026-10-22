@@ -153,6 +153,7 @@ recaller/
   - Default size 1280×820, minimum 480×400. Saved bounds are restored only if they overlap a display's work area by at least 80px across and 40px down.
   - `titleBarStyle: 'hidden'`. On Windows, `titleBarOverlay` takes the `THEMES` colours, so the native Windows controls sit on the right end of the app's top bar. **On a Mac:** `titleBarOverlay: true`, `trafficLightPosition: { x: 16, y: 16 }` (the three buttons span x 16–70, centred in the 48px top bar) and `acceptFirstMouse: true` (a click on a card while another app is in front both brings Recaller forward and copies the card).
   - `show: false` until `ready-to-show`.
+  - 1.19: with `settings.widget` set, the window is created at the widget's bounds and made always on top (`applyWidgetWindow(true)`); `rememberBounds()` and the `close` handler then save `settings.widgetBounds` instead of `bounds` and `maximized`.
   - Bounds and maximised state are saved 400ms after every move or resize (`rememberBounds()`) and on close. **On a Mac** a full-screen frame is never saved as the window's bounds.
   - **On a Mac, closing hides.** The `close` handler flushes and saves the bounds as usual. Then, unless the app is quitting (`quitting` is set in `before-quit`, for example by ⌘Q), it cancels the close and hides the window. A full-screen window first leaves full screen and hides on `leave-full-screen`, because hiding it in full screen would leave an empty black Space.
   - **On a Mac, full screen:** the window sends `app:command` `'fullscreen-on'` or `'fullscreen-off'` to the page on `enter-full-screen`, `leave-full-screen` and every `did-finish-load`. The page then gives the traffic lights' space back to the top bar.
@@ -231,6 +232,7 @@ None of this has been verified against a real Screen Recording prompt: the Mac t
 | `loadData()` | `data:load` | invoke | → the parsed data object or `null` |
 | `saveData(data, meta)` | `data:save` | send | full data object; debounced write; ignored while restoring. Since 1.17 a second argument `meta = { session, seq, contentSeq, labels, ack? }` (sync's bookkeeping); main keeps it only while signed in, and bad meta counts as `{}` |
 | `copy(text)` | `clipboard:write` | invoke | string → `true` (serialised) |
+| `setWidget(on, projectId)` | `window:widget` | invoke | 1.19: `true` turns the window into the widget (360 × 640 or `settings.widgetBounds`, always on top, min 300 × 360, not maximizable; a Mac leaves full screen first), `false` puts back the board's own bounds (`settings.bounds`, maximized if it was). A string `projectId` (≤ 200 chars) is saved as `settings.widgetProject` → the new state |
 | `minimize()` | `window:minimize` | invoke | minimises the window on Windows; **on a Mac** hides the app (`app.hide()`), like ⌘H |
 | `getSettings()` | `settings:get` | invoke | → public settings object |
 | `setSettings(patch)` | `settings:set` | invoke | patch keys: apiKey, model, language, hint, hotkey, shotHotkey, hideAfterCopy, theme → public settings |

@@ -1167,6 +1167,85 @@ async function run() {
 
   await shot('11-final-board');
 
+  // ---------------------------------------------------------------- 1.19: the Eating strip shows every column, and the widget
+  // three columns eating at once: the 1.18 strip showed only two chips and hid the rest
+  const EIDS = await js(`[...document.querySelectorAll('.column')].filter((c) => c.querySelector('.active-list .card-wrap')).slice(0, 3).map((c) => c.dataset.id)`);
+  for (const id of EIDS) {
+    const S = `.column[data-id="${id}"]`;
+    await js(`document.querySelector('${S} .active-list .card-wrap .act-used').click()`);
+    await sleep(300);
+    await js(`document.querySelector('${S} .aug-move').click()`);
+    await sleep(400);
+    await js(`document.querySelector('${S} .eat-btn').click()`);
+    await sleep(200);
+  }
+  await sleep(500);
+  const strip = await js(`(() => {
+    const bar = document.querySelector('#eating').getBoundingClientRect();
+    const stage = document.querySelector('.stage').getBoundingClientRect();
+    const chips = [...document.querySelectorAll('#eating .eat-chip')];
+    return {
+      n: chips.length,
+      whole: chips.every((c) => { const r = c.getBoundingClientRect(); return r.width > 80 && r.left >= bar.left - 1 && r.right <= bar.right + 1 && r.left >= stage.left && r.right <= stage.right && r.bottom <= stage.bottom; }),
+      done: chips.every((c) => c.querySelector('.eat-done')?.textContent.trim() === 'Done'),
+      count: document.querySelector('#eating-count').textContent,
+      clear: Math.max(...[...document.querySelectorAll('.column')].map((c) => c.getBoundingClientRect().bottom)) <= bar.top + 1,
+    };
+  })()`);
+  check('1.19: with 3 columns eating, every chip shows in full with its Done, and the label counts 3', EIDS.length === 3 && strip.n === 3 && strip.whole && strip.done && strip.count === '3', JSON.stringify({ EIDS, ...strip }));
+  check('1.19: the bigger strip still sits below every column', strip.clear);
+  await shot('12-eating-three');
+
+  // the widget: the window becomes a small always-on-top one with a single column, and comes back.
+  // main's resizes are kept off the owner's screen here; the sizes it asks for are recorded.
+  const asked = [];
+  const realSetBounds = win.setBounds.bind(win);
+  const realSetSize = win.setSize.bind(win);
+  const realCenter = win.center.bind(win);
+  win.setBounds = (b) => { asked.push({ w: b.width, h: b.height }); realSetBounds(offscreenRect(b.width, b.height)); };
+  win.setSize = (w, h) => { asked.push({ w, h }); realSetBounds(offscreenRect(w, h)); };
+  win.center = () => {};
+  const settingsNow = () => JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-settings.json'), 'utf8'));
+  await clickSel('#widget-toggle');
+  await sleep(900);
+  const wid = await js(`({ on: document.body.classList.contains('is-widget'), cols: [...document.querySelectorAll('#board > .column')].map((c) => c.dataset.id), pick: document.querySelector('#widget-pick').hidden ? null : document.querySelector('.widget-pick-name').textContent, search: getComputedStyle(document.querySelector('.search')).display, chipNames: [...document.querySelectorAll('#eating .eat-name')].every((n) => getComputedStyle(n).display === 'none') })`);
+  const widName = wid.cols[0] && savedProject(wid.cols[0])?.name;
+  check('1.19: the widget button turns the window into a widget: one column, a picker with its name, no search', wid.on && wid.cols.length === 1 && wid.pick === widName && wid.search === 'none', JSON.stringify(wid));
+  check('1.19: main makes the widget small and always on top, and remembers it', asked.at(-1)?.w === 360 && win.isAlwaysOnTop() && settingsNow().widget === true && settingsNow().widgetProject === wid.cols[0], JSON.stringify({ asked, top: win.isAlwaysOnTop(), widget: settingsNow().widget }));
+  check('1.19: in the widget the eating chips shrink to badges', wid.chipNames);
+  await shot('12b-widget');
+  await clickSel('#widget-pick');
+  await sleep(250);
+  const pickItems = await texts('.menu .menu-item');
+  const other = EIDS.find((id) => id !== wid.cols[0]);
+  const otherName = savedProject(other).name;
+  await js(`[...document.querySelectorAll('.menu .menu-item')].find((b) => b.textContent.startsWith(${JSON.stringify(otherName)})).click()`);
+  await sleep(400);
+  const switched = await js(`({ cols: [...document.querySelectorAll('#board > .column')].map((c) => c.dataset.id), pick: document.querySelector('.widget-pick-name').textContent })`);
+  check('1.19: the picker lists the columns and switches the widget to another', pickItems.length >= 4 && switched.cols.join() === other && switched.pick === otherName && settingsNow().widgetProject === other, JSON.stringify({ pickItems: pickItems.length, switched }));
+  await clickSel('#widget-toggle');
+  await sleep(900);
+  const back = await js(`({ on: document.body.classList.contains('is-widget'), cols: document.querySelectorAll('#board > .column, #board .col-group .column').length })`);
+  check('1.19: the same button goes back to the full board at its old size, not on top', !back.on && back.cols > 3 && asked.at(-1)?.w > 400 && !win.isAlwaysOnTop() && settingsNow().widget === false, JSON.stringify({ back, asked: asked.at(-1) }));
+  win.setBounds = realSetBounds;
+  win.setSize = realSetSize;
+  win.center = realCenter;
+  win.setBounds(offscreenRect());
+  await sleep(400);
+
+  // put the three columns back: stop eating (not undoable), then undo the moves
+  for (const id of EIDS) {
+    await js(`document.querySelector('.column[data-id="${id}"] .eat-btn').click()`);
+    await sleep(200);
+    await js(`[...document.querySelectorAll('.menu .menu-item')].find((b) => b.textContent.startsWith('Stop eating')).click()`);
+    await sleep(200);
+  }
+  for (let i = 0; i < EIDS.length * 2; i++) { key('Z', [MOD]); await sleep(250); }
+  await sleep(400);
+  check('1.19: stopping and undoing leaves the three columns as they were', await js(`document.querySelector('#eating').hidden`) && EIDS.every((id) => !savedProject(id).combined.length && !('eating' in savedProject(id))));
+  await js('document.querySelector("#board").scrollLeft = 0');
+  await sleep(300);
+
   // ---------------------------------------------------------------- macOS only: the Mac edition's own behaviour
   // Each check puts back what it changes. The reload comes last, where it can't upset the checks after it.
   if (IS_MAC) {

@@ -14,9 +14,9 @@
    - `stash@{0}` (on the Mac only; the PC has none) is the discarded 1.17.0 Mac attempt (not the accounts work): leave it alone unless the owner asks.
    - Don't commit or push unless asked (details in `06`, "Git status").
 4. **Tests:** `npm install` if needed, then `npm test`. Run it in the background and grep the log.
-   - On the PC: expect 12 + 21 + 158 passing (about 5 minutes) on `main` and `v1`. With 1.17 on `masos`, `npm test` first runs the unit tests (714), then 12 + 21 + 158, the same three again with accounts on (`test:accounts-on`), and ends with the sync suite (43). Never run on the PC yet.
-   - Since 1.18 (branch `v1.18`) features counts 158 on Windows and 163 on a Mac (+24 checks).
-   - On the Mac, on `masos` or `v1.18` (where `tests/e2e/mac-harness.js` exists): expect 12 + 21 + 163, with one `SKIP` line (the real snip) and one `INFO` line; with 1.17, the unit tests first (714), then the three suites, the same three again with accounts on (`test:accounts-on`), and 43 sync checks last. Never run the suites on a Mac from a branch without `mac-harness.js` (`main`, `v1`): those are Windows-only and would, among other things, snip the real screen.
+   - On the PC: expect 12 + 21 + 166 passing (about 5 minutes) on `main` and `v1`. With 1.17 on `masos`, `npm test` first runs the unit tests (714), then 12 + 21 + 166, the same three again with accounts on (`test:accounts-on`), and ends with the sync suite (43). Never run on the PC yet.
+   - Since 1.18 (branch `v1.18`) features counts 158 on Windows and 163 on a Mac (+24 checks); since 1.19 (branch `v1.19`) 166 and 171 (+8 on both).
+   - On the Mac, on `masos` or `v1.18` (where `tests/e2e/mac-harness.js` exists): expect 12 + 21 + 171, with one `SKIP` line (the real snip) and one `INFO` line; with 1.17, the unit tests first (714), then the three suites, the same three again with accounts on (`test:accounts-on`), and 43 sync checks last. Never run the suites on a Mac from a branch without `mac-harness.js` (`main`, `v1`): those are Windows-only and would, among other things, snip the real screen.
    - The sync tests use only the local mock: none of them reaches Google or the keychain.
 5. **Cloud state (1.17), read-only:**
    - `~/google-cloud-sdk/bin/gcloud config list` shows the owner's account and project `recaller-cloud` (gcloud and Terraform are off the PATH on the Mac; `infra/README.md`, "Before you start"). `gcloud auth application-default print-access-token >/dev/null && echo ADC ok` checks the login without printing the token.

@@ -198,6 +198,9 @@ The on-screen names changed three times; the data field names never did, so exis
 | `apiKey` | `null` | `{ "enc": base64 }` (encrypted with `safeStorage`: DPAPI on Windows, the Keychain on a Mac) or `{ "plain": "sk-…" }` if encryption is unavailable. The key used is, in order: a decryptable `enc`, then `plain`, then the `OPENAI_API_KEY` env var. An `enc` from the other computer can't be decrypted |
 | `bounds` | `null` | `{ x, y, width, height }` of the window (not maximised; **on a Mac** never a full-screen frame). Ignored unless it overlaps a display's work area by 80px across and 40px down |
 | `maximized` | `false` | Whether the window was maximised |
+| `widget` | absent (off) | 1.19: the window is the widget. Written once the widget is first used; Recaller starts as it was |
+| `widgetBounds` | absent | 1.19: the widget's `{ x, y, width, height }`, saved as it moves; same visibility rule as `bounds` |
+| `widgetProject` | absent | 1.19: the id of the column the widget shows (a missing one falls back to the current column) |
 | `lastVersion` | written at runtime | App version that last ran; a change triggers the pre-update backup |
 
 - Unknown keys are preserved. The whole object (defaults included) is rewritten on the first run of each version, so a default added later never changes a value a user already has. On a Mac that first write stores `"Control+Alt+R"`; a file copied from the PC keeps its own `hotkey`.
@@ -325,5 +328,7 @@ Every invariant below still holds, signed in or not:
 - **The 1.16.0 Mac edition** (branch `masos`, committed and pushed as "mac build" on 2026-09-29) added no data fields and doesn't change the format. Its only settings difference is the default `hotkey` (`"Control+Alt+R"` on a Mac). It adds flushes (`closed`, `will-quit`, the page's `beforeunload` draft save) and the hourly daily-backup check, all on a Mac only.
 - **1.17.0** (accounts and sync, both platforms; built on `masos`, released on 2026-10-06) added `note.syncConflict` (only on conflict copies), the `before-sync` backup kind, and, only while signed in, the `sync/` folder and `recaller-data.unreadable-*.json` copies. `DATA_VERSION` is still 2, and the settings file is unchanged.
 - **1.18.0** (tenth session, branch `v1.18`) added four optional project fields, `group`, `eating`, `cookedFormat` (synced, as unknown project fields always were) and `localMinimized` (per computer), and `prefs.foldedGroups` (per computer, like every pref but `joiner`). Since the same session's follow-up, also the top-level `localEaten` (the Eaten history, per computer). All are written only while set. `DATA_VERSION` is still 2; 1.17 and older keep the fields untouched and simply don't draw them.
+
+- **1.19.0** added nothing to the data file. The settings file gains `widget`, `widgetBounds` and `widgetProject`, written only once the widget is used, never synced (the device record's settings are an allow-list).
 
 `DATA_VERSION` has been 2 since 1.1.0. Every change since then was additive or display-only, so no migration code exists beyond the one-time v1 → v2 rewrite.

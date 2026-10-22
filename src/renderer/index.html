@@ -50,6 +50,11 @@
       <span class="brand-mark"><svg><use href="#monstera" /></svg></span>
       <span class="brand-name">Recaller</span>
     </div>
+    <!-- 1.19: in the widget, the column it shows; a click picks another -->
+    <button class="widget-pick" id="widget-pick" hidden aria-label="Pick the column the widget shows">
+      <svg class="widget-pick-leaf"><use href="#monstera" /></svg><span class="widget-pick-name"></span>
+      <svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></svg>
+    </button>
     <label class="search">
       <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
       <input id="search" type="search" placeholder="Search prompts" spellcheck="false" autocomplete="off" />
@@ -74,6 +79,10 @@
         <svg class="icon" viewBox="0 0 24 24"><path d="M5 3v6a2.5 2.5 0 0 0 5 0V3M7.5 3v18" /><path d="M19 15V3a4.5 4.5 0 0 0-4.5 4.5V13a2 2 0 0 0 2 2H19Zm0 0v6" /></svg><span class="eaten-badge"></span>
       </button>
       <button class="icon-btn sync-btn" id="sync-status" hidden aria-label="Sync"></button>
+      <button class="icon-btn widget-btn" id="widget-toggle" aria-label="Widget">
+        <svg class="icon widget-on-icon" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.5" /><rect x="11.5" y="11" width="7" height="6" rx="1.2" /></svg>
+        <svg class="icon widget-off-icon" viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5" /></svg>
+      </button>
       <button class="icon-btn" id="open-help" title="How Recaller works (F1)" data-mac-title="How Recaller works (?)" aria-label="Help">
         <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.8" /><path d="M12 17.2v.1" /></svg>
       </button>
@@ -97,7 +106,7 @@
     </button>
     <!-- 1.18: every column whose Served text an agent is running ("Eating") -->
     <div class="eating" id="eating" hidden aria-live="polite">
-      <span class="eating-label"><span class="eat-pulse"></span>Eating</span>
+      <span class="eating-label"><span class="eat-pulse"></span>Eating<span class="eating-count" id="eating-count"></span></span>
       <span class="eating-list" id="eating-list"></span>
     </div>
   </div>

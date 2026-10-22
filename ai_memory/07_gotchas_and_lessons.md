@@ -236,3 +236,9 @@ These come from designing and building 1.17.0's accounts and sync on the Mac (20
      - rule out the code first: the installed `app.asar` on a copy of the notes file (accounts off, no `sync/`) loaded cleanly;
      - `sample <pid>` shows whether main is blocked (it wasn't);
      - since 1.18 a Mac-only watchdog reloads a page that hasn't called `data:load` 12 s after loading began (`11` #91). Each ad-hoc-signed update can bring this back until there's a Developer ID (`09`).
+
+## Added in the 1.19 session (eleventh)
+
+102. **A feature that resizes the window would put the test window on the owner's screen.** The widget calls `win.setBounds()` (top right of the display), which undoes the harness's off-screen placement: a scratch capture showed the window landing about 44 px onto the screen for a second before the script stubbed it. In the suites, stub `win.setBounds`, `win.setSize` and `win.center` before triggering such a feature, keep the window at `offscreenRect(width, height)`, record the sizes asked for, and put the real methods back afterwards (`features.e2e.js`, the 1.19 widget checks).
+103. **A synthetic drag needs `modifiers: ['leftButtonDown']` on every move.** Without it the page sees `buttons === 0`, and `trackPointer()` cancels the gesture as a missed release (#16): a scratch column drag silently did nothing. The suites' `move()` already sends it; a scratch script's own `mouse()` helper must too.
+104. **Measure floating UI instead of reserving a fixed gap.** The 1.18 Eating strip reserved 58 px under the columns and capped its own width so it would fit; the cap then hid chips. When a floating element can grow (wrapping rows), let it grow and give the board its measured height (`ResizeObserver` → a CSS variable), so "nothing overlaps" holds at any size.

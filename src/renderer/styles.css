@@ -1840,52 +1840,62 @@ body.theme-deep .sel-hint { color: var(--ink-3); }
 .mini-count { display: none; }
 
 /* the strip at the bottom right of the board: every column that's eating, in board order.
-   The board keeps room for it underneath the columns, so it never covers a card. */
+   1.19: chips wrap onto more rows instead of scrolling out of sight, and the board keeps the strip's
+   measured height free under the columns (--eating-room, set by fitEatingRoom()), so it never covers a card. */
 .eating {
   position: absolute;
   z-index: 5;
   right: 16px;
-  bottom: 18px;
+  bottom: 16px;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  max-width: max(280px, calc(50% - 230px));
-  padding: 5px 5px 5px 12px;
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid var(--col-edge);
-  box-shadow: var(--shadow-md);
+  align-items: flex-start;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 7px 7px 7px 13px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid rgba(16, 168, 116, 0.35);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.10), var(--shadow-md);
 }
-body.has-eating .board { padding-bottom: 58px; }
+body.has-eating .board { padding-bottom: var(--eating-room, 66px); }
 /* with the Eaten drawer open, the strip moves left of it rather than under it */
-body.eaten-open .eating { right: calc(min(400px, 100vw - 44px) + 22px); transition: right 0.22s var(--ease); }
-.eating-label { flex: none; display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #047857; }
-.eat-pulse { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: eat-ring 1.8s ease-out infinite; }
-.eating-list { display: flex; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+body.eaten-open .eating { right: calc(min(400px, 100vw - 44px) + 22px); max-width: calc(100% - min(400px, 100vw - 44px) - 54px); transition: right 0.22s var(--ease); }
+.eating-label { flex: none; display: flex; align-items: center; gap: 7px; height: 40px; font-size: 11px; font-weight: 750; letter-spacing: 0.07em; text-transform: uppercase; color: #047857; }
+.eating-count { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; display: grid; place-items: center; background: #047857; color: #fff; font-size: 10.5px; letter-spacing: 0; }
+.eating-count:empty { display: none; }
+.eat-pulse { width: 9px; height: 9px; border-radius: 50%; background: #10b981; animation: eat-ring 1.8s ease-out infinite; }
+.eating-list { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; min-width: 0; }
 .eat-chip {
+  position: relative;
+  overflow: hidden;
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  max-width: 230px;
-  height: 28px;
-  padding: 0 3px 0 8px;
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--accent) 12%, #ffffff);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  gap: 9px;
+  max-width: 260px;
+  height: 40px;
+  padding: 0 4px 0 5px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 7%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
   color: var(--ink);
-  font-size: 12px;
-  font-weight: 650;
   cursor: pointer;
+  transition: background 0.15s, transform 0.15s var(--ease), box-shadow 0.15s;
 }
-.eat-chip:hover { background: color-mix(in srgb, var(--accent) 20%, #ffffff); }
+.eat-chip:hover { background: color-mix(in srgb, var(--accent) 14%, #ffffff); box-shadow: 0 4px 12px -6px color-mix(in srgb, var(--accent) 70%, transparent); transform: translateY(-1px); }
+.eat-badge { flex: none; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: var(--accent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.eat-badge .eat-leaf { width: 15px; height: 16px; color: #fff; --rib: color-mix(in srgb, var(--accent) 70%, #000); transform: rotate(-14deg); }
 .eat-leaf { flex: none; width: 13px; height: 14px; color: var(--accent); --rib: rgba(255, 255, 255, 0.5); transform: rotate(-14deg); }
-.eat-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.eat-time { flex: none; font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; color: var(--ink-3); }
-.eat-done { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; color: #047857; }
-.eat-done .icon { width: 14px; height: 14px; stroke-width: 2.2; }
+.eat-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.eat-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 680; }
+.eat-time { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); white-space: nowrap; }
+.eat-done { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 9px 0 7px; border-radius: 8px; background: rgba(4, 120, 87, 0.09); color: #047857; font-size: 11.5px; font-weight: 700; }
+.eat-done .icon { width: 13px; height: 13px; stroke-width: 2.4; }
 .eat-done:hover { background: #047857; color: #fff; }
-body.theme-deep .eating { background: #f0fdf6; border-color: transparent; box-shadow: 0 18px 40px -10px rgba(0, 0, 0, 0.6); }
+/* a slow sheen along the chip's foot: "something is running" */
+.eat-flow { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); background-size: 50% 100%; background-repeat: no-repeat; animation: eat-flow 2.6s linear infinite; opacity: 0.75; }
+@keyframes eat-flow { from { background-position: -50% 0; } to { background-position: 150% 0; } }
+body.theme-deep .eating { background: #f4fdf8; border-color: rgba(110, 231, 183, 0.55); box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.14), 0 18px 40px -10px rgba(0, 0, 0, 0.6); }
 
 /* a minimized column: a slim strip in its header colour (leaf, name, count); a click opens it */
 .column.is-minimized { width: 46px !important; min-height: 190px; }
@@ -2203,6 +2213,69 @@ body.theme-deep .eaten-panel { border-color: transparent; box-shadow: 0 24px 60p
    Every other card's row is untouched. */
 .card-meta:has(.card-sync-tag:not(:empty)) { flex-wrap: wrap; row-gap: 4px; }
 .card-meta:has(.card-sync-tag:not(:empty)) > * { white-space: nowrap; }
+
+/* ------------------------------------------------------------------ 1.19: the widget */
+
+/* the top-bar button: a window-in-window glyph; in the widget, arrows out ("back to the full board") */
+.widget-btn .widget-off-icon, body.is-widget .widget-btn .widget-on-icon { display: none; }
+body.is-widget .widget-btn .widget-off-icon { display: block; }
+
+/* the column picker (only in the widget): the column's leaf, its name and a chevron */
+.widget-pick {
+  -webkit-app-region: no-drag;
+  flex: 0 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 8px 0 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent, #0e9f6e) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #0e9f6e) 45%, transparent);
+  color: var(--ink);
+  font-family: var(--title-font, var(--font-head));
+  font-size: 14px;
+  font-weight: 650;
+}
+.widget-pick[hidden] { display: none; }
+.widget-pick:hover, .widget-pick.is-open { background: color-mix(in srgb, var(--accent, #0e9f6e) 26%, transparent); }
+.widget-pick-leaf { flex: none; width: 15px; height: 16px; color: var(--accent, #0e9f6e); --rib: rgba(255, 255, 255, 0.4); transform: rotate(-14deg); }
+.widget-pick-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.widget-pick .icon { flex: none; width: 15px; height: 15px; opacity: 0.7; }
+body.theme-deep .widget-pick { color: #fff; }
+.menu-leaf { flex: none; width: 15px; height: 16px; --rib: rgba(255, 255, 255, 0.45); transform: rotate(-14deg); }
+.widget-menu .menu-item.is-current { font-weight: 700; background: rgba(14, 159, 110, 0.08); }
+.widget-menu { max-height: min(70vh, 520px); overflow-y: auto; }
+
+/* the widget itself: one column filling the window, a top bar with only what a widget needs */
+body.is-widget .topbar { gap: 8px; }
+body.is-widget .brand,
+body.is-widget .search,
+body.is-widget #new-column,
+body.is-widget #redo,
+body.is-widget #reset-widths,
+body.is-widget #open-help,
+body.is-widget #open-settings { display: none; }
+body.is-widget .topbar-actions { margin-left: auto; gap: 2px; }
+body.is-widget .stage { margin: 2px 8px 8px; }
+body.is-widget .board { padding: 8px; overflow-x: hidden; }
+body.is-widget .board > .column { width: auto !important; flex: 1 1 auto; height: 100%; }
+body.is-widget .col-resize,
+body.is-widget .pan-btn,
+body.is-widget .backdrop { display: none; }
+body.is-widget .eating { right: 8px; bottom: 8px; max-width: calc(100% - 16px); padding-left: 10px; }
+body.is-widget .eating-label { display: none; }
+body.is-widget.has-eating .board { padding-bottom: calc(var(--eating-room, 66px) - 10px); }
+/* in the small window the chips shrink to badges (leaf and time; the name is in the tooltip). A click
+   shows that column in the widget; Done is on each column's own Served header. */
+body.is-widget .eating { padding: 6px; border-radius: 14px; }
+body.is-widget .eating-list { justify-content: flex-start; gap: 5px; }
+body.is-widget .eat-chip { height: 32px; gap: 6px; padding: 0 9px 0 3px; border-radius: 10px; }
+body.is-widget .eat-badge { width: 24px; height: 24px; border-radius: 8px; }
+body.is-widget .eat-name, body.is-widget .eat-done, body.is-widget .eat-word { display: none; }
+body.is-widget .eat-time { font-size: 11px; color: var(--ink-2); }
+body.is-widget .eat-chip.is-shown { box-shadow: 0 0 0 2px var(--accent); }
 
 /* ------------------------------------------------------------------ macOS (body.is-mac, 1.16 Mac edition) */
 

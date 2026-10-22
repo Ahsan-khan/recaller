@@ -241,6 +241,8 @@
     settings: null,
     selection: [],     // note ids picked with Ctrl+click, in click order
     anchor: null,      // { id, at }: note just copied with a plain click; a following Ctrl+click includes it
+    widget: false,     // 1.19: the window is the widget, showing one column (widgetId)
+    widgetId: null,
   };
   const fresh = new Set(); // note ids to animate in on next render
 
@@ -829,7 +831,7 @@
 
   function updateColumn(col, project, query, seen) {
     col.root.style.setProperty('--accent', colorOf(project));
-    const minimized = Boolean(project.localMinimized);
+    const minimized = Boolean(project.localMinimized) && !ui.widget; // the widget always shows its column open
     col.root.classList.toggle('is-minimized', minimized);
     col.root.classList.toggle('is-eating', isEating(project));
     col.miniCount.textContent = String(project.notes.length + project.used.length);
@@ -988,7 +990,12 @@
     };
     const folded = new Set(foldedGroups());
     const liveGroups = new Set();
-    for (const unit of boardLayout()) {
+    const shown = ui.widget ? widgetProject() : null;
+    if (shown) {
+      ui.widgetId = shown.id;
+      nodes.push(columnNode(shown));
+    }
+    for (const unit of shown ? [] : boardLayout()) {
       if (!unit.group) {
         nodes.push(columnNode(findProject(unit.ids[0])));
         continue;
@@ -1019,8 +1026,9 @@
       cards.delete(id);
     }
     if (!data.projects.length) nodes.push(emptyEl);
-    else nodes.push(addColumnEl);
+    else if (!shown) nodes.push(addColumnEl);
     syncChildren(board, nodes);
+    paintWidget();
     if (toMeasure.size || augToMeasure.size) requestAnimationFrame(measureCards);
     updatePan();
     paintSelection();
@@ -1028,6 +1036,74 @@
     paintEating();
     paintEaten();
   }
+
+  // ---- the widget (1.19): a small window that stays on top of other apps and shows one column.
+  // main resizes the window and keeps it on top (window:widget); the page draws only that column,
+  // full width, with a picker in the top bar. The same button goes back to the full board.
+
+  const widgetBtn = $('#widget-toggle');
+  const widgetPick = $('#widget-pick');
+
+  function widgetProject() {
+    return findProject(ui.widgetId) || findProject(ui.lastProjectId) || data.projects[0] || null;
+  }
+
+  function paintWidget() {
+    widgetBtn.title = ui.widget
+      ? 'Back to the full board'
+      : 'Widget: a small window that stays on top, with one column';
+    widgetBtn.setAttribute('aria-pressed', String(ui.widget));
+    widgetPick.hidden = !ui.widget;
+    if (!ui.widget) return;
+    const p = widgetProject();
+    widgetPick.style.setProperty('--accent', p ? colorOf(p) : '');
+    const name = p ? p.name : 'No columns';
+    const nameEl = widgetPick.querySelector('.widget-pick-name');
+    if (nameEl.textContent !== name) nameEl.textContent = name;
+    widgetPick.title = `${name} · pick another column`;
+  }
+
+  async function setWidget(on) {
+    if (ui.widget === on) return;
+    closeMenu();
+    closeEaten?.();
+    const p = on ? widgetProject() : findProject(ui.widgetId);
+    ui.widget = on;
+    if (p) ui.widgetId = p.id;
+    document.body.classList.toggle('is-widget', on);
+    render();
+    try {
+      await api.setWidget(on, ui.widgetId);
+    } catch (err) {
+      console.error(err);
+    }
+    if (!on && p) setTimeout(() => revealColumn(p.id), 260); // back on the board, where the widget was
+  }
+
+  function showInWidget(id) {
+    if (!findProject(id)) return;
+    ui.widgetId = id;
+    ui.lastProjectId = id; // Ctrl+N / Ctrl+M write here
+    rememberProject();
+    render();
+    board.scrollLeft = 0;
+    api.setWidget(true, id).catch(() => {});
+  }
+
+  function openWidgetPicker() {
+    openMenu(widgetPick, (menu) => {
+      menu.classList.add('widget-menu');
+      for (const p of boardLayout().flatMap((u) => u.ids).map(findProject)) {
+        const leaf = `<svg class="menu-leaf" style="color:${colorOf(p)}"><use href="#monstera"/></svg>`;
+        menuItem(menu, leaf, p.name + (isEating(p) ? '  ·  eating' : ''), () => showInWidget(p.id));
+        if (p.id === ui.widgetId) menu.lastChild.classList.add('is-current');
+      }
+      menuItem(menu, I.plus, 'New project', () => createProject());
+    });
+  }
+
+  widgetBtn.addEventListener('click', () => setWidget(!ui.widget));
+  widgetPick.addEventListener('click', () => (openMenuEl?.anchor === widgetPick ? closeMenu() : openWidgetPicker()));
 
   // ---- column groups (1.18)
 
@@ -1235,19 +1311,35 @@
     const eating = boardLayout().flatMap((u) => u.ids).map(findProject).filter(isEating);
     eatingBar.hidden = !eating.length;
     document.body.classList.toggle('has-eating', eating.length > 0);
+    eatingCount.textContent = eating.length > 1 ? String(eating.length) : '';
+    // 1.19: every eating column gets its own chip, and the strip wraps onto more rows rather than
+    // hiding chips behind a sideways scroll (with 3 or more, the old strip showed only the first two).
     const html = eating.map((p) => `
-      <span class="eat-chip" data-id="${escapeHtml(p.id)}" style="--accent:${colorOf(p)}" title="${escapeHtml(p.name)} · eating for ${eatFor(p.eating)} · click to show the column">
-        <svg class="eat-leaf"><use href="#monstera"/></svg><span class="eat-name">${escapeHtml(p.name)}</span><span class="eat-time">${eatFor(p.eating)}</span>
-        <button class="eat-done" title="Done: move it to Eaten" aria-label="Done">${I.check}</button>
+      <span class="eat-chip${ui.widget && p.id === ui.widgetId ? ' is-shown' : ''}" data-id="${escapeHtml(p.id)}" style="--accent:${colorOf(p)}" title="${escapeHtml(p.name)} · eating for ${eatFor(p.eating)} · click to show the column">
+        <span class="eat-badge"><svg class="eat-leaf"><use href="#monstera"/></svg></span>
+        <span class="eat-text"><span class="eat-name">${escapeHtml(p.name)}</span><span class="eat-time"><span class="eat-word">eating · </span>${eatFor(p.eating)}</span></span>
+        <button class="eat-done" title="Done: move it to Eaten" aria-label="Done">${I.check}<span>Done</span></button>
+        <span class="eat-flow" aria-hidden="true"></span>
       </span>`).join('');
     if (eatingList.innerHTML !== html) eatingList.innerHTML = html;
+    fitEatingRoom();
   }
+
+  // The board keeps exactly the strip's height free under the columns, so a strip that wraps onto a
+  // second row still never covers a card (1.18 reserved a fixed 58 px for one row).
+  const eatingCount = $('#eating-count');
+  function fitEatingRoom() {
+    const h = eatingBar.hidden ? 0 : Math.ceil(eatingBar.getBoundingClientRect().height);
+    document.body.style.setProperty('--eating-room', `${h ? h + 26 : 0}px`);
+  }
+  if (typeof ResizeObserver === 'function') new ResizeObserver(fitEatingRoom).observe(eatingBar);
 
   eatingList.addEventListener('click', (e) => {
     const chip = e.target.closest('.eat-chip');
     if (!chip) return;
     const id = chip.dataset.id;
     if (e.target.closest('.eat-done')) return finishEating(id);
+    if (ui.widget) return showInWidget(id);
     revealColumn(id);
   });
 
@@ -2167,6 +2259,10 @@
     const project = { id: uid(), name, color, usedCollapsed: false, augCollapsed: false, draft: '', draftImages: [], createdAt: Date.now(), notes: [], used: [], combined: [] };
     data.projects.push(project);
     ui.lastProjectId = project.id;
+    if (ui.widget) { // the widget shows the new column (1.19)
+      ui.widgetId = project.id;
+      api.setWidget(true, project.id).catch(() => {});
+    }
     persist();
     render();
     const col = columns.get(project.id);
@@ -2843,7 +2939,7 @@
       return;
     }
     const head = e.target.closest('.col-head');
-    if (head && colEl && !columns.get(colEl.dataset.id)?.renaming) startColumnGesture(e, colEl);
+    if (head && colEl && !ui.widget && !columns.get(colEl.dataset.id)?.renaming) startColumnGesture(e, colEl);
   });
 
   function trackPointer(e, { onMove, onEnd }) {
@@ -4318,7 +4414,8 @@
       redo();
     } else if (mod && !e.shiftKey && (k === 'k' || k === 'f')) {
       e.preventDefault();
-      focusSearch();
+      if (ui.widget) setWidget(false).then(() => setTimeout(focusSearch, 300)); // search lives on the full board
+      else focusSearch();
     } else if (mod && e.shiftKey && k === 'n') {
       e.preventDefault();
       createProject();
@@ -4347,7 +4444,7 @@
   });
 
   api.onSummoned(() => {
-    if (dialog.open || helpDialog.open || isEditing() || Voice.isActive()) return;
+    if (dialog.open || helpDialog.open || isEditing() || Voice.isActive() || ui.widget) return; // the widget has no search box
     focusSearch();
   });
 
@@ -4600,6 +4697,9 @@
     try {
       ui.settings = await api.getSettings();
       applyTheme(ui.settings.theme);
+      ui.widget = Boolean(ui.settings.widget);
+      ui.widgetId = ui.settings.widgetProject || null;
+      document.body.classList.toggle('is-widget', ui.widget);
     } catch (err) {
       console.error(err);
     }
