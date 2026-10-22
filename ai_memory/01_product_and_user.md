@@ -221,6 +221,13 @@ Tenth session (2026-10-20, on a freshly set-up Mac, branch `v1.18`):
     - Three questions were asked first: the Claude Code format (**"No AI, a fixed template"**), when Eating switches (**"Toggle by hand only"**) and how groups look (**"Named groups on the board"**).
     - What was built: all of it, on the new branch `v1.18`. See `04` §27 and `08` (1.18.0).
 
+Eleventh session (2026-10-21, on the Mac, branch `v1.19`):
+
+27. **Round 21 → v1.19.0.** (The owner's words are in `10`, messages 69 to 71.)
+    - The request: the Eating popup hides columns once more than two are eating ("make it better and sexier and easier to see"); moving columns is "really hard and annoying" on the Mac; "turn recaller to a widget kind of thing".
+    - One question was asked first: what "widget" means (**"Floating mini window"**). The owner also asked that every `ai_memory` file be read first and the docs updated along the way.
+    - What was built: the redesigned Eating strip, the Mac zoomed-out column drag, and the widget. See `04` §28 and `08` (1.19.0).
+
 ## Things the owner has not decided or confirmed
 
 - **Separator:** whether they want a blank line or a single new line between joined notes. The default stays blank line; the setting exists.
@@ -240,4 +247,5 @@ Tenth session (2026-10-20, on a freshly set-up Mac, branch `v1.18`):
 - **Developer ID signing for the Mac:** "Just me for now" meant ad-hoc signing. Whether they will want a Developer ID ($99 a year) and notarization to share the Mac app. It would also stop macOS asking for the microphone, Screen Recording and keychain permissions again after each update.
 - **Intel Macs:** whether a universal build is needed. The dmg is for Apple Silicon only.
 - **1.18 (tenth session):** whether the fixed Claude Code template says the right things (its "how to work" lines include "don't commit, push or delete anything unless the request asks for it"); whether Eating should also show elsewhere (the Mac's Dock badge, the window title); whether groups should be dragged as a whole, or columns dragged into and out of them; and whether text now shows soon enough while talking.
+- **1.19 (eleventh session):** whether the redesigned Eating strip is "sexy" enough; whether the zoomed-out drag makes moving columns easy on the trackpad (and whether Windows wants it too); whether the widget should also have a menu-bar icon, stay on every Space, or show more than one column.
 - **Moving data to the Mac:** whether to bring the PC's notes over (copy `recaller-data.json` and `images/` only; the saved API key can't move) or keep a separate board on each computer.

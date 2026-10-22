@@ -144,7 +144,7 @@ The rule: one codebase, two downloads, and Windows behaves exactly as in 1.16.0.
    - `node --check` every changed file.
    - Run the Mac suites ("Test on a Mac"): they exercise all the shared code.
    - For main-process changes, a side-by-side run helps. In the seventh session a pure-Node script loaded the 1.16 and the `masos` `main.js`, `preload.js` and `screenshot.js` against a mocked `electron` module with `process.platform` set to `'win32'`, and drove both through startup, hotkeys, minimise, the DevTools keys, the global snip, the flushes, `activate` and quit. The two logs matched apart from stack-trace paths. That script lived in the session's scratch folder and is not in the repo; rebuild it if you need it.
-   - On the PC, `npm test` must still give 12 + 21 + 158. As of 2026-09-29 the `masos` code has not been run on Windows at all; do this before any merge into `main`.
+   - On the PC, `npm test` must still give 12 + 21 + 166. As of 2026-09-29 the `masos` code has not been run on Windows at all; do this before any merge into `main`.
    - A Windows installer can be built on the Mac with `npm run dist:win` (x64 pinned), but it can't be run there.
 4. **Document it:** the Mac parts of `02`, the flow in `04` (marked "On a Mac"), and the IPC table if you added a channel.
 
@@ -292,7 +292,7 @@ Read `15_accounts_and_sync.md` first: its status, section 0 ("As built") and the
    - the fuzz test runs about a minute by default; `FUZZ_SEED=n` replays one seed, and `FUZZ_SEEDS=50 FUZZ_STEPS=2000 node --test tests/unit/fuzz.test.js` is the full run of `15` 7.4.
 4. **The rules:** change `infra/firebase/firestore.rules` or `storage.rules` and the twin in `tests/mock-gcp/rules.js` together, add the case to `tests/rules/cases.js`, and run `npm run test:unit` (the twin runs every case). The owner then runs `npm run rules:test` on Google's engine before any deploy, and the deploy goes through Terraform (`infra/README.md`, "Security rules"). One ruleset serves every released version, so new rules must keep accepting what older versions write.
 5. **The facade, main and the page:** `node --check` every edited file, then `npm run test:sync`: the real app as computer A against the mock, the peer as computer B, 43 checks, Mac-safe, never the keychain. Read its `n/n passed` line (a crashed Electron exits as a pass), and look at `.out/sync-shots/` for the account states. To look at the account UI in other states, copy `tests/e2e/capture-board.js` into `tests/e2e/.out/`, and start the mock there before `require(APP_MAIN)` the way `sync.e2e.js` does (`RECALLER_GCP_BASE`, `RECALLER_TOKEN_STORE=test-file`, `RECALLER_SYNC_FAST=1`).
-6. **Then the older suites,** which must not move: 12 + 21 + 158 on Windows, 12 + 21 + 163 on a Mac. They run with accounts off; a change to them means signed-out behaviour changed, which it must not. Then `npm run test:accounts-on`: the same three with accounts on and nobody signed in, failing if the app sends any request.
+6. **Then the older suites,** which must not move: 12 + 21 + 166 on Windows, 12 + 21 + 173 on a Mac. They run with accounts off; a change to them means signed-out behaviour changed, which it must not. Then `npm run test:accounts-on`: the same three with accounts on and nobody signed in, failing if the app sends any request.
 7. **Keep the invariants** (`15`, 5.1 and 5.17):
    - the engine never writes the data file; only the page's `persist()` does;
    - the shadow advances only for states on disk (per committed chunk, or after the acknowledging save);

@@ -643,3 +643,32 @@ After "read everthing in  ai_memory learn every file" (every file was read, then
 > okay so logically afted eating is down it should move elsewhere and organized, make it good we are senior UX UI engineers and experts
 
 [Read as: when Eating is finished, the served prompt should leave Served and go somewhere organised. Built without further questions, as asked: **Done** (✓ on the strip, or Eating › Done) moves the Served text to **Eaten**, a drawer from the top bar with every finished round by day, filters by column, search, and Copy / Serve again / Delete; "Stop eating, keep it in Served" for an agent that didn't finish. Kept per computer, because a synced history inside each project's cloud document would outgrow its size limit (`11` #90). See `04` §27.]
+
+---
+
+Eleventh session (2026-10-21, on the Mac, `/Users/ahsankhan`; branch `main` = PR #4's merge of `v1.18`, then a new branch `v1.19`).
+
+## Message 69 (the whole request, sent as pasted text)
+
+> the eating popup is hiding when i hav emore than 2 open, make it better and sexier and easier to see
+>
+> really hard and annoy to move columns around on the mac
+>
+> turn recaller to a widget kind of thing
+
+[Built as 1.19.0 (`04` §28). How each item was read:
+- "the eating popup is hiding when i have more than 2": the 1.18 Eating strip capped its width at `max(280px, 50% − 230px)` and scrolled its chips sideways with a hidden scrollbar, so from the third eating column on, chips were cut off or out of sight. Redesigned: every chip shows, the strip wraps onto more rows, bigger chips (a leaf badge in the column colour, the name, "eating · 12m", a labelled **Done**), a count on the label, and the board keeps exactly the strip's height free.
+- "hard and annoying to move columns on the mac": on a trackpad a column drag is one long held-down swipe across a wide board. On a Mac only, lifting a column now zooms the board out: every column becomes a slim strip, so the board fits on screen and a short move reaches any slot.
+- "turn recaller to a widget": asked first (message 70).]
+
+## Message 70: the owner's answer to one question
+
+> Floating mini window (Recommended)
+
+[The question: what "widget" should mean: a floating mini window (always on top, one column, a picker, one button back to the board), a menu-bar dropdown, both, or a real macOS widget (a native Swift extension, read-only).]
+
+## Message 71 (sent while the work was starting)
+
+> make sure to read everyhthing in ai memeory and then update as we go go along
+
+[Every file in `ai_memory` was read in full before the build, and the docs were updated after each piece.]

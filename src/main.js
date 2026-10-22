@@ -104,6 +104,8 @@ function publicSettings() {
     shotHotkeyOk: hotkeyOk.shotHotkey,
     hideAfterCopy: settings.hideAfterCopy,
     theme: settings.theme,
+    widget: Boolean(settings.widget),
+    widgetProject: typeof settings.widgetProject === 'string' ? settings.widgetProject : null,
     dataDir: app.getPath('userData'),
   };
 }
@@ -169,6 +171,11 @@ function rememberBounds() {
   clearTimeout(boundsTimer);
   boundsTimer = setTimeout(() => {
     if (!win || win.isDestroyed() || !win.isVisible()) return;
+    if (settings.widget) { // 1.19: the widget's own size and place, kept apart from the board's
+      if (!win.isMinimized()) settings.widgetBounds = win.getBounds();
+      saveSettings();
+      return;
+    }
     settings.maximized = win.isMaximized();
     // Mac: a full-screen frame is not the window's own size, so it isn't kept.
     if (!settings.maximized && !win.isMinimized() && !(IS_MAC && win.isFullScreen())) settings.bounds = win.getBounds();
@@ -176,8 +183,75 @@ function rememberBounds() {
   }, 400);
 }
 
+// ---- 1.19: the widget, a small window that floats over other apps and shows one column.
+// The same window and page; only its size, its minimum and "always on top" change. The board's own
+// bounds stay in settings.bounds and the widget's in settings.widgetBounds (keys written only once used).
+const WIDGET_W = 360;
+const WIDGET_H = 640;
+const WIDGET_MIN = { w: 300, h: 360 };
+
+function widgetBounds() {
+  const saved = visibleBounds(settings.widgetBounds);
+  if (saved) return saved;
+  const near = win ? win.getBounds() : screen.getCursorScreenPoint();
+  const a = screen.getDisplayNearestPoint({ x: near.x, y: near.y }).workArea;
+  const height = Math.min(WIDGET_H, a.height - 48);
+  return { x: a.x + a.width - WIDGET_W - 24, y: a.y + 24, width: WIDGET_W, height };
+}
+
+function applyWidgetWindow(on) {
+  if (!win || win.isDestroyed()) return;
+  if (on) {
+    win.setMinimumSize(WIDGET_MIN.w, WIDGET_MIN.h);
+    win.setMaximizable(false);
+    if (IS_MAC) win.setFullScreenable(false);
+    win.setAlwaysOnTop(true, 'floating');
+  } else {
+    win.setAlwaysOnTop(false);
+    win.setMaximizable(true);
+    if (IS_MAC) win.setFullScreenable(true);
+    win.setMinimumSize(480, 400);
+  }
+}
+
+function setWidget(on, projectId) {
+  if (typeof projectId === 'string' && projectId.length <= 200) settings.widgetProject = projectId;
+  if (!win || win.isDestroyed() || Boolean(settings.widget) === on) {
+    if (!win || win.isDestroyed()) settings.widget = on;
+    saveSettings();
+    return Boolean(settings.widget);
+  }
+  const go = () => {
+    clearTimeout(boundsTimer);
+    if (on) {
+      if (win.isMaximized()) { settings.maximized = true; win.unmaximize(); }
+      else if (!win.isMinimized()) { settings.maximized = false; settings.bounds = win.getBounds(); }
+      settings.widget = true;
+      applyWidgetWindow(true);
+      win.setBounds(widgetBounds(), IS_MAC);
+    } else {
+      if (!win.isMinimized()) settings.widgetBounds = win.getBounds();
+      settings.widget = false;
+      applyWidgetWindow(false);
+      const b = visibleBounds(settings.bounds);
+      if (b) win.setBounds(b, IS_MAC);
+      else { win.setSize(1280, 820, IS_MAC); win.center(); }
+      if (settings.maximized) win.maximize();
+    }
+    saveSettings();
+  };
+  // Mac: a full-screen window can't be resized; leave full screen first.
+  if (IS_MAC && win.isFullScreen()) {
+    win.once('leave-full-screen', () => { if (win && !win.isDestroyed()) setTimeout(go, 50); });
+    win.setFullScreen(false);
+  } else {
+    go();
+  }
+  return on;
+}
+
 function createWindow() {
-  const bounds = visibleBounds(settings.bounds);
+  const bounds = settings.widget ? widgetBounds() : visibleBounds(settings.bounds);
   win = new BrowserWindow({
     width: bounds?.width ?? 1280,
     height: bounds?.height ?? 820,
@@ -202,7 +276,8 @@ function createWindow() {
     },
   });
 
-  if (settings.maximized) win.maximize();
+  if (settings.widget) applyWidgetWindow(true);
+  else if (settings.maximized) win.maximize();
   win.once('ready-to-show', () => win.show());
   win.on('resize', rememberBounds);
   win.on('move', rememberBounds);
@@ -210,8 +285,12 @@ function createWindow() {
   for (const name of ['focus', 'blur', 'show', 'hide', 'minimize', 'restore']) win.on(name, () => cloud.onWindowState());
   win.on('close', (e) => {
     flushData();
-    settings.maximized = win.isMaximized();
-    if (!settings.maximized && !win.isMinimized() && win.isVisible() && !(IS_MAC && win.isFullScreen())) settings.bounds = win.getBounds();
+    if (settings.widget) {
+      if (!win.isMinimized() && win.isVisible()) settings.widgetBounds = win.getBounds();
+    } else {
+      settings.maximized = win.isMaximized();
+      if (!settings.maximized && !win.isMinimized() && win.isVisible() && !(IS_MAC && win.isFullScreen())) settings.bounds = win.getBounds();
+    }
     saveSettings();
     // Mac: the red button and ⌘W only hide the window (the hotkey brings it back); ⌘Q quits.
     if (IS_MAC && !quitting) {
@@ -494,6 +573,9 @@ function registerIpc() {
   ipcMain.handle('window:minimize', () => (IS_MAC ? app.hide() : win?.minimize())); // Mac: hide, like ⌘H
 
   ipcMain.handle('settings:get', () => publicSettings());
+
+  // 1.19: switch between the board and the widget; projectId is the column the widget shows.
+  ipcMain.handle('window:widget', (_e, on, projectId) => setWidget(Boolean(on), projectId));
 
   ipcMain.handle('settings:set', (_e, patch = {}) => {
     if ('apiKey' in patch) setApiKey(patch.apiKey);
