@@ -1239,6 +1239,28 @@ async function run() {
   check('1.20.3: the board scrollbar is 28 px, and the Eating strip sits above it, not on it', strip.scrollbar.h === 28 && strip.stripBottom <= strip.scrollbar.top - 4, JSON.stringify({ scrollbar: strip.scrollbar, stripBottom: strip.stripBottom }));
   await shot('12-eating-three');
 
+  // 1.20.6: the Eating switch never sits on the Served name, even in a 200 px column with a long time;
+  // the strip is dark (its chips stay light)
+  const pill = await js(`(async () => {
+    const id = ${JSON.stringify(EIDS[0])};
+    const col = document.querySelector('.column[data-id="' + id + '"]');
+    const gap = () => { const name = col.querySelector('.final-toggle > span:last-child').getBoundingClientRect(); const btn = col.querySelector('.eat-btn').getBoundingClientRect(); return Math.round(btn.left - name.right); };
+    const wide = gap();
+    const before = col.style.width;
+    col.style.width = '200px';
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const narrow = gap();
+    const time = col.querySelector('.eat-btn-time').textContent;
+    const word = getComputedStyle(col.querySelector('.eat-btn-word')).display;
+    col.style.width = before;
+    const strip = getComputedStyle(document.querySelector('#eating')).backgroundColor;
+    const chip = getComputedStyle(document.querySelector('#eating .eat-chip')).backgroundColor;
+    const lum = (c) => { const n = c.match(/[0-9.]+/g).map(Number).slice(0, 3); const k = c.startsWith('color(') ? 255 : 1; return (n[0] + n[1] + n[2]) * k / 3; }; // rgb() or color(srgb 0–1)
+    return { wide, narrow, time, word, strip: lum(strip), chip: lum(chip) };
+  })()`);
+  check('1.20.6: the Eating switch keeps clear of the Served name, wide and in a 200 px column (time kept)', pill.wide >= 0 && pill.narrow >= 0 && pill.time.length > 0 && pill.word === 'none', JSON.stringify(pill));
+  check('1.20.6: the Eating strip is dark and its chips stay light', pill.strip < 60 && pill.chip > 200, JSON.stringify(pill));
+
   // the widget: the window becomes a small always-on-top one with a single column, and comes back.
   // main's resizes are kept off the owner's screen here; the sizes it asks for are recorded.
   const asked = [];
@@ -1316,6 +1338,22 @@ async function run() {
   await click(40, 400); // the board, away from the menu
   await sleep(250);
   check('1.20.1: ☰ opens the menu (widget, column widths, help, settings); Esc or a click away closes it', menuOpen.open && menuOpen.rows.join('|') === 'Widget: a small window on top|Reset column widths|How Recaller works|Settings' && escClosed && await js(`document.querySelector('#app-menu').hidden`), JSON.stringify({ menuOpen, escClosed }));
+  // 1.20.6: zoom from the ☰ menu: − 100% + scale the whole page, the menu stays open, main remembers it,
+  // Ctrl 0 goes back to 100%, and the caption buttons grow with the top bar
+  await clickSel('#app-menu-btn');
+  await sleep(200);
+  const z0 = await js(`({ label: document.querySelector('#zoom-reset').textContent, w: innerWidth })`);
+  await clickSel('#zoom-in');
+  await sleep(500);
+  const z1 = await js(`({ label: document.querySelector('#zoom-reset').textContent, w: innerWidth, open: !document.querySelector('#app-menu').hidden })`);
+  const zSaved = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-settings.json'), 'utf8')).zoom;
+  check('1.20.6: Zoom + in the ☰ menu zooms the whole app to 110% (the menu stays open) and is remembered', z0.label === '100%' && z1.label === '110%' && z1.open && Math.abs(win.webContents.getZoomFactor() - 1.1) < 0.01 && z1.w < z0.w && zSaved === 1.1, JSON.stringify({ z0, z1, zSaved, factor: win.webContents.getZoomFactor() }));
+  win.webContents.sendInputEvent({ type: 'keyDown', keyCode: '0', modifiers: [IS_MAC ? 'meta' : 'control'] });
+  await sleep(500);
+  const z2 = await js(`({ label: document.querySelector('#zoom-reset').textContent, w: innerWidth })`);
+  check('1.20.6: Ctrl 0 puts the zoom back to 100%', z2.label === '100%' && z2.w === z0.w && win.webContents.getZoomFactor() === 1, JSON.stringify(z2));
+  await js(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await sleep(150);
   check('1.20.1: the notepad page shows its own dark I-beam pointer (the system one could vanish over it)', /^url\(/.test(await js(`getComputedStyle(document.querySelector('#notepad-text')).cursor`)));
   const boardOrder = () => js(`[...document.querySelectorAll('#board > .column, #board > .col-group')].map((n) => n.dataset.id || 'G:' + n.dataset.group).join()`);
   const savedOrder = () => savedData().projects.filter((p) => !p.notepad).map((p) => p.id + (p.group ? '@' + p.group : '')).join();

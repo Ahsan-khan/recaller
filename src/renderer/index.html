@@ -94,6 +94,13 @@
     <button class="menu-item" id="reset-widths" role="menuitem" disabled>
       <svg class="icon" viewBox="0 0 24 24"><path d="M4 5v14M20 5v14M8 12h8" /><path d="m11 9-3 3 3 3M13 9l3 3-3 3" /></svg><span class="app-menu-label">Reset column widths</span>
     </button>
+    <!-- 1.20.6: zoom the whole app (this computer only); the row stays open while you click -->
+    <div class="menu-zoom" role="group" aria-label="Zoom">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m20 20-4.8-4.8" /></svg><span class="app-menu-label">Zoom</span>
+      <button class="zoom-step" id="zoom-out" title="Zoom out (Ctrl −)" data-mac-title="Zoom out (⌘−)" aria-label="Zoom out"><svg class="icon" viewBox="0 0 24 24"><path d="M6 12h12" /></svg></button>
+      <button class="zoom-value" id="zoom-reset" title="Back to 100% (Ctrl 0)" data-mac-title="Back to 100% (⌘0)">100%</button>
+      <button class="zoom-step" id="zoom-in" title="Zoom in (Ctrl +)" data-mac-title="Zoom in (⌘+)" aria-label="Zoom in"><svg class="icon" viewBox="0 0 24 24"><path d="M6 12h12M12 6v12" /></svg></button>
+    </div>
     <div class="menu-sep"></div>
     <button class="menu-item" id="open-help" role="menuitem" title="How Recaller works (F1)" data-mac-title="How Recaller works (?)">
       <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.8" /><path d="M12 17.2v.1" /></svg><span class="app-menu-label">How Recaller works</span><kbd data-mac="?">F1</kbd>
@@ -202,6 +209,7 @@
         <li><b>Notepad:</b> the <b>Notepad</b> button in the top bar (or <kbd data-mac="⌘J">Ctrl J</kbd>) opens one scratch page for random notes. It saves as you type, and syncs to your other computers when you're signed in.</li>
         <li><b>Highlight a prompt</b> to check it again later: hover, then click the marker.</li>
         <li><b>Resize a column:</b> drag its right edge. <b>☰ › Reset column widths</b> in the top bar puts every width back.</li>
+        <li><b>Zoom:</b> <b>☰ › Zoom</b> makes everything bigger or smaller (<b>−</b> and <b>+</b>; click the percentage for 100%). <kbd data-mac="⌘+">Ctrl +</kbd>, <kbd data-mac="⌘−">Ctrl −</kbd>, <kbd data-mac="⌘0">Ctrl 0</kbd> and Ctrl with the mouse wheel do the same. It's kept for this computer.</li>
         <li><b>Screenshots:</b> the camera in the editor, or paste an image. They follow the prompt into Cooked and Served, shown under the text: click the text, paste, then click the picture and paste again.</li>
         <li id="help-account" hidden><b>On every computer:</b> Settings › Account &amp; sync keeps this board in your account. Column widths, folds, drafts and the look stay on each computer.</li>
       </ul>

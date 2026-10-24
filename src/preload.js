@@ -39,6 +39,13 @@ contextBridge.exposeInMainWorld('recaller', {
     }
   },
 
+  // 1.20.6: the zoom changed from a key or the wheel (main applies it; the page shows the percentage)
+  onZoom: (fn) => {
+    const listener = (_e, z) => fn(z);
+    ipcRenderer.on('zoom:changed', listener);
+    return () => ipcRenderer.removeListener('zoom:changed', listener);
+  },
+
   onSummoned: (fn) => {
     const listener = () => fn();
     ipcRenderer.on('app:summoned', listener);

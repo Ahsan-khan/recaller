@@ -206,6 +206,7 @@ The on-screen names changed three times; the data field names never did, so exis
 | `widget` | absent (off) | 1.19: the window is the widget. Written once the widget is first used; Recaller starts as it was |
 | `widgetBounds` | absent | 1.19: the widget's `{ x, y, width, height }`, saved as it moves; same visibility rule as `bounds` |
 | `widgetProject` | absent | 1.19: the id of the column the widget shows (a missing one falls back to the current column) |
+| `zoom` | absent (1) | 1.20.6: the window's zoom factor, 0.5–2 (steps 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200%). Per computer, never synced. Main applies it with `webContents.setZoomFactor` on every load |
 | `lastVersion` | written at runtime | App version that last ran; a change triggers the pre-update backup |
 
 - Unknown keys are preserved. The whole object (defaults included) is rewritten on the first run of each version, so a default added later never changes a value a user already has. On a Mac that first write stores `"Control+Alt+R"`; a file copied from the PC keeps its own `hotkey`.

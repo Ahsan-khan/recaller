@@ -805,3 +805,21 @@ Twelfth session (2026-10-23, on the PC, `C:\Users\User\Documents\recaller`; bran
 > also in mac i move column drag column and it doesnt snap into place easily i ahve to be very precise on mac it should be easier
 
 [Mac only: a swipe now deletes after 22% of the card (at most 60 px, was 36%), and a dragged column takes the next slot once its leading edge passes the neighbour's middle, about half a column, instead of when the pointer does (`08`, 1.20.5; `11` #101). The owner then asked for the dmg: "Build the Mac dmg with these changes so I can install and try it"..]
+
+## Message 90 (2026-10-24, on the PC, on 1.20.4)
+
+> the eating bubble in the column is over lapping
+>
+> the main eating bubble at he button should have a dark backgroun but names same light color
+>
+> the vertical scroll for the minized columns in too close to the columns and overlaping
+>
+> let me be able to zoom in and out which zooms every on this app the columsns the text literally everything, put zoom option in that drop down menu
+
+[1.20.6: the Eating switch no longer covers the Served name in narrow columns; the bottom Eating strip is dark with its chips still light; the minimized stack's scrollbar sits 7 px off the rows; ☰ › Zoom (− 100% +) plus Ctrl + / − / 0 and Ctrl + wheel zoom the whole app.]
+
+## Message 91 (right after)
+
+> no the 1.20.5 was macbook build i want these changes on new one 1.20.6 we just did
+
+[The PC changes were renumbered 1.20.6 and placed on top of the Mac's 1.20.5 from GitHub.]
