@@ -846,7 +846,7 @@
     col.root.classList.toggle('is-minimized', minimized);
     col.root.classList.toggle('is-eating', isEating(project));
     col.miniCount.textContent = String(project.notes.length + project.used.length);
-    col.head.title = minimized ? `${project.name} · click to open the column` : '';
+    col.head.title = minimized ? `${project.name} · click to open the column, drag to move it` : '';
     if (resizing !== col) {
       const w = colWidth(project.id);
       const width = w ? `${w}px` : '';
@@ -1001,6 +1001,7 @@
     };
     const folded = new Set(foldedGroups());
     const liveGroups = new Set();
+    const liveStacks = new Set();
     const shown = ui.widget ? widgetProject() : null;
     if (shown) {
       ui.widgetId = shown.id;
@@ -1015,13 +1016,19 @@
       const view = groupView(unit.group);
       liveGroups.add(unit.group);
       updateGroup(view, unit.group, members, folded.has(unit.group));
-      syncChildren(view.cols, members.map(columnNode));
+      syncChildren(view.cols, stackMinimized(members.map(columnNode), liveStacks));
       nodes.push(view.root);
     }
+    if (!shown) nodes.splice(0, nodes.length, ...stackMinimized(nodes, liveStacks));
     for (const [name, view] of groups) {
       if (liveGroups.has(name) || view.renaming) continue;
       view.root.remove();
       groups.delete(name);
+    }
+    for (const [key, box] of stacks) {
+      if (liveStacks.has(key)) continue;
+      box.remove();
+      stacks.delete(key);
     }
     for (const [id, col] of columns) {
       if (findProject(id)) continue;
@@ -1119,6 +1126,39 @@
 
   widgetBtn.addEventListener('click', () => setWidget(!ui.widget));
   widgetPick.addEventListener('click', () => (openMenuEl?.anchor === widgetPick ? closeMenu() : openWidgetPicker()));
+
+  // ---- minimized columns (1.20.2): side by side on the board (or in a group), they share one slot as a
+  // stack of rows, each with its leaf, name and count, so the names read across instead of down a strip.
+  // A lone minimized column is a stack of one. Nothing is stored: the stack follows the board order.
+
+  const stacks = new Map(); // id of a stack's first column -> its element
+
+  function stackMinimized(nodes, live) {
+    const out = [];
+    let run = [];
+    const flush = () => {
+      if (!run.length) return;
+      const key = run[0].dataset.id;
+      let box = stacks.get(key);
+      if (!box) {
+        box = el('div', 'mini-stack');
+        stacks.set(key, box);
+      }
+      live.add(key);
+      syncChildren(box, run);
+      out.push(box);
+      run = [];
+    };
+    for (const n of nodes) {
+      if (n.classList.contains('column') && n.classList.contains('is-minimized')) run.push(n);
+      else {
+        flush();
+        out.push(n);
+      }
+    }
+    flush();
+    return out;
+  }
 
   // ---- column groups (1.18)
 
@@ -3114,14 +3154,14 @@
 
   // Things inside a column that scroll on their own (the opened-up Cooked and Served
   // texts and their Notes lists scroll inside a capped height).
-  const SCROLLERS = '.col-scroll, textarea, .aug-text, .final-text, .aug-parts, .final-parts';
+  const SCROLLERS = '.col-scroll, textarea, .aug-text, .final-text, .aug-parts, .final-parts, .mini-stack';
   const onScrollbar = (e) => e.target instanceof HTMLElement && e.target.matches(SCROLLERS) && e.offsetX >= e.target.clientWidth;
 
   board.addEventListener('pointerdown', (e) => {
     // On a Mac, Control+click is a right-click: no copy, select, drag or pan (the contextmenu listener edits).
     if (IS_MAC && e.ctrlKey && e.button === 0) return;
     // Middle button anywhere, or left button on empty canvas: pan the board.
-    const canvas = e.target === board || e.target.classList.contains('group-cols') || e.target.classList.contains('col-group');
+    const canvas = (e.target === board || e.target.classList.contains('group-cols') || e.target.classList.contains('col-group') || e.target.classList.contains('mini-stack')) && !onScrollbar(e);
     if (e.button === 1 || (e.button === 0 && canvas)) {
       e.preventDefault();
       startPan(e);
@@ -3654,8 +3694,9 @@
     g.placeholder.style.height = `${rect.height}px`;
     g.placeholder.style.width = `${rect.width}px`;
     g.container = g.colEl.parentNode; // the board, or a group's lane
+    if (g.container.classList.contains('mini-stack')) g.container = g.container.parentNode; // a minimized column (1.20.2)
     g.fromGroup = g.container.classList.contains('group-cols') ? g.container.parentNode.dataset.group : '';
-    g.container.insertBefore(g.placeholder, g.colEl);
+    g.colEl.parentNode.insertBefore(g.placeholder, g.colEl);
     g.colEl.classList.add('is-drag-source');
     document.body.classList.add('is-dragging', 'is-col-drag'); // is-col-drag: no card drop zones
     positionGhost(g);
@@ -3679,7 +3720,7 @@
   // What a dragged column or group can land between, in a container.
   function dropUnits(parent, skip) {
     return [...parent.children].filter((n) => !skip.includes(n)
-      && (n.classList.contains('column') || (parent === board && n.classList.contains('col-group'))));
+      && (n.classList.contains('column') || n.classList.contains('mini-stack') || (parent === board && n.classList.contains('col-group'))));
   }
 
   // The first unit whose middle is right of the pointer (layout boxes, not transformed ones, so
@@ -3723,6 +3764,7 @@
           if (n === g.placeholder) order.push(g.id);
           else if (n.classList.contains('column') && n !== g.colEl) order.push(n.dataset.id);
           else if (n.classList.contains('col-group')) walk(n.querySelector('.group-cols'));
+          else if (n.classList.contains('mini-stack')) walk(n);
         }
       };
       walk(board);
@@ -3830,7 +3872,8 @@
         if (n === g.placeholder) ids.push(...data.projects.filter((p) => groupOf(p) === g.name).map((p) => p.id));
         else if (n === g.groupEl) continue;
         else if (n.classList.contains('column')) ids.push(n.dataset.id);
-        else if (n.classList.contains('col-group')) for (const c of n.querySelectorAll('.group-cols > .column')) ids.push(c.dataset.id);
+        else if (n.classList.contains('mini-stack')) for (const c of n.children) ids.push(c.dataset.id);
+        else if (n.classList.contains('col-group')) for (const c of n.querySelectorAll('.group-cols .column')) ids.push(c.dataset.id);
       }
       const next = ids.map(findProject).filter(Boolean);
       const now = boardProjects();

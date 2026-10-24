@@ -314,7 +314,7 @@ Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New lin
 - The mouse wheel over anything that can't scroll vertically (headers, gaps, short columns) scrolls the board sideways. Over something that scrolls itself (a column, an opened-up Cooked/Served text, a long Notes list, a textarea), the wheel scrolls that. Shift+wheel always scrolls sideways (Chromium's default).
 - Dragging empty canvas pans the board. A press on empty canvas without moving clears any Ctrl+click selection.
 - Holding the middle mouse button and dragging anywhere pans. (On a Mac trackpad there is no middle button: drag empty canvas instead. A two-finger sideways swipe scrolls the board; §25.)
-- The bottom scrollbar is thick and easy to grab.
+- The bottom scrollbar is thick and easy to grab (1.20.3: a 28 px bar with a 20 px thumb, 24 px under the pointer; the Eating strip sits just above it).
 - Board and column scroll positions are remembered across restarts, but only positions the user scrolled to.
 
 ## 17. Settings dialog (gear icon or Ctrl+,)
@@ -744,3 +744,7 @@ The owner's words are in `10`, messages 80 and 81. Both platforms; nothing is fe
 - **The top bar** now holds, right of the search box: the **Notepad** pill (icon and word, tinted emerald; filled while open), **+**, undo and redo, the sync cloud (only when sync needs a look) and **☰**.
 - **☰** opens a dropdown under it, right-aligned: **Eaten** with its count (shown once a round exists), **Widget: a small window on top** (in the widget: **Back to the full board**), **Reset column widths** (disabled while nothing is resized), a line, **How Recaller works** with F1 (? on a Mac), **Settings** with Ctrl , (⌘, on a Mac). A row does its job and closes the menu; a click elsewhere, Esc or opening another menu closes it too. Shortcuts are unchanged (F1, Ctrl+,, Ctrl+J). The Mac menu bar is unchanged.
 - **Pointer:** over the notepad's page (and Eaten's search field) the pointer is Recaller's own dark I-beam with a white edge, because the system's inverting I-beam could vanish there.
+
+### 1.20.2 (the same session)
+
+- **Minimized columns are rows in a stack.** ⋯ › Minimize column turns the column into a 184 × 40 px row in its header colour: leaf, name across (one line, … when long, the full name in the tooltip), the Eating dot and its count (Cooking + Cooked). Minimized columns next to each other (on the board, or inside a group's lane) stack in one slot, 6 px apart; a lone one is a stack of one. A click on a row opens the column; a drag moves it like any column (out of the stack, anywhere on the board or into a group). Synced as before (`minimized`). 1.20.3: a stack is never taller than the board; with more rows than fit (a small window), it scrolls on its own (the wheel over it, or its thin bar).

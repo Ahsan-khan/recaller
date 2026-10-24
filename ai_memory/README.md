@@ -2,6 +2,9 @@
 
 This folder is the complete handoff for **Recaller**. It lets any person, AI agent or LLM continue development without the original conversation. Everything here is plain text, and every user flow is described in words.
 
+Status as of **2026-10-24**, twelfth session continued (on the PC):
+- **1.20.1 is committed** on `v1.20` (`6517e90`, pushed) and open as PR #6 into `main`. On top, uncommitted: **1.20.2** (minimized columns as rows, side by side in one stack; the owner installed it) and **1.20.3** (stacks scroll inside the board, a 28 px board scrollbar, the Eating strip lifted above it). `dist\Recaller Setup 1.20.3.exe` is built (52 app files byte-identical to the source); features 189/189 from source. The owner asked for lighter testing (`13`, step 5).
+
 Status as of **2026-10-23**, twelfth session (on the PC):
 - **1.20.1 (later the same day, same branch, uncommitted):** after installing 1.20.0 the owner asked for five top-bar buttons (How Recaller works, Settings, widget, Eaten, Reset widths) in one ☰ dropdown, a more prominent notepad button (now a labelled **Notepad** pill), and reported the pointer vanishing over the notepad (now its own dark I-beam image). `dist\Recaller Setup 1.20.1.exe` built; from source and against it: unit 715/715, 12/12, 21/21, features 184/184, accounts-on (no request), sync 43/43, `MODE=real` 9/9 (`08`, 1.20.1).
 - **1.20.0 is built and tested on a new branch `v1.20`** (from `main` at `def87e2`; not committed). It makes **minimized columns sync** (`project.minimized`), lets **columns be dragged into and out of groups and whole groups be dragged by their band** (and ⋯ › Move left / right step out at a group's edge), and adds a **notepad**: one scratch page in a drawer (top-bar page icon or Ctrl+J), saved as you type and synced as a hidden project (`04` §29, `08`). The owner's words are `10`, messages 80 and 81.

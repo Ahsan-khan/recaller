@@ -2,6 +2,22 @@
 
 Newest first. Dates run from 2026-09-23 to 2026-10-20. Versions 1.0.0 to 1.5.0 were built in one long session; 1.6.0–1.13.0 in a second session on 2026-09-24; 1.14.0 in a third; 1.15.0 in a fourth on 2026-09-26; 1.16.0 in a fifth, the same day. A sixth session (2026-09-28 to 29, on the owner's new Mac) built a 1.17.0 that the owner discarded, a seventh (2026-09-29, on the Mac) built the Mac edition of 1.16.0, and an eighth (2026-09-30 to 10-01, on the Mac) built accounts and sync as a new 1.17.0. A ninth (2026-10-06, on the PC) published 1.17.0's Windows installer as a GitHub Release and merged `masos` into `main`. A tenth (2026-10-20, on a freshly set-up Mac) built 1.18.0 on a new branch, `v1.18`. Versions refer to `package.json` and the installers: `dist/Recaller Setup <version>.exe` for Windows and, for the Mac edition, `dist/Recaller-<version>-arm64.dmg`.
 
+## 1.20.3: a thicker board scrollbar the Eating strip stays clear of, and stacks that scroll (twelfth session, branch `v1.20`, 2026-10-24)
+
+- **Thicker scrollbar** ("make the horitizal bar a little thicker cause i move it around alot", then "make the horitizal scroller bar thcker and make sure it doesnt over lap with the eating", `10` messages 85 and 87): the board's horizontal scrollbar is 28 px tall (was 14; `--board-bar`), its thumb 20 px (was 6) and 24 px while hovered or held (was 7). Columns are 14 px shorter for it. (Built first at 24 px; the owner asked for "slightly" thicker again, message 88.)
+- **The Eating strip sits above it:** its foot is `--board-bar` + 10 px above the board's bottom (was 16 px, which put the strip over the scrollbar's right end). The board's bottom padding (`--eating-room`, the strip's height + 26 px) still keeps every column above the strip. The widget has no board scrollbar, so it keeps its 8 px.
+- **A tall stack of minimized columns scrolls** ("since the minimized columns stack i should be able to scroll vertically according to the size of the window", message 86): `.mini-stack` is at most the board's height (`max-height: 100%`) and scrolls by itself (a 6 px bar; the wheel over it scrolls it, through `SCROLLERS`; a press on its bar doesn't pan the board).
+- **Tests:** features +2 (Windows 187 → 189, Mac 192 → 194): the board scrollbar is 28 px and the Eating strip (three columns eating) ends above it; a stack scrolls on its own and stays inside the board.
+- The owner had already installed the first 1.20.2 build (stacked minimized columns, without this), so it ships as its own version.
+
+## 1.20.2: minimized columns as a stack of readable rows (twelfth session, branch `v1.20`)
+
+The owner: "the minized columns look odd when vertical and text is unreadable, what can we do to make it look better" (`10`, message 83). Three looks were rendered side by side on the same board (tidier vertical strips, small horizontal cards, a stack of rows); the owner picked **the stack** (message 84).
+
+- A minimized column is now a 184 × 40 px row in its header colour: leaf, the name across on one line (… when long; the full name in the tooltip), the Eating dot and the count. Minimized columns that sit next to each other on the board, or in a group's lane, share one slot as a stack of rows (`.mini-stack`, 6 px apart), so four minimized columns take one column's width instead of four strips. A lone minimized column is a stack of one.
+- Nothing is stored: `render()` wraps each run of minimized columns in a stack (`stackMinimized()`, stacks reused by their first column's id). A row still opens with a click and drags like any column (out of its stack, before or after anything); the drag code treats a stack as one unit and a stacked column's container as the board or lane holding the stack. The gaps in a stack pan the board, like empty canvas.
+- **Tests:** features +3 (Windows 184 → 187, Mac 189 → 192): two minimized columns side by side share one stack, as rows with the names across and whole; a row drags out of its stack, stays minimized, and the release doesn't open it; a click on a row opens it, and the stack goes when nothing is minimized. The 1.18 minimize check now expects a row (wider than 150 px, under 60 px tall, in a stack).
+
 ## 1.20.1: a ☰ menu for five top-bar buttons, a Notepad pill, and a pointer that stays visible over the notepad (twelfth session, branch `v1.20`)
 
 The owner's words are `10`, message 82, after installing 1.20.0.

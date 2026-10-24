@@ -380,7 +380,10 @@ kbd {
 .board > * { cursor: auto; }
 body.is-ready .board { opacity: 1; }
 
-.board::-webkit-scrollbar { height: 14px; }
+/* 1.20.3: thicker, because the owner drags it a lot: a 28 px bar (--board-bar), a 20 px thumb, 24 px under the
+   pointer. The Eating strip sits above it (see .eating), never on it. */
+:root { --board-bar: 28px; }
+.board::-webkit-scrollbar { height: var(--board-bar); }
 .board::-webkit-scrollbar-track { background: transparent; margin: 0 12px; } /* clear of the frame's round corners */
 .board::-webkit-scrollbar-thumb {
   background: rgba(12, 42, 29, 0.22);
@@ -388,7 +391,7 @@ body.is-ready .board { opacity: 1; }
   border: 4px solid transparent;
   background-clip: content-box;
 }
-.board::-webkit-scrollbar-thumb:hover { background-color: rgba(12, 42, 29, 0.38); border-width: 3px; }
+.board::-webkit-scrollbar-thumb:hover, .board::-webkit-scrollbar-thumb:active { background-color: rgba(12, 42, 29, 0.38); border-width: 2px; }
 .col-scroll::-webkit-scrollbar, .composer textarea::-webkit-scrollbar,
 .aug-text::-webkit-scrollbar, .final-text::-webkit-scrollbar, .aug-parts::-webkit-scrollbar, .final-parts::-webkit-scrollbar { width: 8px; }
 .col-scroll::-webkit-scrollbar-thumb, .composer textarea::-webkit-scrollbar-thumb,
@@ -1726,7 +1729,7 @@ body.theme-deep .empty-board p { color: rgba(236, 253, 245, 0.75); }
 body.theme-deep .empty-board svg { color: #34d399; --rib: var(--canvas); }
 body.theme-deep .col-placeholder { border-color: rgba(236, 253, 245, 0.35); background: rgba(255, 255, 255, 0.06); }
 body.theme-deep .board::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.25); }
-body.theme-deep .board::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.42); }
+body.theme-deep .board::-webkit-scrollbar-thumb:hover, body.theme-deep .board::-webkit-scrollbar-thumb:active { background-color: rgba(255, 255, 255, 0.42); }
 body.theme-deep .toast, body.theme-deep .selection-bar { background: #f0fdf6; color: #0c2a1d; box-shadow: 0 18px 40px -10px rgba(0, 0, 0, 0.6); }
 body.theme-deep .toast-action, body.theme-deep .sel-btn { color: #047857; }
 body.theme-deep .toast-action:hover, body.theme-deep .sel-btn:hover { background: rgba(4, 120, 87, 0.1); }
@@ -1846,7 +1849,7 @@ body.theme-deep .sel-hint { color: var(--ink-3); }
   position: absolute;
   z-index: 5;
   right: 16px;
-  bottom: 16px;
+  bottom: calc(var(--board-bar) + 10px); /* 1.20.3: above the board's scrollbar, so it never covers it */
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -1897,32 +1900,37 @@ body.eaten-open .eating { right: calc(min(400px, 100vw - 44px) + 22px); max-widt
 @keyframes eat-flow { from { background-position: -50% 0; } to { background-position: 150% 0; } }
 body.theme-deep .eating { background: #f4fdf8; border-color: rgba(110, 231, 183, 0.55); box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.14), 0 18px 40px -10px rgba(0, 0, 0, 0.6); }
 
-/* a minimized column: a slim strip in its header colour (leaf, name, count); a click opens it */
-.column.is-minimized { width: 46px !important; min-height: 190px; }
+/* a minimized column (1.20.2): a row in its header colour (leaf, name across, Eating dot, count). Minimized
+   columns side by side share one slot, a stack of rows (.mini-stack); a click opens one, a drag moves it */
+.mini-stack { flex: none; align-self: flex-start; width: 184px; display: flex; flex-direction: column; gap: 6px; }
+/* 1.20.3: never taller than the board; a long stack scrolls on its own (wheel over it, or its thin bar) */
+.mini-stack { max-height: 100%; overflow-y: auto; overscroll-behavior: contain; border-radius: 12px; }
+.mini-stack::-webkit-scrollbar { width: 6px; }
+.mini-stack::-webkit-scrollbar-thumb { background: rgba(12, 42, 29, 0.22); border-radius: 999px; }
+body.theme-deep .mini-stack::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.28); }
+.column.is-minimized { width: 100% !important; min-height: 0; }
 .column.is-minimized > :not(.col-head) { display: none; }
 .column.is-minimized .col-head {
-  flex: 1;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 10px;
-  min-height: 0;
-  padding: 13px 0 12px;
-  border-radius: 15px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 10px 6px 12px;
+  border-radius: 12px;
   border-bottom: 0;
   cursor: pointer;
 }
 .column.is-minimized .col-name {
   display: block;
-  writing-mode: vertical-rl;
-  max-height: 300px;
+  flex: 1 1 auto;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 14px;
-  line-height: 1;
+  font-size: 13.5px;
+  line-height: 1.2;
 }
 .column.is-minimized .col-menu { display: none; }
-.column.is-minimized .col-mini { flex-direction: column; margin-top: auto; }
+.column.is-minimized .col-mini { flex-direction: row; gap: 6px; }
 .column.is-minimized .mini-count {
   display: block;
   min-width: 22px;
@@ -1934,7 +1942,8 @@ body.theme-deep .eating { background: #f4fdf8; border-color: rgba(110, 231, 183,
   font-size: 10.5px;
   text-align: center;
 }
-.column.is-minimized:hover .col-head { filter: brightness(1.04); }
+.column.is-minimized:hover .col-head { filter: brightness(1.06); }
+.column.is-minimized + .col-placeholder, .mini-stack > .col-placeholder { width: 100% !important; }
 body.theme-deep .column.is-minimized .mini-count { background: rgba(255, 255, 255, 0.2); color: #fff; }
 
 /* a group of columns: a faint lane with a slim labelled band on top; folded, a narrow strip */

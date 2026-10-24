@@ -150,7 +150,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **Counts:** Windows 12 + 21 + 134 (unchanged). Mac 12 + 21 + 139 (134 − 3 skipped + 8 Mac checks). Seventh session, on source on the Mac: 12/12, 21/21 (synthetic) and 139/139, all 8 Mac checks passing.
 - **Windows after the Mac edition:** the Windows side was not run in the seventh session (the Mac can't run the Windows app). That Windows behaves exactly as 1.16.0 rests on every Mac difference being fenced (`07` #65) and a hunk-by-hunk review, plus a plain-Node run of `main.js` against a mocked Electron with the platform set to `win32`, whose log of Electron calls matched 1.16's apart from stack-trace line numbers (run before the last reviewer fixes, which are all Mac-only). The first real check is `npm test` on the PC: 12 + 21 + 134.
 
-### `features.e2e.js` (184 checks on Windows since 1.20.1, 180 in 1.20.0, 166 in 1.19, 158 in 1.18, 134 before; 189 on a Mac since 1.20.1, 185 in 1.20.0, 171 in 1.19, 163 in 1.18, 139 before; about 4 minutes)
+### `features.e2e.js` (189 checks on Windows since 1.20.3, 187 in 1.20.2, 184 in 1.20.1, 180 in 1.20.0, 166 in 1.19, 158 in 1.18, 134 before; 194 on a Mac since 1.20.3, 192 in 1.20.2, 189 in 1.20.1, 185 in 1.20.0, 171 in 1.19, 163 in 1.18, 139 before; about 4 minutes)
 
 **Setup:**
 - **Seed data:** seven projects in the old v1 format, which also exercises loading old data.
@@ -244,6 +244,8 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **1.19** (8 checks on both platforms, after the 1.18 block): three columns eating at once show three whole chips, each with Done, and a count of 3, still below every column; the widget button makes one column and a picker with its name, main asks for 360 px and keeps it on top and saves `widget` / `widgetProject` (the suite stubs `setBounds`, `setSize` and `center` so the window stays off screen, and records the sizes asked for); the eating chips shrink to badges; the picker switches columns; the same button goes back to a full board, not on top; stopping Eating and undoing the moves leaves the columns as they were. (1.19.0 also had 2 Mac checks of a zoomed-out column drag, removed with it in 1.19.1.)
 - **1.20** (14 checks on both platforms, after the 1.19 block; the seed holds a notepad project with a page and a conflict copy): `minimized` is synced (`SyncApply.isLocalKey`); a group made from p2 and p3, dragged by its band before p1 (a ghost card with its name, a slot, no card drop zones), and the release not folding it; p1 dragged into the lane (its slot inside the lane, the toast) and p3 dragged out; ⋯ › Move left, out of the group; seven undos put everything back; the notepad never a column; Ctrl+J opens it focused with the page and the other version; typing saves by itself into the hidden project; Copy; Add to the page; Esc; and a board change and its undo leaving it alone. The 1.18 minimize checks now expect `minimized`.
 - **1.20.1** (4 checks, at the start of the 1.20 block): Eaten, the widget, Reset column widths, help and settings are in `#app-menu`, not the top bar; the notepad is a labelled, tinted pill; ☰ opens the menu with its rows, and Esc or a click away closes it; the notepad's pointer is an image. Checks that clicked a moved button open ☰ first (`fromMenu(sel)`).
+- **1.20.2** (3 checks, after the 1.20 drags): p2 and p3 minimized share one stack, as rows with the names across; p3's row dragged before p1 leaves the stack, stays minimized and isn't opened by the release; clicks open both rows and the stack goes. The 1.18 minimize check expects a row in a stack.
+- **1.20.3** (2 checks): with three columns eating, the board scrollbar is 28 px and the strip ends above it; a stack has `overflow-y: auto`, a max height, and stays inside the board.
 - **Mac only** (8 checks, seventh session; they run just before the snip, and each puts back what it changes):
   - the logo clears the traffic lights and is centred on them (`getWindowButtonPosition()` is {x: 16, y: 16}; `.brand` starts at x ≥ 16 + 54 + 8 and its centre is within 3px of y 24);
   - key names use ⌘: the search box reads ⌘K, every Help key uses ⌘ (F1 reads ?), the Settings button's title has ⌘, and the Undo title has ⌘Z;
@@ -364,8 +366,8 @@ Run these from the repo root after `npm run dist:mac`. They only read (the mount
 Nothing here talks to the real Google Cloud except the two owner-run `rules:*` scripts and the manual two-computer check. The unit and rules counts are as of the storage-overwrite fix (2026-10-01, `15` section 0, item 34), the e2e counts as of the final gates the same morning; confirm them before quoting.
 
 **Expected totals for `npm test` with 1.17:**
-- Mac: unit tests (715), then 12 + 21 + 189, then the same 12 + 21 + 189 with accounts on (`test:accounts-on`, no request), then 43.
-- PC: unit tests (715), then 12 + 21 + 184, then the same 12 + 21 + 184 with accounts on, then 43. First passed on the PC on 2026-10-23 (1.19.1: 714 and 166).
+- Mac: unit tests (715), then 12 + 21 + 194, then the same 12 + 21 + 194 with accounts on (`test:accounts-on`, no request), then 43.
+- PC: unit tests (715), then 12 + 21 + 189, then the same 12 + 21 + 189 with accounts on, then 43. First passed on the PC on 2026-10-23 (1.19.1: 714 and 166).
 
 ### Unit tests (`tests/unit/`, `npm run test:unit`)
 

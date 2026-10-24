@@ -1123,7 +1123,7 @@ async function run() {
   // ⋯ › Minimize column: a slim strip, and a click opens it
   const minimized = await pickFrom(`${C} .col-menu`, 'Minimize column');
   const miniBox = await rect(C);
-  check('⋯ › Minimize column folds it to a slim strip (1.20: synced, as `minimized`)', minimized && miniBox.w < 60 && savedProject(NEW).minimized === true && !('localMinimized' in savedProject(NEW)) && await js(`getComputedStyle(document.querySelector('${C} .col-scroll')).display === 'none'`), `${Math.round(miniBox.w)}px`);
+  check('⋯ › Minimize column folds it to a row (1.20: synced, as `minimized`; 1.20.2: a row in a stack)', minimized && miniBox.h < 60 && miniBox.w > 150 && await js(`!!document.querySelector('${C}').closest('.mini-stack')`) && savedProject(NEW).minimized === true && !('localMinimized' in savedProject(NEW)) && await js(`getComputedStyle(document.querySelector('${C} .col-scroll')).display === 'none'`), `${Math.round(miniBox.w)}px`);
   await clickSel(`${C} .col-head`);
   await sleep(500);
   check('a click on the strip opens the column again', (await rect(C)).w > 200 && !('minimized' in savedProject(NEW)));
@@ -1197,10 +1197,14 @@ async function run() {
       done: chips.every((c) => c.querySelector('.eat-done')?.textContent.trim() === 'Done'),
       count: document.querySelector('#eating-count').textContent,
       clear: Math.max(...[...document.querySelectorAll('.column')].map((c) => c.getBoundingClientRect().bottom)) <= bar.top + 1,
+      // 1.20.3: the board's scrollbar (28 px) runs under the strip's foot; the strip stays above it
+      scrollbar: (() => { const b = document.querySelector('#board'); return { h: b.offsetHeight - b.clientHeight, top: b.getBoundingClientRect().bottom - (b.offsetHeight - b.clientHeight) }; })(),
+      stripBottom: bar.bottom,
     };
   })()`);
   check('1.19: with 3 columns eating, every chip shows in full with its Done, and the label counts 3', EIDS.length === 3 && strip.n === 3 && strip.whole && strip.done && strip.count === '3', JSON.stringify({ EIDS, ...strip }));
   check('1.19: the bigger strip still sits below every column', strip.clear);
+  check('1.20.3: the board scrollbar is 28 px, and the Eating strip sits above it, not on it', strip.scrollbar.h === 28 && strip.stripBottom <= strip.scrollbar.top - 4, JSON.stringify({ scrollbar: strip.scrollbar, stripBottom: strip.stripBottom }));
   await shot('12-eating-three');
 
   // the widget: the window becomes a small always-on-top one with a single column, and comes back.
@@ -1337,6 +1341,39 @@ async function run() {
   for (let i = 0; i < 7; i++) { key('Z', [MOD]); await sleep(250); }
   await sleep(500);
   check('1.20: undo puts the columns and the group back as they were', savedOrder() === order0 && !(await js(`!!document.querySelector('.col-group')`)), JSON.stringify({ order0, now: savedOrder() }));
+
+  // 1.20.2: minimized columns are rows with their names across; side by side they share one stack
+  await pickFrom('.column[data-id="p2"] .col-menu', 'Minimize column');
+  await pickFrom('.column[data-id="p3"] .col-menu', 'Minimize column');
+  const stack = await js(`(() => {
+    const boxes = [...document.querySelectorAll('#board > .mini-stack')];
+    const rows = boxes.flatMap((b) => [...b.querySelectorAll(':scope > .column')]);
+    const name = rows[0]?.querySelector('.col-name');
+    return { boxes: boxes.length, rows: rows.map((r) => r.dataset.id), across: name && getComputedStyle(name).writingMode === 'horizontal-tb',
+      whole: name && name.scrollWidth <= name.clientWidth + 1, w: Math.round(rows[0]?.getBoundingClientRect().width), h: Math.round(rows[0]?.getBoundingClientRect().height) };
+  })()`);
+  check('1.20.2: two minimized columns side by side share one stack, as rows with their names across', stack.boxes === 1 && stack.rows.join() === 'p2,p3' && stack.across && stack.whole && stack.w > 150 && stack.h < 60, JSON.stringify(stack));
+  const stackFit = await js(`(() => { const s = document.querySelector('.mini-stack'); const st = getComputedStyle(s); return { overflow: st.overflowY, max: st.maxHeight, inside: s.getBoundingClientRect().bottom <= document.querySelector('#board').getBoundingClientRect().bottom }; })()`);
+  check('1.20.3: a stack never runs past the board: it scrolls on its own (a small window)', stackFit.overflow === 'auto' && stackFit.max !== 'none' && stackFit.inside, JSON.stringify(stackFit));
+  await shot('13e-minimized-stack');
+  // a row drags like a column: p3 to the far left, out of the stack and still minimized
+  const row3 = await rect('.column[data-id="p3"] .col-head');
+  const p1left = await rect('.column[data-id="p1"]');
+  mouse('mouseMove', row3.cx, row3.cy, { modifiers: [] });
+  mouse('mouseDown', row3.cx, row3.cy);
+  await drag(row3.cx, row3.cy, p1left.x + 10, row3.cy + 4, 16, 20);
+  await sleep(300);
+  mouse('mouseUp', p1left.x + 10, row3.cy + 4);
+  await sleep(700);
+  const afterRow = { order: savedOrder(), stacks: await js(`[...document.querySelectorAll('#board > .mini-stack')].map((b) => [...b.children].map((c) => c.dataset.id).join('+')).join()`), still: savedProject('p3').minimized === true, open: await js(`!document.querySelector('.column[data-id="p3"]').classList.contains('is-minimized')`) };
+  check('1.20.2: a minimized row drags out of its stack (and stays minimized; the release doesn’t open it)', afterRow.order.startsWith('p3,p1') && afterRow.still && !afterRow.open && afterRow.stacks === 'p3,p2', JSON.stringify(afterRow));
+  key('Z', [MOD]); // the reorder
+  await sleep(400);
+  await clickSel('.column[data-id="p2"] .col-head');
+  await sleep(400);
+  await clickSel('.column[data-id="p3"] .col-head');
+  await sleep(500);
+  check('1.20.2: a click on a row opens its column; the stack goes when nothing is minimized', !(await js(`!!document.querySelector('.mini-stack')`)) && !('minimized' in savedProject('p2')) && !('minimized' in savedProject('p3')) && savedOrder() === order0, JSON.stringify({ order: savedOrder() }));
 
   // the notepad: one scratch page (seeded with a page and another computer's version)
   const colsBefore = await js(`document.querySelectorAll('.column').length`);
