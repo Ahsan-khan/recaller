@@ -89,6 +89,7 @@ Recaller is a desktop app for Windows and macOS (Electron 44, vanilla JavaScript
 | `13_ai_agent_playbook.md` | For AI agents: the session-start checklist, the per-request workflow that worked, tool and environment tips, how the owner likes answers, and a glossary |
 | `14_macos.md` | The macOS edition: the one-codebase rule, everything that differs on a Mac and how each difference works in code, building and installing the dmg, Mac-safe testing, Mac gotchas, moving notes between the PC and the Mac, and what is still open |
 | `15_accounts_and_sync.md` | Accounts and sync (1.17.0): the status, section 0 "As built" (every place the code differs from the spec), then the full design: Google Cloud setup, client modules and IPC, the cloud data model and security rules, the sync algorithm, the UI strings, testing, and the risks and owner's answers |
+| `16_iphone_app_plan.md` | The native iPhone app (2026-10-24; built in `ios/`, running in the Simulator against the mock, see its Status): reuse the desktop sync engine in JavaScriptCore with SwiftUI screens, the rules it must keep so the desktop data stays safe, the feature list, phases and open questions |
 
 AI agents should read `13` first, then continue with the order above. Read `14` before any Mac work, and `15` (its status and section 0 first) before any account, sync or `infra/` work.
 

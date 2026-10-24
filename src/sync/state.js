@@ -14,7 +14,7 @@ const store = require('../store');
 
 const DEVICE_ID = /^[a-f0-9]{32}$/;
 const MODES = new Set(['normal', 'union', 'restore', 'first']);
-const NAMES = { darwin: 'Mac', win32: 'Windows PC', linux: 'Linux PC' };
+const NAMES = { darwin: 'Mac', win32: 'Windows PC', linux: 'Linux PC', ios: 'iPhone' }; // ios: the iPhone app (ios/, ai_memory/16)
 const RM = { force: true, recursive: true, maxRetries: 3, retryDelay: 25 };
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
