@@ -7,7 +7,8 @@ Newest first. Dates run from 2026-09-23 to 2026-10-20. Versions 1.0.0 to 1.5.0 w
 - The owner: "minized columns should sync everywhere, so if i sync oncee computer it should other computer". 1.20.0 already synced new minimizes (`minimized`), but a column minimized under 1.18–1.19 kept the per-computer `localMinimized`, which never leaves that computer, so it stayed a strip there and open everywhere else.
 - At start (`init()`), every project with `localMinimized: true` gets `minimized: true` instead (the old key is removed), counts as a content change (`contentSeq++`, label "Minimize column") and is saved, so it uploads. `isMinimized()` still reads the old key.
 - **Tests:** features +1 (Windows 189 → 190): the seeded notepad project carries `localMinimized` and is saved as `minimized` at start. Unit 715, update-safety 21, sync 43, all pass.
-- Both computers must run 1.20.x: 1.19 and older don't read `minimized` (no Mac build of 1.20 yet).
+- Both computers must run 1.20.x: 1.19 and older don't read `minimized`.
+- **The Mac build (2026-10-24, on the Mac, from `main` = `56e0113` plus the 1.20.3 Mac docs):** `dist/Recaller-1.20.4-arm64.dmg`, ad-hoc signed (codesign valid), 52 app files byte-identical to the source. From source: unit 715/715, update-safety 21/21, features 195/195 (Mac: 194 + 1). The sync suite was stopped partway and nothing was run against the packaged app: the owner found the tests too long ("tests are too long"), the engine is unchanged, and the PC ran sync 43/43 on 1.20.4. The owner's Mac board had one column with `localMinimized` (and 1.20.3 installed), so 1.20.4's first start there converts and saves it (after the upgrade backup).
 
 ## 1.20.3: a thicker board scrollbar the Eating strip stays clear of, and stacks that scroll (twelfth session, branch `v1.20`, 2026-10-24)
 

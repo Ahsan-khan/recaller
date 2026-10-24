@@ -2,6 +2,9 @@
 
 This folder is the complete handoff for **Recaller**. It lets any person, AI agent or LLM continue development without the original conversation. Everything here is plain text, and every user flow is described in words.
 
+Status as of **2026-10-24**, thirteenth session, later (on the Mac):
+- **1.20.4** (PR #7, merged on GitHub from the PC: columns minimized under 1.18–1.19 become synced at start) is on `main` here, with the 1.20.3 Mac docs commit rebased on top. **`dist/Recaller-1.20.4-arm64.dmg` is built** (codesign valid, 52 app files byte-identical to the source); from source unit 715/715, update-safety 21/21, features 195/195. The owner asked for shorter test runs ("tests are too long"), so sync and the packaged-app runs were skipped (`08`, 1.20.4). `/Applications/Recaller.app` was 1.20.3; the owner installs 1.20.4.
+
 Status as of **2026-10-24**, thirteenth session (on the Mac):
 - **PR #6 is merged:** `main` = `origin/main` = `258c13d` holds 1.20.3. The owner's GitHub Desktop pull landed seconds before that merge, so `main` was fast-forwarded locally to the already-fetched `origin/main` (`07` #106).
 - **`dist/Recaller-1.20.3-arm64.dmg` is built and tested on the Mac** (ad-hoc signed; codesign valid; version 1.20.3; its 52 app files byte-identical to the source, cloud config inside). From source: unit 715/715, features 194/194. Against the packaged `app.asar`: multi-copy 12/12, update-safety 21/21 (synthetic), features 194/194. Not run here this time: accounts-on, sync and `MODE=real` (the engine is unchanged since 1.17; the PC ran all three on 1.20.1). The first two features runs from source failed the dictation block when the fake mic's first start hung, then four runs passed (`07` #105). `/Applications/Recaller.app` was 1.19.1 at the start; the owner installs 1.20.3.
