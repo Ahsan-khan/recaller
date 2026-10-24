@@ -5,6 +5,7 @@ Newest first. Dates run from 2026-09-23 to 2026-10-20. Versions 1.0.0 to 1.5.0 w
 ## 1.19.1: back to the normal column drag on the Mac (eleventh session, branch `v1.19`)
 
 - The owner installed 1.19.0 and disliked the zoomed-out drag ("it brings horizontal like mobile model, i don't like that at all, go back to normal drag", `10` message 75). It is removed: `beginColumnSort()`, `columnSortEnd()`, the `body.col-sorting` CSS and its 2 Mac checks are gone, and the Mac drags whole columns exactly as 1.18 did. Everything else in 1.19.0 stays. Features: Windows 166, Mac 171.
+- **Built and tested on the PC (2026-10-23, twelfth session):** the first full PC run since 1.17. `npm test` from source and against the packaged `dist\Recaller Setup 1.19.1.exe` (x64, cloud config inside, 52 app files byte-identical to the source) alike: unit 714/714, multi-copy 12/12, update-safety 21/21, features 166/166, the same three with accounts on (no request), sync 43/43; `MODE=real` 9/9. No code change was needed.
 - **Built and tested (2026-10-21, on the Mac):** `npm test` from source and against the packaged `dist/Recaller-1.19.1-arm64.dmg` alike: unit 714/714, multi-copy 12/12, update-safety 21/21, features 171/171, the same three with accounts on, sync 43/43; the package's 52 app files are byte-identical to the source.
 
 ## 1.19.0: the Eating strip shows everything, a zoomed-out column drag on the Mac, and a widget (eleventh session, branch `v1.19`, not committed)
