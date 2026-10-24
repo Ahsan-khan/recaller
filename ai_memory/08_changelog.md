@@ -2,6 +2,13 @@
 
 Newest first. Dates run from 2026-09-23 to 2026-10-20. Versions 1.0.0 to 1.5.0 were built in one long session; 1.6.0–1.13.0 in a second session on 2026-09-24; 1.14.0 in a third; 1.15.0 in a fourth on 2026-09-26; 1.16.0 in a fifth, the same day. A sixth session (2026-09-28 to 29, on the owner's new Mac) built a 1.17.0 that the owner discarded, a seventh (2026-09-29, on the Mac) built the Mac edition of 1.16.0, and an eighth (2026-09-30 to 10-01, on the Mac) built accounts and sync as a new 1.17.0. A ninth (2026-10-06, on the PC) published 1.17.0's Windows installer as a GitHub Release and merged `masos` into `main`. A tenth (2026-10-20, on a freshly set-up Mac) built 1.18.0 on a new branch, `v1.18`. Versions refer to `package.json` and the installers: `dist/Recaller Setup <version>.exe` for Windows and, for the Mac edition, `dist/Recaller-<version>-arm64.dmg`.
 
+## 1.20.4: columns minimized before 1.20 now sync too (thirteenth session, on `main`, 2026-10-24)
+
+- The owner: "minized columns should sync everywhere, so if i sync oncee computer it should other computer". 1.20.0 already synced new minimizes (`minimized`), but a column minimized under 1.18–1.19 kept the per-computer `localMinimized`, which never leaves that computer, so it stayed a strip there and open everywhere else.
+- At start (`init()`), every project with `localMinimized: true` gets `minimized: true` instead (the old key is removed), counts as a content change (`contentSeq++`, label "Minimize column") and is saved, so it uploads. `isMinimized()` still reads the old key.
+- **Tests:** features +1 (Windows 189 → 190): the seeded notepad project carries `localMinimized` and is saved as `minimized` at start. Unit 715, update-safety 21, sync 43, all pass.
+- Both computers must run 1.20.x: 1.19 and older don't read `minimized` (no Mac build of 1.20 yet).
+
 ## 1.20.3: a thicker board scrollbar the Eating strip stays clear of, and stacks that scroll (twelfth session, branch `v1.20`, 2026-10-24)
 
 - **Thicker scrollbar** ("make the horitizal bar a little thicker cause i move it around alot", then "make the horitizal scroller bar thcker and make sure it doesnt over lap with the eating", `10` messages 85 and 87): the board's horizontal scrollbar is 28 px tall (was 14; `--board-bar`), its thumb 20 px (was 6) and 24 px while hovered or held (was 7). Columns are 14 px shorter for it. (Built first at 24 px; the owner asked for "slightly" thicker again, message 88.)
