@@ -20,3 +20,9 @@ override.tf.json
 # Terraform CLI config can hold registry or HCP tokens
 .terraformrc
 terraform.rc
+
+# The iPhone app: the generated core bundle and its copy of the cloud config
+ios/Recaller/Resources/core/
+ios/build/
+ios/*.xcodeproj/xcuserdata/
+ios/*.xcodeproj/project.xcworkspace/xcuserdata/
