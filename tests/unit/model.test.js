@@ -110,6 +110,20 @@ test('toModel: per-device keys never enter a model', () => {
   }
 });
 
+test('1.20: a minimized column and the notepad sync; the older localMinimized stays on its computer', () => {
+  const file = sampleFile();
+  file.projects[0].minimized = true;
+  file.projects[1].localMinimized = true;
+  file.projects.push({ id: 'pad', name: 'Notepad', color: 'slate', notepad: true, createdAt: 5, draft: '', draftImages: [],
+    notes: [{ id: 'padn', text: 'scratch\n\npage', images: [], createdAt: 5, updatedAt: 6, copied: 0, lastCopiedAt: 0, usedAt: 0 }], used: [], combined: [] });
+  const m = model.toModel(file);
+  assert.equal(m.projects.get('p1').fields.minimized, true);
+  assert.ok(!('localMinimized' in m.projects.get('p2').fields));
+  assert.equal(m.projects.get('pad').fields.notepad, true);
+  assert.equal(m.notes.get('padn').fields.text, 'scratch\n\npage');
+  assert.deepEqual([m.notes.get('padn').project, m.notes.get('padn').list], ['pad', 'notes']);
+});
+
 test('toModel: skips malformed entities the way normalize() does, and never invents ids', () => {
   const file = {
     prefs: { joiner: 42 },

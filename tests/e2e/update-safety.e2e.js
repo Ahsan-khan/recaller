@@ -165,6 +165,8 @@ async function run() {
 
   // 4. What is on screen matches the file.
   const file = JSON.parse(originalData.toString('utf8'));
+  // 1.20: the notepad is a hidden project (`notepad: true`), never drawn as a column; its page shows in the notepad
+  file.projects = file.projects.filter((p) => p.notepad !== true);
   const fileNotes = file.projects.reduce((n, p) => n + p.notes.length, 0);
   const fileUsed = file.projects.reduce((n, p) => n + p.used.length, 0);
   const screenCounts = await js(`({ cols: document.querySelectorAll('.column').length, notes: document.querySelectorAll('.active-list .card-wrap').length,

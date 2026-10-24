@@ -6,7 +6,7 @@ A desktop board for prompts and notes you want to reuse. Each project is a colum
 2. **Cooked**: the prompts you move down, automatically joined into one note.
 3. **Served**: the final text. Each time you move the Cooked note down, its text is added to the end of Served.
 
-Click any note, the Cooked note or the Served text to copy it. You can also dictate new prompts with your voice. New to it? Click **?** in the top bar (or press `F1`) for a one-page guide.
+Click any note, the Cooked note or the Served text to copy it. You can also dictate new prompts with your voice. New to it? Open the top bar's **☰** menu › **How Recaller works** (or press `F1`) for a one-page guide.
 
 Recaller is a Windows app, and there is also a Mac edition of the same version for Apple Silicon Macs: a separate download, like software that comes as one file for Windows and one for Mac. Everything below is written for Windows; see [Recaller on a Mac](#recaller-on-a-mac) for what's different there.
 
@@ -21,7 +21,7 @@ npm install
 npm run dist
 ```
 
-This builds `dist/Recaller Setup 1.19.1.exe`. It needs `src/cloud/project.json`, which isn't in git: copy it from the computer that has it, or build without accounts with `RECALLER_NO_CLOUD=1`. Run the installer to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
+This builds `dist/Recaller Setup 1.20.1.exe`. It needs `src/cloud/project.json`, which isn't in git: copy it from the computer that has it, or build without accounts with `RECALLER_NO_CLOUD=1`. Run the installer to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
 
@@ -45,6 +45,7 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Delete a note | Hold the mouse on it and swipe left |
 | Delete from Cooked or Served | Click **Notes** under the text, hover a note and click its trash to delete just that one. To delete the whole Cooked note (or Served text), right-click it and click the trash in the editor. Both are undoable |
 | Undo anything | `Ctrl+Z`, the ↶ button in the top bar, or **Undo** on the toast. `Ctrl+Y` redoes |
+| The top bar | Left to right: **Notepad**, **+** (new project), undo and redo, the sync cloud (only when sync needs a look), and **☰**, a menu with **Eaten**, **Widget**, **Reset column widths**, **How Recaller works** and **Settings** |
 | Add a prompt to Cooked | Hover it and click **↓ Cooked** (or press `U`), or drag it down onto **Cooked**. It joins the end of the Cooked note |
 | Move the Cooked note into Served | Click **Move to Served**, swipe the note left, or drag it onto **Served**. Its text is added to the end of Served, and Cooked starts empty for the next batch |
 | Edit Cooked or Served | The pencil in the footer edits the whole text (it's then saved as one note). **Notes** lists the separate notes inside: hover one to move it up ↑ or down ↓, edit just that one ✎, send it back ↩, or delete it with the trash |
@@ -55,14 +56,15 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Turn Cooked into a Claude Code prompt | Click **>_** under the Cooked note. Its prompts are wrapped in a Claude Code task: the request (numbered when there are several), how to work, and what to report back. Clicking or copying it gives the formatted text. Click **>_** again for the original. Moving it to Served serves the formatted text, and the next batch starts plain again. Undoable |
 | Mark a served prompt as running ("Eating") | Once you've given the Served text to an agent, click **Eating** on the Served header. It turns green and counts the minutes, the column's header gets a pulsing dot, and the bottom right of the board lists every column that's eating, each with its leaf, name, time and a **Done** button (with many, the list wraps onto more rows). Click a name there to jump to its column |
 | When the agent is done ("Eaten") | Click **✓ Done** beside the column in the bottom-right strip, or **Eating › Done: move it to Eaten**. The Served text moves to **Eaten**, Served is empty for the next batch, and Eating ends (**Undo** on the toast puts it all back). **Eating › Stop eating, keep it in Served** stops without moving it |
-| Find what's been eaten | The fork and knife in the top bar (it appears once something is eaten; the badge counts the rounds) opens **Eaten**: every finished prompt, newest first, by day, with its column, the time it finished and how long it was eating. Filter by column, or search. Click a text to read it all; **Copy** copies it, **Serve again** puts it back into its column's Served, and the trash deletes it (undoable). A column's **⋯ → Eaten from this column** opens it filtered. Eaten is kept on this computer (the latest 300), in its backups, and doesn't sync |
-| Minimize a column | **⋯ → Minimize column** folds it to a slim strip with its name and count. Click the strip to open it. Kept on this computer only |
-| Group columns | **⋯ → New group…** puts the column in a group (named "Important" at first; type a new name). Other columns join it from their **⋯** menu (**Move to group "…"**). Click the group's name to fold all its columns into a strip, and click the strip to open it again. The group's **⋯** renames it, moves it left or right, or ungroups it (the columns stay) |
+| Find what's been eaten | **☰ › Eaten** in the top bar (it appears once something is eaten; the badge counts the rounds) opens **Eaten**: every finished prompt, newest first, by day, with its column, the time it finished and how long it was eating. Filter by column, or search. Click a text to read it all; **Copy** copies it, **Serve again** puts it back into its column's Served, and the trash deletes it (undoable). A column's **⋯ → Eaten from this column** opens it filtered. Eaten is kept on this computer (the latest 300), in its backups, and doesn't sync |
+| Minimize a column | **⋯ → Minimize column** folds it to a slim strip with its name and count. Click the strip to open it. Signed in, it's minimized on your other computers too |
+| Group columns | **⋯ → New group…** puts the column in a group (named "Important" at first; type a new name). Other columns join it from their **⋯** menu (**Move to group "…"**). Or drag a column by its title into a group's lane; drag it out onto the board and it leaves the group. Drag a whole group by its name (or its folded strip) to move it. Click the group's name to fold all its columns into a strip, and click the strip to open it again. The group's **⋯** renames it, moves it left or right, or ungroups it (the columns stay) |
+| Notepad | The **Notepad** button in the top bar, or `Ctrl+J`, opens one scratch page for random notes. Just type: it saves as you go. **Copy** copies the whole page, and `Esc` or `Ctrl+J` closes it. Signed in, it syncs to your other computers; if two computers changed it at once, the other version shows under the page, to **Add to the page** or delete |
 | Blank line or new line | **Settings → Join notes with** sets how notes are joined in Cooked, Served and Ctrl+click copies |
 | Highlight a note | Hover, click the highlighter and pick a colour: *Check again*, *Important*, *Idea* or *Ready*. Or focus a note and press `H` |
 | Move to another project | Drag it onto another column |
-| Reorder projects | Drag a column by its title (inside a group, it moves among that group's columns). |
-| Widget | The window-in-window button in the top bar turns Recaller into a small window that stays on top of your other apps and shows one column. Click the column's name at the top to pick another (or make a new one). The arrows-out button goes back to the full board at its old size. Recaller remembers the widget's size, place and column, and starts as you left it |
+| Reorder projects | Drag a column by its title, anywhere on the board: into a group, out of one, or past a whole group. |
+| Widget | **☰ › Widget** in the top bar turns Recaller into a small window that stays on top of your other apps and shows one column. Click the column's name at the top to pick another (or make a new one). **☰ › Back to the full board** goes back to the board at its old size. Recaller remembers the widget's size, place and column, and starts as you left it |
 | New text | Click **New text** under the column name to type a prompt, or **Dictate** (the other half of the bar) to speak one. New prompts are added at the bottom of **Cooking**, just above Cooked. Saving closes the editor and the buttons come back. The eraser in the editor clears what you typed or dictated (dictation keeps listening); **Undo** on its toast brings it back |
 | Fold a stage away | Click its name: **Cooking**, **Cooked** or **Served** |
 | Put older prompts in date order | **⋯ → Sort prompts oldest first** (prompts saved before 1.7 were newest-first). Undoable |
@@ -73,7 +75,7 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Rename a project | Double-click its title |
 | Scroll sideways | Mouse wheel over a header or empty space, drag the empty background, or move the pointer to the left or right edge of the board and click the ‹ › button that appears there (hold it to glide) |
 | Resize a column | Drag its right edge. Double-click the edge (or **⋯ → Reset width**) for the default width again |
-| Reset all column widths | The ↔ button in the top bar puts every column back to the default width. **Undo** on the toast brings your widths back |
+| Reset all column widths | **☰ › Reset column widths** in the top bar puts every column back to the default width. **Undo** on the toast brings your widths back |
 | Default column width | **Settings → Column width**: Compact, Slim or Roomy |
 | Column colour | **⋯** menu: 18 colours |
 | Colours | **Settings → Colour**: Deep (dark forest canvas, solid headers) or Soft (light) |
@@ -91,6 +93,7 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | `Ctrl+Enter` | Save (during dictation, it finishes transcribing first) |
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo |
 | `Ctrl+Shift+N` | New project (or the **+** in the top bar, or the **+ New project** tile at the end of the board) |
+| `Ctrl+J` | Open or close the notepad |
 | `Ctrl+,` | Settings |
 | `Ctrl+Alt+R` | Show or hide Recaller from any app (change it in Settings) |
 | `F1` or `?` | How Recaller works: stages, handy moves and shortcuts |
@@ -100,7 +103,7 @@ In Settings you can also set a **Screenshot to note** shortcut that works from a
 
 ## Voice
 
-Voice uses OpenAI speech-to-text. Add your API key in **Settings** (gear icon). The key is encrypted with Windows DPAPI (on a Mac, with a key kept in your keychain) and never reaches the page itself. If no key is saved, Recaller uses the `OPENAI_API_KEY` environment variable.
+Voice uses OpenAI speech-to-text. Add your API key in **Settings** (the top bar's **☰** menu, or `Ctrl+,`). The key is encrypted with Windows DPAPI (on a Mac, with a key kept in your keychain) and never reaches the page itself. If no key is saved, Recaller uses the `OPENAI_API_KEY` environment variable.
 
 Recording splits your speech at natural pauses. Each phrase is sent and streamed back while you keep talking, and silent stretches are never sent. The default model is `gpt-transcribe`. Pick `gpt-4o-mini-transcribe` for the lowest latency and cost. `whisper-1` works too, but it can't stream, so text appears one phrase at a time. The optional **Vocabulary hint** helps with names and jargon.
 
@@ -153,9 +156,9 @@ To bring your PC's notes to your Mac: create the account on the PC and click **U
 
 | Syncs between your computers | Stays on each computer |
 | --- | --- |
-| Projects: name, colour, column order, their group, **Eating** and the Claude Code format of Cooked | Column widths, folded stages, minimized columns, folded groups and scroll positions |
+| Projects: name, colour, column order, their group, minimized columns, **Eating** and the Claude Code format of Cooked | Column widths, folded stages, folded groups and scroll positions |
 | Notes in Cooking, Cooked and Served: text, pictures, order, highlights and copy counts | **Column width** (Compact, Slim, Roomy), **Column title font**, **Cooked colour** and **Colour** (Deep or Soft) |
-| **Join notes with** | Unsaved drafts in New text |
+| **Join notes with**, and the notepad | Unsaved drafts in New text |
 | | Shortcuts, voice settings and **Minimize Recaller after copying** (**Hide Recaller after copying** on a Mac) |
 | | Your OpenAI API key and your local backups, which are never uploaded |
 
@@ -251,7 +254,7 @@ npm install
 npm run dist:mac
 ```
 
-This builds `dist/Recaller-1.19.1-arm64.dmg`. Open it, drag **Recaller** onto **Applications**, then eject the "Recaller 1.19.1" disk (the eject button beside it in Finder's sidebar) and open Recaller from Applications. Don't open Recaller from the disk image's window: that copy runs from the disk image, which then can't be ejected. If you already did, quit it (⌘Q), eject the disk and open Recaller from Applications; your notes are the same either way.
+This builds `dist/Recaller-1.20.1-arm64.dmg`. Open it, drag **Recaller** onto **Applications**, then eject the "Recaller 1.20.1" disk (the eject button beside it in Finder's sidebar) and open Recaller from Applications. Don't open Recaller from the disk image's window: that copy runs from the disk image, which then can't be ejected. If you already did, quit it (⌘Q), eject the disk and open Recaller from Applications; your notes are the same either way.
 
 - **A copy built on your own Mac** opens straight away.
 - **A downloaded or AirDropped copy** is blocked the first time, because it isn't signed with an Apple Developer ID: macOS says it can't verify the developer. Close that message, open **System Settings › Privacy & Security**, and click **Open Anyway** next to the note about Recaller. You only do this once. (On macOS 15 and later, Control-click › Open no longer gets past this.)

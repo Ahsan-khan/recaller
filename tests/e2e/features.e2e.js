@@ -82,6 +82,11 @@ fs.writeFileSync(path.join(DATA_DIR, 'recaller-data.json'), JSON.stringify({
       n('Convert the dataset annotations from COCO to YOLO format with a script.', 4 * 86400e3),
     ], used: [n('Label studio setup steps', 9 * 86400e3, { usedAt: now - 86400e3 })] },
     ...moreProjects,
+    // 1.20: the notepad (a hidden project), with another computer's version waiting under the page
+    { id: 'pad', name: 'Notepad', color: 'slate', notepad: true, usedCollapsed: false, draft: '', draftImages: [], createdAt: now, notes: [
+      n('Seeded page', 60e3),
+      n('From the other computer', 30e3, { syncConflict: { of: 'x', device: 'b0'.repeat(16), at: now } }),
+    ], used: [] },
   ],
 }, null, 2));
 fs.writeFileSync(path.join(DATA_DIR, 'recaller-settings.json'), JSON.stringify({
@@ -197,6 +202,8 @@ async function run() {
   const key = (keyCode, modifiers = []) => { wc.sendInputEvent({ type: 'keyDown', keyCode, modifiers }); wc.sendInputEvent({ type: 'keyUp', keyCode, modifiers }); };
   const type = async (text) => { for (const ch of text) { wc.sendInputEvent({ type: 'char', keyCode: ch }); await sleep(5); } };
   const texts = (sel) => js(`[...document.querySelectorAll(${JSON.stringify(sel)})].map(e => e.textContent)`);
+  // 1.20.1: Eaten, the widget, Reset column widths, help and settings sit in the top bar's ☰ menu
+  const fromMenu = async (sel) => { await clickSel('#app-menu-btn'); await sleep(200); return clickSel(sel); };
   const colTexts = (id, list = 'active') => texts(`.column[data-id="${id}"] .${list}-list .card-text`);
   const composerValue = () => js(`document.querySelector('.composer textarea')?.value ?? null`);
   const augOf = (id) => js(`document.querySelector('.column[data-id="${id}"] .aug-text').textContent`);
@@ -290,7 +297,7 @@ async function run() {
   const hueOf = ([r, g, b]) => { [r, g, b] = [r / 255, g / 255, b / 255]; const mx = Math.max(r, g, b); const d = mx - Math.min(r, g, b); if (!d) return 0; const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (h * 60 + 360) % 360; };
   const barHue = hueOf(rgbOf(cookedLook.bar));
   check('Cooked is a light section, Ocean blue by default (no dark band, no brown)', cookedLook.ocean && cookedLook.band === 'none' && cookedLook.bandBg === 'rgba(0, 0, 0, 0)' && Math.min(...rgbOf(cookedLook.block)) > 200 && barHue > 190 && barHue < 235, `${cookedLook.block} | bar ${cookedLook.bar} hue ${Math.round(barHue)}`);
-  await clickSel('#open-help');
+  await fromMenu('#open-help');
   await sleep(300);
   const helpText = await js(`document.querySelector('#help').open && document.querySelector('#help h2').textContent`);
   key('Escape');
@@ -459,7 +466,7 @@ async function run() {
   check('new, Cooked and Served each look different (blocks, labels and inner notes)', new Set(stageColours.slice(0, 3)).size === 3 && new Set([stageColours[0], stageColours[3], stageColours[4]]).size === 3 && stageColours[5] !== stageColours[6], stageColours.map((x) => x.slice(0, 40)).join(' | '));
   await shot('03b-stages');
   // separator setting
-  await clickSel('#open-settings');
+  await fromMenu('#open-settings');
   await sleep(300);
   await js(`document.querySelector('#set-joiner [data-value="line"]').click()`);
   await sleep(200);
@@ -896,7 +903,7 @@ async function run() {
   await sleep(200);
 
   // ---------------------------------------------------------------- density setting
-  await clickSel('#open-settings');
+  await fromMenu('#open-settings');
   await sleep(350);
   await shot('09-settings');
   await js(`document.querySelector('#set-density [data-value="compact"]').click()`);
@@ -945,7 +952,7 @@ async function run() {
   const widthOf = async (id) => (await rect(`.column[data-id="${id}"]`)).w;
   await js('document.querySelector("#board").scrollLeft = 0');
   await sleep(150);
-  check('reset-widths button sits in the top bar, off while no column is resized', await js(`document.querySelector('.topbar #reset-widths').disabled`));
+  check('Reset column widths sits in the ☰ menu, off while no column is resized', await js(`document.querySelector('#app-menu #reset-widths').disabled`));
   const w0 = await widthOf('p1');
   const resizeBy = async (id, dx) => {
     const h = await rect(`.column[data-id="${id}"] .col-resize`);
@@ -962,7 +969,7 @@ async function run() {
   check('dragging a column edge resizes it, and the width is remembered', w1 - w0 > 80 && w0 - w2 > 30 && saved1.p1 === Math.round(w1) && saved1.p2 === Math.round(w2), `p1 ${w0}→${w1}, p2 ${w0}→${w2}, saved ${JSON.stringify(saved1)}`);
   check('the reset button turns on once a column is resized', !(await js(`document.querySelector('#reset-widths').disabled`)));
   await shot('10c-resized');
-  await clickSel('#reset-widths');
+  await fromMenu('#reset-widths');
   await sleep(700);
   check('the top-bar button puts every column back to the default width', Math.abs((await widthOf('p1')) - w0) < 1 && Math.abs((await widthOf('p2')) - w0) < 1 && !('colWidths' in prefsNow()) && await js(`document.querySelector('#reset-widths').disabled`));
   await js(`[...document.querySelectorAll('.toast')].find((t) => t.textContent.includes('Column widths reset')).querySelector('.toast-action').click()`);
@@ -971,7 +978,7 @@ async function run() {
   await js(`document.querySelector('.column[data-id="p1"] .col-resize').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`);
   await sleep(700);
   check('double-clicking a column edge resets just that column', Math.abs((await widthOf('p1')) - w0) < 1 && Math.abs((await widthOf('p2')) - w2) < 1 && !((prefsNow().colWidths || {}).p1));
-  await clickSel('#reset-widths');
+  await fromMenu('#reset-widths');
   await sleep(500);
 
   // ---------------------------------------------------------------- column drag + undo
@@ -1097,7 +1104,7 @@ async function run() {
   await menuNow();
   await js(`[...document.querySelectorAll('.menu .menu-item')].find((b) => b.textContent.startsWith('Done')).click()`);
   await sleep(500);
-  await clickSel('#open-eaten');
+  await fromMenu('#open-eaten');
   await sleep(400);
   const drawer = await js(`({ open: document.querySelector('#eaten-panel').classList.contains('is-open'), day: document.querySelector('.eaten-day')?.textContent, items: [...document.querySelectorAll('.eaten-item')].map((i) => i.querySelector('.eaten-item-head b').textContent), text: document.querySelector('.eaten-text')?.textContent.slice(0, 30) })`);
   check('the Eaten drawer lists it under Today, with its column', drawer.open && drawer.day === 'Today' && drawer.items.join() === 'Agent run' && drawer.text === ccText.slice(0, 30), JSON.stringify(drawer));
@@ -1116,10 +1123,10 @@ async function run() {
   // ⋯ › Minimize column: a slim strip, and a click opens it
   const minimized = await pickFrom(`${C} .col-menu`, 'Minimize column');
   const miniBox = await rect(C);
-  check('⋯ › Minimize column folds it to a slim strip (kept on this computer only)', minimized && miniBox.w < 60 && savedProject(NEW).localMinimized === true && await js(`getComputedStyle(document.querySelector('${C} .col-scroll')).display === 'none'`), `${Math.round(miniBox.w)}px`);
+  check('⋯ › Minimize column folds it to a slim strip (1.20: synced, as `minimized`)', minimized && miniBox.w < 60 && savedProject(NEW).minimized === true && !('localMinimized' in savedProject(NEW)) && await js(`getComputedStyle(document.querySelector('${C} .col-scroll')).display === 'none'`), `${Math.round(miniBox.w)}px`);
   await clickSel(`${C} .col-head`);
   await sleep(500);
-  check('a click on the strip opens the column again', (await rect(C)).w > 200 && !('localMinimized' in savedProject(NEW)));
+  check('a click on the strip opens the column again', (await rect(C)).w > 200 && !('minimized' in savedProject(NEW)));
 
   // groups: ⋯ › New group…, another column joins it, it folds and opens, and undo takes it all back
   const made = await pickFrom(`${C} .col-menu`, 'New group…');
@@ -1206,7 +1213,7 @@ async function run() {
   win.setSize = (w, h) => { asked.push({ w, h }); realSetBounds(offscreenRect(w, h)); };
   win.center = () => {};
   const settingsNow = () => JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-settings.json'), 'utf8'));
-  await clickSel('#widget-toggle');
+  await fromMenu('#widget-toggle');
   await sleep(900);
   const wid = await js(`({ on: document.body.classList.contains('is-widget'), cols: [...document.querySelectorAll('#board > .column')].map((c) => c.dataset.id), pick: document.querySelector('#widget-pick').hidden ? null : document.querySelector('.widget-pick-name').textContent, search: getComputedStyle(document.querySelector('.search')).display, chipNames: [...document.querySelectorAll('#eating .eat-name')].every((n) => getComputedStyle(n).display === 'none') })`);
   const widName = wid.cols[0] && savedProject(wid.cols[0])?.name;
@@ -1223,7 +1230,7 @@ async function run() {
   await sleep(400);
   const switched = await js(`({ cols: [...document.querySelectorAll('#board > .column')].map((c) => c.dataset.id), pick: document.querySelector('.widget-pick-name').textContent })`);
   check('1.19: the picker lists the columns and switches the widget to another', pickItems.length >= 4 && switched.cols.join() === other && switched.pick === otherName && settingsNow().widgetProject === other, JSON.stringify({ pickItems: pickItems.length, switched }));
-  await clickSel('#widget-toggle');
+  await fromMenu('#widget-toggle');
   await sleep(900);
   const back = await js(`({ on: document.body.classList.contains('is-widget'), cols: document.querySelectorAll('#board > .column, #board .col-group .column').length })`);
   check('1.19: the same button goes back to the full board at its old size, not on top', !back.on && back.cols > 3 && asked.at(-1)?.w > 400 && !win.isAlwaysOnTop() && settingsNow().widget === false, JSON.stringify({ back, asked: asked.at(-1) }));
@@ -1243,6 +1250,124 @@ async function run() {
   for (let i = 0; i < EIDS.length * 2; i++) { key('Z', [MOD]); await sleep(250); }
   await sleep(400);
   check('1.19: stopping and undoing leaves the three columns as they were', await js(`document.querySelector('#eating').hidden`) && EIDS.every((id) => !savedProject(id).combined.length && !('eating' in savedProject(id))));
+  await js('document.querySelector("#board").scrollLeft = 0');
+  await sleep(300);
+
+  // ---------------------------------------------------------------- 1.20: minimize syncs, columns and groups drag freely, the notepad
+
+  // 1.20.1: a calmer top bar: a labelled Notepad pill, +, undo / redo and a ☰ menu holding the rest
+  const topBar = await js(`(() => {
+    const top = document.querySelector('.topbar');
+    const pill = document.querySelector('#open-notepad');
+    return {
+      moved: ['open-eaten', 'widget-toggle', 'reset-widths', 'open-help', 'open-settings'].every((id) => !top.contains(document.getElementById(id)) && document.getElementById(id).closest('#app-menu')),
+      closed: document.querySelector('#app-menu').hidden,
+      pill: pill.textContent.trim(), pillW: Math.round(pill.getBoundingClientRect().width),
+      tinted: getComputedStyle(pill).backgroundColor !== 'rgba(0, 0, 0, 0)' && getComputedStyle(pill).borderTopWidth !== '0px',
+    };
+  })()`);
+  check('1.20.1: Eaten, the widget, Reset column widths, help and settings left the top bar for the ☰ menu', topBar.moved && topBar.closed, JSON.stringify(topBar));
+  check('1.20.1: the notepad is a labelled, tinted pill in the top bar', topBar.pill === 'Notepad' && topBar.pillW > 80 && topBar.tinted, JSON.stringify(topBar));
+  await clickSel('#app-menu-btn');
+  await sleep(250);
+  const menuOpen = await js(`({ open: !document.querySelector('#app-menu').hidden, rows: [...document.querySelectorAll('#app-menu .menu-item')].filter((b) => !b.hidden).map((b) => b.querySelector('.app-menu-label').textContent) })`);
+  await shot('13d-app-menu');
+  key('Escape');
+  await sleep(250);
+  const escClosed = await js(`document.querySelector('#app-menu').hidden`);
+  await clickSel('#app-menu-btn');
+  await sleep(200);
+  await click(40, 400); // the board, away from the menu
+  await sleep(250);
+  check('1.20.1: ☰ opens the menu (widget, column widths, help, settings); Esc or a click away closes it', menuOpen.open && menuOpen.rows.join('|') === 'Widget: a small window on top|Reset column widths|How Recaller works|Settings' && escClosed && await js(`document.querySelector('#app-menu').hidden`), JSON.stringify({ menuOpen, escClosed }));
+  check('1.20.1: the notepad page shows its own dark I-beam pointer (the system one could vanish over it)', /^url\(/.test(await js(`getComputedStyle(document.querySelector('#notepad-text')).cursor`)));
+  const boardOrder = () => js(`[...document.querySelectorAll('#board > .column, #board > .col-group')].map((n) => n.dataset.id || 'G:' + n.dataset.group).join()`);
+  const savedOrder = () => savedData().projects.filter((p) => !p.notepad).map((p) => p.id + (p.group ? '@' + p.group : '')).join();
+  check('1.20: "minimized" is a synced project field (the old "localMinimized" stays on one computer)', await js(`window.SyncApply.isLocalKey('minimized') === false && window.SyncApply.isLocalKey('localMinimized') === true`));
+  await js('document.querySelector("#board").scrollLeft = 0');
+  await sleep(300);
+  const order0 = savedOrder();
+  await pickFrom('.column[data-id="p2"] .col-menu', 'New group…');
+  await js(`(() => { const i = document.querySelector('.group-name-input'); if (i) { i.value = 'Lane'; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); } })()`);
+  await sleep(300);
+  await pickFrom('.column[data-id="p3"] .col-menu', 'Move to group “Lane”');
+  // the whole group, dragged by its band to the far left (the 1.18 group could only move from its ⋯)
+  const band = await rect('.col-group .group-name');
+  const p1box = await rect('.column[data-id="p1"]');
+  mouse('mouseMove', band.cx, band.cy, { modifiers: [] });
+  mouse('mouseDown', band.cx, band.cy);
+  await drag(band.cx, band.cy, p1box.x + 20, band.cy + 6, 16, 20);
+  await sleep(350);
+  const midGroup = await js(`({ ghost: document.querySelector('.drag-ghost .group-ghost-name')?.textContent, slot: !!document.querySelector('#board > .group-placeholder'), quiet: document.body.classList.contains('is-col-drag') })`);
+  await shot('13a-group-drag');
+  mouse('mouseUp', p1box.x + 20, band.cy + 6);
+  await sleep(700);
+  const afterGroup = await boardOrder();
+  check('1.20: a group drags by its band (a small ghost with its name, a slot its size) and lands before p1', midGroup.ghost === 'Lane' && midGroup.slot && midGroup.quiet && afterGroup.startsWith('G:Lane,p1') && savedOrder().startsWith('p2@Lane,p3@Lane,p1'), JSON.stringify({ midGroup, afterGroup, saved: savedOrder() }));
+  check('1.20: the release that ends a group drag doesn’t fold the group', !('foldedGroups' in prefsNow()) && !(await js(`document.querySelector('.col-group').classList.contains('is-folded')`)));
+  // a column dragged by its header into the group's lane joins the group
+  const lane = await rect('.col-group');
+  const p1head = await rect('.column[data-id="p1"] .col-name');
+  mouse('mouseMove', p1head.cx, p1head.cy, { modifiers: [] });
+  mouse('mouseDown', p1head.cx, p1head.cy);
+  await drag(p1head.cx, p1head.cy, lane.x + lane.w / 2, p1head.cy + 6, 18, 20);
+  await sleep(350);
+  const intoSlot = await js(`!!document.querySelector('.col-group .group-cols > .col-placeholder')`);
+  await shot('13b-column-into-group');
+  mouse('mouseUp', lane.x + lane.w / 2, p1head.cy + 6);
+  await sleep(700);
+  const intoToast = (await texts('.toast')).some((t) => t.startsWith('Added to “Lane”'));
+  check('1.20: a column dragged into a group joins it (its slot shows inside the lane), with an Undo toast', intoSlot && savedProject('p1').group === 'Lane' && intoToast, JSON.stringify({ intoSlot, saved: savedOrder(), intoToast }));
+  // and dragged out past the lane's right side, it leaves the group
+  const lane2 = await rect('.col-group');
+  const p3head = await rect('.column[data-id="p3"] .col-name');
+  mouse('mouseMove', p3head.cx, p3head.cy, { modifiers: [] });
+  mouse('mouseDown', p3head.cx, p3head.cy);
+  await drag(p3head.cx, p3head.cy, lane2.x + lane2.w + 60, p3head.cy + 6, 18, 20);
+  await sleep(350);
+  mouse('mouseUp', lane2.x + lane2.w + 60, p3head.cy + 6);
+  await sleep(700);
+  const outToast = (await texts('.toast')).some((t) => t.startsWith('Taken out of “Lane”'));
+  check('1.20: a column dragged out of its group leaves it, after the group', !('group' in savedProject('p3')) && outToast && (await boardOrder()).startsWith('G:Lane,'), JSON.stringify({ saved: savedOrder(), outToast }));
+  // ⋯ › Move left on the group's first column steps out of the group, to just before it
+  const first = await js(`document.querySelector('.col-group .group-cols > .column').dataset.id`);
+  const outLeft = await pickFrom(`.column[data-id="${first}"] .col-menu`, 'Move left, out of “Lane”');
+  check('1.20: ⋯ › Move left at a group’s edge reads "out of" the group and takes the column out', outLeft && !('group' in savedProject(first)) && (await boardOrder()).startsWith(`${first},G:Lane`), JSON.stringify({ first, order: await boardOrder() }));
+  // New group, its rename, p3 joins, the group drag, p1 in, p3 out, the menu's move out: 7 steps
+  for (let i = 0; i < 7; i++) { key('Z', [MOD]); await sleep(250); }
+  await sleep(500);
+  check('1.20: undo puts the columns and the group back as they were', savedOrder() === order0 && !(await js(`!!document.querySelector('.col-group')`)), JSON.stringify({ order0, now: savedOrder() }));
+
+  // the notepad: one scratch page (seeded with a page and another computer's version)
+  const colsBefore = await js(`document.querySelectorAll('.column').length`);
+  check('1.20: the notepad never shows up as a column', !(await js(`[...document.querySelectorAll('.col-name')].some((n) => n.textContent === 'Notepad')`)));
+  key('J', [MOD]);
+  await sleep(450);
+  const padOpen = await js(`({ open: document.querySelector('#notepad-panel').classList.contains('is-open'), focus: document.activeElement?.id, value: document.querySelector('#notepad-text').value, others: document.querySelectorAll('.notepad-other').length })`);
+  check('1.20: Ctrl+J opens the notepad with the page, the cursor in it, and the other version under it', padOpen.open && padOpen.focus === 'notepad-text' && padOpen.value === 'Seeded page' && padOpen.others === 1, JSON.stringify(padOpen));
+  await type(' and a random note');
+  await sleep(900);
+  const padSaved = () => savedData().projects.find((p) => p.notepad);
+  check('1.20: what you type saves by itself, into the hidden Notepad project', padSaved()?.notes[0].text === 'Seeded page and a random note' && (await js(`document.querySelectorAll('.column').length`)) === colsBefore && /^Saved/.test(await js(`document.querySelector('#notepad-status').textContent`)), JSON.stringify(padSaved()?.notes.map((x) => x.text)));
+  await shot('13c-notepad');
+  await clipboard.writeText('');
+  await clickSel('#notepad-copy');
+  await sleep(300);
+  check('1.20: Copy copies the whole page', (await clipboard.readText()) === 'Seeded page and a random note');
+  await js(`document.querySelector('.notepad-other .notepad-take').click()`);
+  await sleep(900);
+  check('1.20: "Add to the page" adds the other version to the end of the page, and it’s gone from under it', padSaved()?.notes.length === 1 && padSaved().notes[0].text === 'Seeded page and a random note\n\nFrom the other computer' && !(await js(`document.querySelectorAll('.notepad-other').length`)), JSON.stringify(padSaved()?.notes.map((x) => x.text)));
+  key('Escape');
+  await sleep(350);
+  check('1.20: Esc closes the notepad', !(await js(`document.querySelector('#notepad-panel').classList.contains('is-open')`)));
+  // a board change and its undo leave the notepad alone
+  await clickSel('#new-column');
+  await sleep(500);
+  key('Escape');
+  await sleep(300);
+  key('Z', [MOD]);
+  await sleep(500);
+  check('1.20: undoing a board change leaves the notepad as typed', (await js(`document.querySelectorAll('.column').length`)) === colsBefore && padSaved()?.notes[0].text === 'Seeded page and a random note\n\nFrom the other computer', JSON.stringify(padSaved()?.notes.map((x) => x.text)));
   await js('document.querySelector("#board").scrollLeft = 0');
   await sleep(300);
 

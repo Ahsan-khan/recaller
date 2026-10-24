@@ -696,3 +696,58 @@ Eleventh session (2026-10-21, on the Mac, `/Users/ahsankhan`; branch `main` = PR
 > when i move the column around it brings horizontal like mobile model, i odnt like tht at all go back to normal drag
 
 [The 1.19.0 Mac column drag that zoomed the board out into slim strips was removed: the Mac drags whole columns again, exactly as in 1.18. Released as 1.19.1 (1.19.0 was installed). "Horizontal like mobile model" = the row of slim strips.]
+
+---
+
+Twelfth session (2026-10-23, on the PC, `C:\Users\User\Documents\recaller`; branch `main`, then a new branch `v1.20`).
+
+## Message 76
+
+> read ai_memory and learn every file so we can continue building
+
+[All 16 files were read in full, then git, the installed version and `dist\` were checked against them: `main` held 1.19.1 (PR #5 merged since the docs were written), the PC had 1.18.0 installed, and there was no 1.19 Windows installer.]
+
+## Message 77 (a reply button)
+
+> Run the full test suite on the PC first, then build the 1.19.1 Windows installer so I can install it.
+
+[The first full PC run since 1.17: every suite passed from source, then `dist\Recaller Setup 1.19.1.exe` was built and passed the same against its packaged `app.asar`, plus `MODE=real` 9/9.]
+
+## Message 78 (while the packaged run was going)
+
+> hurry up
+
+[The installer was already built, so the owner was told to install it while the last checks finished.]
+
+## Message 79 (a reply button)
+
+> Commit the ai_memory updates to main and push.
+
+[Committed as `def87e2` "Docs: 1.19.1 built and fully tested on the PC" on `main` and pushed.]
+
+## Message 80 (the whole request, sent as pasted text)
+
+> when i minimize column it should sync with all
+>
+> i want to be able to have a notepad thing where i can enter random notes quickly
+>
+> once i added a column to a group i couldnt move the column or the group around
+
+[Built as 1.20.0 (`04` §29). How each item was read:
+- "sync with all": a minimized column is minimized on every computer (the 1.18 flag was per computer by design).
+- "a notepad thing … random notes quickly": asked first (message 81).
+- "couldn't move the column or the group around": a grouped column could only be dragged within its own group (alone in a group it couldn't move at all), and a group could only move from its ⋯ menu. Now columns drag into and out of groups, groups drag by their band, and Move left / right steps out at a group's edge.]
+
+## Message 81: the owner's answer to one question
+
+> One scratch page
+
+[The question: what should the notepad be like: a quick notes list (each line its own note, with copy, edit, delete, send to a column), one scratch page (one big text area that saves as you type), or both. Built as one page in a drawer, opened from the top bar or Ctrl+J, synced.]
+
+## Message 82 (after installing 1.20.0, sent as pasted text)
+
+> my mouse disappears when i move on top of scraatch pad
+>
+> in hte menu moove how recaller works, settings, widget button, eaten, reset in one menu dropdown menu button, and make the scratch pad button more visible and prominent
+
+[Built as 1.20.1. "scratch pad" = the notepad. The pointer: the PC uses the Windows Default scheme, whose text I-beam is an inverting pointer that Chromium can fail to draw over a floating layer; the notepad now has its own dark I-beam image. "in the menu move … in one menu dropdown menu button": How Recaller works, Settings, the widget button, Eaten and Reset column widths went into one ☰ dropdown at the top bar's right end. "more visible and prominent": the notepad button became a labelled, tinted pill.]
