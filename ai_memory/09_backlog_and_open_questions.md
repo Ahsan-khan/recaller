@@ -220,7 +220,7 @@ These were covered only by simulations: a fake microphone, a mock OpenAI server,
 - **A green first window after a Mac update** (`07` #101): the watchdog reloads it; a Developer ID would remove the cause.
 - **The Claude Code format** is a fixed template; nothing in Settings changes its wording.
 - **Live dictation** now cuts a phrase every 5–9 s while someone talks without pausing; a hard cut at 9 s can fall inside a word.
-- **A slow first microphone start** on this Mac: one baseline run of the features suite (1.17.0, 2026-10-20) found the mic not yet recording 0.7 s after the click, and failed 4 dictation checks; a scratch timing run (165 ms) and the next two features runs were fine. If it comes back, time `Voice.start()` in a real run.
+- **A slow first microphone start** on this Mac: one baseline run of the features suite (1.17.0, 2026-10-20) found the mic not yet recording 0.7 s after the click, and failed 4 dictation checks; a scratch timing run (165 ms) and the next two features runs were fine. It came back worse on 2026-10-24 (1.20.3, two full runs in a row): the fake mic's first `getUserMedia` never resolved (the editor stayed on "Starting mic…"), 9 dictation checks failed and the suite stopped with `HARNESS FAIL … .composer-msg .status-action`. Then four runs passed, the full suite included (194/194), and the 1.19.1 suite passed 171/171 the same hour; `voice.js` is unchanged since 1.18. So it's the test machine's fake audio device, not the app (`07` #105). Real microphones are untouched by it.
 
 ## Suggested next steps for whoever continues
 

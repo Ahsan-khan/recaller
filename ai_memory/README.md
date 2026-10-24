@@ -2,6 +2,10 @@
 
 This folder is the complete handoff for **Recaller**. It lets any person, AI agent or LLM continue development without the original conversation. Everything here is plain text, and every user flow is described in words.
 
+Status as of **2026-10-24**, thirteenth session (on the Mac):
+- **PR #6 is merged:** `main` = `origin/main` = `258c13d` holds 1.20.3. The owner's GitHub Desktop pull landed seconds before that merge, so `main` was fast-forwarded locally to the already-fetched `origin/main` (`07` #106).
+- **`dist/Recaller-1.20.3-arm64.dmg` is built and tested on the Mac** (ad-hoc signed; codesign valid; version 1.20.3; its 52 app files byte-identical to the source, cloud config inside). From source: unit 715/715, features 194/194. Against the packaged `app.asar`: multi-copy 12/12, update-safety 21/21 (synthetic), features 194/194. Not run here this time: accounts-on, sync and `MODE=real` (the engine is unchanged since 1.17; the PC ran all three on 1.20.1). The first two features runs from source failed the dictation block when the fake mic's first start hung, then four runs passed (`07` #105). `/Applications/Recaller.app` was 1.19.1 at the start; the owner installs 1.20.3.
+
 Status as of **2026-10-24**, twelfth session continued (on the PC):
 - **1.20.1 is committed** on `v1.20` (`6517e90`, pushed) and open as PR #6 into `main`. On top, uncommitted: **1.20.2** (minimized columns as rows, side by side in one stack; the owner installed it) and **1.20.3** (stacks scroll inside the board, a 28 px board scrollbar, the Eating strip lifted above it). `dist\Recaller Setup 1.20.3.exe` is built (52 app files byte-identical to the source); features 189/189 from source. The owner asked for lighter testing (`13`, step 5).
 
