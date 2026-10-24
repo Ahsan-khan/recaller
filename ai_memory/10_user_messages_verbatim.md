@@ -797,3 +797,11 @@ Twelfth session (2026-10-23, on the PC, `C:\Users\User\Documents\recaller`; bran
 > make bar thicker slightly
 
 [Both were about the installed 1.20.2, which has neither the scrolling stack nor the lifted Eating strip; 1.20.3 has both. The bar went from 24 px to 28 px (20 px thumb) in 1.20.3 before it was handed over.]
+
+## Message 89 (2026-10-24, fourteenth session, on the Mac)
+
+> on mac i slide left to delete but it no delete easily i have to slide alot
+>
+> also in mac i move column drag column and it doesnt snap into place easily i ahve to be very precise on mac it should be easier
+
+[Mac only: a swipe now deletes after 22% of the card (at most 60 px, was 36%), and a dragged column takes the next slot once its leading edge passes the neighbour's middle, about half a column, instead of when the pointer does (`08`, 1.20.5; `11` #101). The owner then asked for the dmg: "Build the Mac dmg with these changes so I can install and try it"..]

@@ -995,6 +995,37 @@ async function run() {
   const order2 = await js(`[...document.querySelectorAll('.column')].map(c => c.dataset.id).slice(0, 2).join(',')`);
   check('column reorder, then undo restores order', order1 === 'p2,p1' && order2 === 'p1,p2', `${order1} → ${order2}`);
 
+  if (IS_MAC) {
+    // Mac: a slow, short swipe deletes (22% of the card, at most 60 px); a shorter one springs back
+    const n0 = (await colTexts('p2')).length;
+    const sw = await rect('.column[data-id="p2"] .active-list .card', 1);
+    const slowSwipe = async (dist) => {
+      mouse('mouseMove', sw.cx, sw.cy, { modifiers: [] }); mouse('mouseDown', sw.cx, sw.cy);
+      await drag(sw.cx, sw.cy, sw.cx - dist, sw.cy + 1, 20, 30);
+      await sleep(120); // a pause before letting go: no flick
+      mouse('mouseUp', sw.cx - dist, sw.cy + 1);
+      await sleep(600);
+      return (await colTexts('p2')).length;
+    };
+    const afterShort = await slowSwipe(24);
+    const afterSwipe = await slowSwipe(64);
+    if (afterSwipe < n0) { key('Z', [MOD]); await sleep(400); }
+    check('Mac: a 64 px swipe deletes a note; a 24 px one doesn’t', afterShort === n0 && afterSwipe === n0 - 1 && (await colTexts('p2')).length === n0, JSON.stringify({ n0, afterShort, afterSwipe }));
+    // Mac: grabbed by its name, a column moves one place right after about half a column, not a whole one
+    const nm = await rect('.column[data-id="p1"] .col-name');
+    const cw = (await rect('.column[data-id="p1"]')).w;
+    const dx = Math.round(cw * 0.6);
+    mouse('mouseMove', nm.cx, nm.cy, { modifiers: [] }); mouse('mouseDown', nm.cx, nm.cy);
+    await drag(nm.cx, nm.cy, nm.cx + dx, nm.cy + 4, 20, 20);
+    await sleep(350); // the neighbour's slide finishes; the slot must not flip back
+    mouse('mouseUp', nm.cx + dx, nm.cy + 4);
+    await sleep(450);
+    const snapped = await js(`[...document.querySelectorAll('.column')].map(c => c.dataset.id).slice(0, 2).join(',')`);
+    if (snapped === 'p2,p1') { key('Z', [MOD]); await sleep(350); }
+    const restored = await js(`[...document.querySelectorAll('.column')].map(c => c.dataset.id).slice(0, 2).join(',')`);
+    check('Mac: a column grabbed by its name snaps one place right after 60% of its width', snapped === 'p2,p1' && restored === 'p1,p2', JSON.stringify({ dx, cw, snapped, restored }));
+  }
+
   // ---------------------------------------------------------------- ⋯ › Sort prompts oldest first (for columns saved newest-first)
   const createdOrder = () => JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'recaller-data.json'), 'utf8')).projects.find((p) => p.id === 'p2').notes.map((n) => n.createdAt);
   const ascending = (a) => a.every((v, i) => i === 0 || a[i - 1] <= v);
