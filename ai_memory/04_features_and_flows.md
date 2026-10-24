@@ -748,3 +748,10 @@ The owner's words are in `10`, messages 80 and 81. Both platforms; nothing is fe
 ### 1.20.2 (the same session)
 
 - **Minimized columns are rows in a stack.** ⋯ › Minimize column turns the column into a 184 × 40 px row in its header colour: leaf, name across (one line, … when long, the full name in the tooltip), the Eating dot and its count (Cooking + Cooked). Minimized columns next to each other (on the board, or inside a group's lane) stack in one slot, 6 px apart; a lone one is a stack of one. A click on a row opens the column; a drag moves it like any column (out of the stack, anywhere on the board or into a group). Synced as before (`minimized`). 1.20.3: a stack is never taller than the board; with more rows than fit (a small window), it scrolls on its own (the wheel over it, or its thin bar).
+
+### 1.20.6 (thirteenth session, 2026-10-24)
+
+- **The Eating switch in Served never covers the word Served.** Both shrink before they touch (Served ends in "…" as a last resort). Below about 262 px of Served width the Served icon goes; below about 226 px the word "Eating" goes and the pill shows only the dot and the time ("● 2h 35m"). Container queries on `.final`.
+- **The Eating strip** at the bottom right is dark (deep forest `#0a2219`, an emerald edge) in both themes; its chips (the column names) stay light as before. Its label and count are mint on the dark.
+- **A stack of minimized columns** keeps 6 px of air between its scrollbar and its rows.
+- **Zoom:** ☰ › **Zoom** with **−**, the percentage (click: back to 100%) and **+**. The row stays open while clicking. Steps 50–200%; `Ctrl +` / `Ctrl −` / `Ctrl 0` (⌘ on a Mac) and Ctrl + the wheel do the same, in the board and the widget. It is Chromium page zoom, so everything scales: columns, text, menus, the strip. Main owns it (`settings.zoom`, `applyZoom()`, `stepZoom()`); the caption buttons (Windows) grow with the top bar (`titleBarOverlay` height 48 × zoom), and on a Mac the traffic lights move down to stay centred and the top bar's left padding is divided by the zoom. The snip overlay (`overlay.html`) stays at 100%: Chromium keys a file page's zoom by its full URL.

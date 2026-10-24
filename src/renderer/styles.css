@@ -1833,6 +1833,23 @@ body.theme-deep .sel-hint { color: var(--ink-3); }
 .eat-btn[aria-pressed="true"] .icon { display: none; }
 @keyframes eat-blink { 50% { opacity: 0.35; transform: scale(0.7); } }
 .final.is-collapsed .eat-btn { margin-right: 2px; }
+/* 1.20.6: the switch never sits on the Served name. Both may shrink (the name ends in "…" before they
+   touch), and a narrow column first drops the Served icon, then the word "Eating" (the time stays). */
+.final { container-type: inline-size; }
+.final-toggle { overflow: hidden; }
+.final-toggle > .chev, .final-toggle > .icon { flex: none; }
+.final-toggle > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eat-btn { flex: 0 1 auto; min-width: 0; }
+.eat-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.eat-btn-time:not(:empty)::before { content: " · "; }
+@container (max-width: 262px) {
+  .final-toggle { gap: 5px; padding: 0 6px 0 9px; }
+  .final-toggle > .icon { display: none; }
+}
+@container (max-width: 226px) {
+  .eat-btn[aria-pressed="true"] .eat-btn-word { display: none; }
+  .eat-btn-time:not(:empty)::before { content: none; }
+}
 
 /* the column's own sign that it's eating: a small pulsing dot in its header */
 .col-mini { display: none; flex: none; align-items: center; gap: 6px; }
@@ -1899,14 +1916,24 @@ body.eaten-open .eating { right: calc(min(400px, 100vw - 44px) + 22px); max-widt
 .eat-flow { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); background-size: 50% 100%; background-repeat: no-repeat; animation: eat-flow 2.6s linear infinite; opacity: 0.75; }
 @keyframes eat-flow { from { background-position: -50% 0; } to { background-position: 150% 0; } }
 body.theme-deep .eating { background: #f4fdf8; border-color: rgba(110, 231, 183, 0.55); box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.14), 0 18px 40px -10px rgba(0, 0, 0, 0.6); }
+/* 1.20.6: the strip itself is dark (deep forest, an emerald edge) in both themes; the chips stay light */
+.eating, body.theme-deep .eating {
+  background: #0a2219;
+  border-color: rgba(52, 211, 153, 0.45);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12), 0 18px 40px -12px rgba(0, 0, 0, 0.55);
+}
+.eating .eating-label { color: #6ee7b7; }
+.eating .eating-count { background: #10b981; color: #052e1f; }
+.eating .eat-pulse { background: #34d399; }
 
 /* a minimized column (1.20.2): a row in its header colour (leaf, name across, Eating dot, count). Minimized
    columns side by side share one slot, a stack of rows (.mini-stack); a click opens one, a drag moves it */
 .mini-stack { flex: none; align-self: flex-start; width: 184px; display: flex; flex-direction: column; gap: 6px; }
 /* 1.20.3: never taller than the board; a long stack scrolls on its own (wheel over it, or its thin bar) */
 .mini-stack { max-height: 100%; overflow-y: auto; overscroll-behavior: contain; border-radius: 12px; }
-.mini-stack::-webkit-scrollbar { width: 6px; }
-.mini-stack::-webkit-scrollbar-thumb { background: rgba(12, 42, 29, 0.22); border-radius: 999px; }
+/* 1.20.6: the bar keeps 6 px of air from the rows (a clear left border on a wider track) */
+.mini-stack::-webkit-scrollbar { width: 14px; }
+.mini-stack::-webkit-scrollbar-thumb { background: rgba(12, 42, 29, 0.22); background-clip: padding-box; border: solid transparent; border-width: 2px 1px 2px 7px; border-radius: 999px; }
 body.theme-deep .mini-stack::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.28); }
 .column.is-minimized { width: 100% !important; min-height: 0; }
 .column.is-minimized > :not(.col-head) { display: none; }
@@ -2380,6 +2407,15 @@ body.notepad-open .eating { right: calc(min(420px, 100vw - 44px) + 22px); max-wi
 .app-menu { min-width: 248px; }
 .app-menu[hidden] { display: none; }
 .app-menu-label { flex: 1; min-width: 0; }
+/* 1.20.6: the Zoom row: − 100% + (the percentage puts it back to 100%) */
+.menu-zoom { display: flex; align-items: center; gap: 10px; padding: 3px 4px 3px 9px; font-size: 13px; color: var(--ink); }
+.menu-zoom > .icon { flex: none; width: 16px; height: 16px; color: var(--ink-2); }
+.zoom-step, .zoom-value { flex: none; height: 28px; border-radius: 8px; display: grid; place-items: center; color: var(--ink-2); transition: background 0.12s, color 0.12s; }
+.zoom-step { width: 28px; border: 1px solid var(--line-strong); }
+.zoom-step .icon { width: 14px; height: 14px; stroke-width: 2.2; }
+.zoom-value { min-width: 48px; padding: 0 4px; font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--ink); }
+.zoom-step:hover:not(:disabled), .zoom-value:hover { background: var(--primary-mist); color: var(--primary-deep); }
+.zoom-step:disabled { opacity: 0.4; cursor: default; }
 .app-menu .menu-item kbd, body.theme-deep .app-menu .menu-item kbd { flex: none; padding: 0 5px; font-size: 10.5px; background: #fff; border-color: var(--line-strong); color: var(--ink-3); }
 .app-menu .eaten-badge { position: static; flex: none; box-shadow: none; }
 .app-menu .eaten-btn.is-open { background: var(--primary-mist); }
@@ -2417,7 +2453,7 @@ body.is-widget .notepad-label { display: none; }
 
 /* app.js adds .is-mac on a Mac only, so nothing below reaches Windows. The top bar starts after the
    traffic lights (x 16–70); in full screen they are gone. The right padding formula gives 12px here. */
-body.is-mac .topbar { padding-left: 84px; }
+body.is-mac .topbar { padding-left: calc(84px / var(--zoom, 1)); } /* the traffic lights don't zoom */
 body.is-mac.is-fullscreen .topbar { padding-left: 14px; }
 
 /* The system font after Geist, in place of Segoe. Declared on body itself, where the body.title-*

@@ -603,7 +603,7 @@
         <section class="final" hidden>
           <div class="final-head">
             <button class="final-toggle" title="Served: the final text, every note added from Cooked, joined"><span class="chev">${I.chevron}</span>${I.used}<span>Served</span></button>
-            <button class="eat-btn" aria-pressed="false"><span class="eat-dot"></span>${I.utensils}<span class="eat-label">Eating</span></button>
+            <button class="eat-btn" aria-pressed="false"><span class="eat-dot"></span>${I.utensils}<span class="eat-label"><span class="eat-btn-word">Eating</span><span class="eat-btn-time"></span></span></button>
           </div>
           <div class="final-body">
             <div class="final-text" title="Click to copy it all"></div>
@@ -644,7 +644,7 @@
       augMoveBtn: $('.aug-move', root),
       augCcBtn: $('.aug-cc', root),
       eatBtn: $('.eat-btn', root),
-      eatLabel: $('.eat-label', root),
+      eatTime: $('.eat-btn-time', root),
       miniCount: $('.mini-count', root),
       augSig: null,
       // Cooked and Served always start at their fixed size; "Show more" opens them up
@@ -944,7 +944,8 @@
     const eating = isEating(project);
     col.eatBtn.hidden = !(project.combined.length || eating);
     col.eatBtn.setAttribute('aria-pressed', String(eating));
-    col.eatLabel.textContent = eating ? `Eating · ${eatFor(project.eating)}` : 'Eating';
+    // the time has its own span, so a narrow column can drop the word "Eating" and keep the time
+    col.eatTime.textContent = eating ? eatFor(project.eating) : '';
     col.eatBtn.title = eating
       ? 'An agent is running this served prompt · click when it is done'
       : 'Mark as Eating: an agent is running this served prompt';
@@ -4403,6 +4404,29 @@
   }
 
   appMenuBtn.addEventListener('click', () => (openMenuEl === appMenu ? closeMenu() : openAppMenu()));
+
+  // ---- zoom (1.20.6): − 100% + in the ☰ menu (also Ctrl + / Ctrl − / Ctrl 0 and Ctrl + the wheel, which
+  // main handles). Main sets the window's zoom and remembers it for this computer; the page shows it.
+  const zoomValue = $('#zoom-reset');
+  function showZoom(z) {
+    const zoom = Number(z) > 0 ? Number(z) : 1;
+    zoomValue.textContent = `${Math.round(zoom * 100)}%`;
+    $('#zoom-out').disabled = zoom <= 0.5;
+    $('#zoom-in').disabled = zoom >= 2;
+    document.documentElement.style.setProperty('--zoom', String(zoom));
+    if (ui.settings) ui.settings.zoom = zoom;
+  }
+  async function changeZoom(patch) {
+    try {
+      showZoom((await api.setSettings(patch)).zoom);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  $('#zoom-out').addEventListener('click', () => changeZoom({ zoomStep: -1 }));
+  $('#zoom-in').addEventListener('click', () => changeZoom({ zoomStep: 1 }));
+  zoomValue.addEventListener('click', () => changeZoom({ zoom: 1 }));
+  api.onZoom?.(showZoom);
   // a row does its job (its own listener runs first), then the menu closes
   appMenu.addEventListener('click', (e) => {
     if (e.target.closest('.menu-item:not(:disabled)') && openMenuEl === appMenu) closeMenu();
@@ -4485,7 +4509,14 @@
     if (openMenuEl && !openMenuEl.contains(e.target) && !openMenuEl.anchor?.contains(e.target)) closeMenu();
   });
   window.addEventListener('blur', closeMenu);
-  window.addEventListener('resize', closeMenu);
+  // A zoom is a resize too (1.20.6): the ☰ menu stays open through it, placed again under its button.
+  let lastRatio = window.devicePixelRatio;
+  window.addEventListener('resize', () => {
+    const zoomed = window.devicePixelRatio !== lastRatio;
+    lastRatio = window.devicePixelRatio;
+    if (zoomed && openMenuEl === appMenu) openAppMenu();
+    else closeMenu();
+  });
   board.addEventListener('scroll', closeMenu, { passive: true });
 
   // ================================================================ toasts
@@ -5173,6 +5204,7 @@
     try {
       ui.settings = await api.getSettings();
       applyTheme(ui.settings.theme);
+      showZoom(ui.settings.zoom);
       ui.widget = Boolean(ui.settings.widget);
       ui.widgetId = ui.settings.widgetProject || null;
       document.body.classList.toggle('is-widget', ui.widget);

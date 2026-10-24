@@ -31,7 +31,16 @@ const THEMES = {
   deep: { color: '#082a1f', symbolColor: '#e7f7ee' },
   soft: { color: '#fbfdfc', symbolColor: '#0c2a1d' },
 };
-const titleBar = () => ({ ...(THEMES[settings.theme] || THEMES.deep), height: 48 });
+// 1.20.6: the native caption buttons follow the zoom, so they stay as tall as the zoomed 48 px top bar
+const titleBar = () => ({ ...(THEMES[settings.theme] || THEMES.deep), height: Math.round(48 * zoomOf()) });
+
+// 1.20.6: zoom, for this computer only (screens differ). Page zoom scales everything: columns, text, menus.
+// Chromium keys a file:// page's zoom by its full URL, so the snip overlay (overlay.html) keeps 100%.
+const ZOOM_STEPS = [0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+const zoomOf = () => {
+  const z = Number(settings.zoom);
+  return Number.isFinite(z) ? Math.min(2, Math.max(0.5, Math.round(z * 100) / 100)) : 1;
+};
 
 const DEFAULT_SETTINGS = {
   model: 'gpt-transcribe',
@@ -104,6 +113,7 @@ function publicSettings() {
     shotHotkeyOk: hotkeyOk.shotHotkey,
     hideAfterCopy: settings.hideAfterCopy,
     theme: settings.theme,
+    zoom: zoomOf(),
     widget: Boolean(settings.widget),
     widgetProject: typeof settings.widgetProject === 'string' ? settings.widgetProject : null,
     dataDir: app.getPath('userData'),
@@ -347,8 +357,19 @@ function createWindow() {
     if (devtools && !app.isPackaged) {
       win.webContents.toggleDevTools();
       event.preventDefault();
+      return;
     }
+    // 1.20.6: Ctrl + / Ctrl − / Ctrl 0 zoom (⌘ on a Mac), in the board and the widget alike
+    const mod = IS_MAC ? input.meta && !input.control : input.control && !input.meta;
+    if (!mod || input.alt) return;
+    const dir = ['=', '+'].includes(input.key) ? 1 : ['-', '_'].includes(input.key) ? -1 : input.key === '0' && !input.shift ? 0 : null;
+    if (dir === null) return;
+    stepZoom(dir);
+    event.preventDefault();
   });
+  // Ctrl + the mouse wheel (a pinch on a touchpad) zooms too
+  win.webContents.on('zoom-changed', (_e, direction) => stepZoom(direction === 'in' ? 1 : -1));
+  win.webContents.on('did-finish-load', () => applyZoom());
 
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }
@@ -378,6 +399,31 @@ function applyTheme() {
   if (!win || win.isDestroyed()) return;
   win.setBackgroundColor(titleBar().color);
   if (process.platform !== 'darwin') win.setTitleBarOverlay(titleBar());
+}
+
+// Sets the window's zoom from settings.zoom, and moves the caption buttons (Windows) or the traffic
+// lights (Mac) to match the zoomed top bar. `tell` lets the page update the menu's percentage.
+function applyZoom(tell = false) {
+  if (!win || win.isDestroyed()) return;
+  const z = zoomOf();
+  win.webContents.setZoomFactor(z);
+  if (IS_MAC) {
+    if (typeof win.setWindowButtonPosition === 'function') win.setWindowButtonPosition({ x: 16, y: Math.round(16 + 24 * (z - 1)) });
+  } else {
+    win.setTitleBarOverlay(titleBar());
+  }
+  if (tell) sendWhenLoaded('zoom:changed', z);
+}
+
+// One step in (+1) or out (-1) from the current zoom, or back to 100% (0).
+function stepZoom(dir) {
+  const z = zoomOf();
+  if (dir === 0) settings.zoom = 1;
+  else if (dir > 0) settings.zoom = ZOOM_STEPS.find((s) => s > z + 0.001) ?? z;
+  else settings.zoom = [...ZOOM_STEPS].reverse().find((s) => s < z - 0.001) ?? z;
+  if (zoomOf() === z) return;
+  applyZoom(true);
+  saveSettings();
 }
 
 function summon() {
@@ -586,6 +632,13 @@ function registerIpc() {
     if (patch.theme in THEMES) {
       settings.theme = patch.theme;
       applyTheme();
+    }
+    if (typeof patch.zoom === 'number' && Number.isFinite(patch.zoom)) {
+      settings.zoom = patch.zoom;
+      settings.zoom = zoomOf(); // clamped
+      applyZoom();
+    } else if (typeof patch.zoomStep === 'number') {
+      stepZoom(Math.sign(patch.zoomStep));
     }
     if (!settings.model) settings.model = DEFAULT_SETTINGS.model;
     if ('hotkey' in patch || 'shotHotkey' in patch) applyHotkeys();

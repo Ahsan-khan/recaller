@@ -45,7 +45,7 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Delete a note | Hold the mouse on it and swipe left |
 | Delete from Cooked or Served | Click **Notes** under the text, hover a note and click its trash to delete just that one. To delete the whole Cooked note (or Served text), right-click it and click the trash in the editor. Both are undoable |
 | Undo anything | `Ctrl+Z`, the ↶ button in the top bar, or **Undo** on the toast. `Ctrl+Y` redoes |
-| The top bar | Left to right: **Notepad**, **+** (new project), undo and redo, the sync cloud (only when sync needs a look), and **☰**, a menu with **Eaten**, **Widget**, **Reset column widths**, **How Recaller works** and **Settings** |
+| The top bar | Left to right: **Notepad**, **+** (new project), undo and redo, the sync cloud (only when sync needs a look), and **☰**, a menu with **Eaten**, **Widget**, **Reset column widths**, **Zoom**, **How Recaller works** and **Settings** |
 | Add a prompt to Cooked | Hover it and click **↓ Cooked** (or press `U`), or drag it down onto **Cooked**. It joins the end of the Cooked note |
 | Move the Cooked note into Served | Click **Move to Served**, swipe the note left, or drag it onto **Served**. Its text is added to the end of Served, and Cooked starts empty for the next batch |
 | Edit Cooked or Served | The pencil in the footer edits the whole text (it's then saved as one note). **Notes** lists the separate notes inside: hover one to move it up ↑ or down ↓, edit just that one ✎, send it back ↩, or delete it with the trash |
@@ -76,6 +76,7 @@ Run the new installer over the old one. Everything carries over as-is: projects,
 | Scroll sideways | Mouse wheel over a header or empty space, drag the empty background, or move the pointer to the left or right edge of the board and click the ‹ › button that appears there (hold it to glide) |
 | Resize a column | Drag its right edge. Double-click the edge (or **⋯ → Reset width**) for the default width again |
 | Reset all column widths | **☰ › Reset column widths** in the top bar puts every column back to the default width. **Undo** on the toast brings your widths back |
+| Zoom | **☰ › Zoom**: **−** and **+** make everything bigger or smaller (columns, text, menus); click the percentage for 100%. `Ctrl +`, `Ctrl −`, `Ctrl 0` and `Ctrl` + the mouse wheel do the same. Kept for this computer only |
 | Default column width | **Settings → Column width**: Compact, Slim or Roomy |
 | Column colour | **⋯** menu: 18 colours |
 | Colours | **Settings → Colour**: Deep (dark forest canvas, solid headers) or Soft (light) |
