@@ -696,3 +696,104 @@ Eleventh session (2026-10-21, on the Mac, `/Users/ahsankhan`; branch `main` = PR
 > when i move the column around it brings horizontal like mobile model, i odnt like tht at all go back to normal drag
 
 [The 1.19.0 Mac column drag that zoomed the board out into slim strips was removed: the Mac drags whole columns again, exactly as in 1.18. Released as 1.19.1 (1.19.0 was installed). "Horizontal like mobile model" = the row of slim strips.]
+
+---
+
+Twelfth session (2026-10-23, on the PC, `C:\Users\User\Documents\recaller`; branch `main`, then a new branch `v1.20`).
+
+## Message 76
+
+> read ai_memory and learn every file so we can continue building
+
+[All 16 files were read in full, then git, the installed version and `dist\` were checked against them: `main` held 1.19.1 (PR #5 merged since the docs were written), the PC had 1.18.0 installed, and there was no 1.19 Windows installer.]
+
+## Message 77 (a reply button)
+
+> Run the full test suite on the PC first, then build the 1.19.1 Windows installer so I can install it.
+
+[The first full PC run since 1.17: every suite passed from source, then `dist\Recaller Setup 1.19.1.exe` was built and passed the same against its packaged `app.asar`, plus `MODE=real` 9/9.]
+
+## Message 78 (while the packaged run was going)
+
+> hurry up
+
+[The installer was already built, so the owner was told to install it while the last checks finished.]
+
+## Message 79 (a reply button)
+
+> Commit the ai_memory updates to main and push.
+
+[Committed as `def87e2` "Docs: 1.19.1 built and fully tested on the PC" on `main` and pushed.]
+
+## Message 80 (the whole request, sent as pasted text)
+
+> when i minimize column it should sync with all
+>
+> i want to be able to have a notepad thing where i can enter random notes quickly
+>
+> once i added a column to a group i couldnt move the column or the group around
+
+[Built as 1.20.0 (`04` §29). How each item was read:
+- "sync with all": a minimized column is minimized on every computer (the 1.18 flag was per computer by design).
+- "a notepad thing … random notes quickly": asked first (message 81).
+- "couldn't move the column or the group around": a grouped column could only be dragged within its own group (alone in a group it couldn't move at all), and a group could only move from its ⋯ menu. Now columns drag into and out of groups, groups drag by their band, and Move left / right steps out at a group's edge.]
+
+## Message 81: the owner's answer to one question
+
+> One scratch page
+
+[The question: what should the notepad be like: a quick notes list (each line its own note, with copy, edit, delete, send to a column), one scratch page (one big text area that saves as you type), or both. Built as one page in a drawer, opened from the top bar or Ctrl+J, synced.]
+
+## Message 82 (after installing 1.20.0, sent as pasted text)
+
+> my mouse disappears when i move on top of scraatch pad
+>
+> in hte menu moove how recaller works, settings, widget button, eaten, reset in one menu dropdown menu button, and make the scratch pad button more visible and prominent
+
+[Built as 1.20.1. "scratch pad" = the notepad. The pointer: the PC uses the Windows Default scheme, whose text I-beam is an inverting pointer that Chromium can fail to draw over a floating layer; the notepad now has its own dark I-beam image. "in the menu move … in one menu dropdown menu button": How Recaller works, Settings, the widget button, Eaten and Reset column widths went into one ☰ dropdown at the top bar's right end. "more visible and prominent": the notepad button became a labelled, tinted pill.]
+
+## Message 83 (a reply button, then this)
+
+> Commit 1.20.1 on v1.20, push it, and open a pull request into main.
+
+[Committed as `6517e90` and pushed; pull request #6 (`v1.20` → `main`) opened.]
+
+> the minized columns look odd when vertical and text is unreadable, what can we do to make it look better
+
+[A taste question, so three looks were rendered side by side on the same board (Deep and Soft): A, the same strips but even and reading upward; B, small horizontal cards; C, minimized columns side by side sharing one slot as rows. Sent as `tests/e2e/.out/minimized-options-deep.png` with one question.]
+
+## Message 84: the owner's answer
+
+> C. A stack (Recommended)
+
+[Built as 1.20.2 (`08`).]
+
+## Message 85 (while 1.20.2 was being tested)
+
+> make the horitizal bar a little thicker cause i move it around alot
+
+[The board's horizontal scrollbar: 20 px tall instead of 14, with a 12 px thumb (16 px under the pointer or while dragged) instead of 6 px. The owner had just installed the first 1.20.2 build (without it), so it became 1.20.3.]
+
+## Message 86 (2026-10-24)
+
+> since the minimized columns stack i should be able to scroll vertically according to the size of the window. like right now my window is small and i cant everything mnimized i should be ambe to scroll dynamically
+
+[A stack taller than the board was cut off at the bottom. It now stops at the board's height and scrolls on its own (1.20.3).]
+
+## Message 87 (while that was being built)
+
+> make the horitizal scroller bar thcker and make sure it doesnt over lap with the eating
+
+[The board's scrollbar went from 20 px (not yet installed) to 24 px with a 16 px thumb, and the Eating strip now sits 10 px above it instead of over its right end (1.20.3).]
+
+## Message 88 (while 1.20.3 was being built; the owner was still on 1.20.2)
+
+> i think the tests are too much
+
+[Each small change had been costing about 25 minutes of tests (every suite from source, then again against the installer). From here, a small UI change gets the features suite from source, the build, and the package-matches-source check; the full set runs before a merge or when data or sync code changes.]
+
+> how doscroll vericall the columns minimized? and bar still overlapping
+>
+> make bar thicker slightly
+
+[Both were about the installed 1.20.2, which has neither the scrolling stack nor the lifted Eating strip; 1.20.3 has both. The bar went from 24 px to 28 px (20 px thumb) in 1.20.3 before it was handed over.]

@@ -380,7 +380,10 @@ kbd {
 .board > * { cursor: auto; }
 body.is-ready .board { opacity: 1; }
 
-.board::-webkit-scrollbar { height: 14px; }
+/* 1.20.3: thicker, because the owner drags it a lot: a 28 px bar (--board-bar), a 20 px thumb, 24 px under the
+   pointer. The Eating strip sits above it (see .eating), never on it. */
+:root { --board-bar: 28px; }
+.board::-webkit-scrollbar { height: var(--board-bar); }
 .board::-webkit-scrollbar-track { background: transparent; margin: 0 12px; } /* clear of the frame's round corners */
 .board::-webkit-scrollbar-thumb {
   background: rgba(12, 42, 29, 0.22);
@@ -388,7 +391,7 @@ body.is-ready .board { opacity: 1; }
   border: 4px solid transparent;
   background-clip: content-box;
 }
-.board::-webkit-scrollbar-thumb:hover { background-color: rgba(12, 42, 29, 0.38); border-width: 3px; }
+.board::-webkit-scrollbar-thumb:hover, .board::-webkit-scrollbar-thumb:active { background-color: rgba(12, 42, 29, 0.38); border-width: 2px; }
 .col-scroll::-webkit-scrollbar, .composer textarea::-webkit-scrollbar,
 .aug-text::-webkit-scrollbar, .final-text::-webkit-scrollbar, .aug-parts::-webkit-scrollbar, .final-parts::-webkit-scrollbar { width: 8px; }
 .col-scroll::-webkit-scrollbar-thumb, .composer textarea::-webkit-scrollbar-thumb,
@@ -693,8 +696,8 @@ body.is-dragging .col-resize { display: none; }
 .used.is-empty .used-headrow { background: none; margin-bottom: 0; }
 .used.is-empty .used-head { color: var(--aug-ink); opacity: 0.6; }
 .used.is-empty .used-head:hover { background: color-mix(in srgb, var(--aug-bar) 8%, transparent); opacity: 0.9; }
-body.is-dragging .used.is-empty { background: var(--aug-bg); border-color: var(--aug-bar); padding-bottom: 5px; }
-body.is-dragging .used.is-empty .used-head { opacity: 1; }
+body.is-dragging:not(.is-col-drag) .used.is-empty { background: var(--aug-bg); border-color: var(--aug-bar); padding-bottom: 5px; }
+body.is-dragging:not(.is-col-drag) .used.is-empty .used-head { opacity: 1; }
 .used-headrow {
   display: flex;
   align-items: center;
@@ -823,11 +826,11 @@ body.is-dragging .used.is-empty .used-head { opacity: 1; }
 .aug-parts { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); max-height: 220px; overflow-y: auto; }
 .aug-empty { display: none; padding: 8px 8px 7px; text-align: center; font-size: 11.5px; color: var(--aug-ink); opacity: 0.8; }
 .used.is-empty .aug-wrap { display: none; }
-body.is-dragging .used.is-empty .aug-empty { display: block; }
+body.is-dragging:not(.is-col-drag) .used.is-empty .aug-empty { display: block; }
 .used.is-collapsed .aug-wrap, .used.is-collapsed .aug-empty, .used.is-collapsed .aug-move { display: none; }
 .aug-stats, .final-stats { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .used.is-editing .aug-note, .used.is-editing .aug-under { display: none; }
-body.is-dragging .aug-empty { opacity: 1; }
+body.is-dragging:not(.is-col-drag) .aug-empty { opacity: 1; }
 
 /* ------------------------------------------------------------------ Served (data name "combined") */
 
@@ -876,9 +879,9 @@ body.is-dragging .aug-empty { opacity: 1; }
 .final.is-empty, body.theme-deep .final.is-empty { background: transparent; border: 1.5px dashed transparent; box-shadow: none; }
 .final.is-empty .final-toggle { color: #0b5a3f; opacity: 0.6; }
 .final.is-empty .final-body { display: none; }
-body.is-dragging .final.is-empty { background: rgba(16, 168, 116, 0.08); border-color: #10a874; }
-body.is-dragging .final.is-empty .final-toggle { opacity: 1; }
-body.is-dragging .final.is-empty .final-body { display: block; background: transparent; border: 0; padding-top: 0; }
+body.is-dragging:not(.is-col-drag) .final.is-empty { background: rgba(16, 168, 116, 0.08); border-color: #10a874; }
+body.is-dragging:not(.is-col-drag) .final.is-empty .final-toggle { opacity: 1; }
+body.is-dragging:not(.is-col-drag) .final.is-empty .final-body { display: block; background: transparent; border: 0; padding-top: 0; }
 .final-edit-host { margin: 0 5px 5px; }
 .final-edit-host:empty, .final.is-collapsed .final-edit-host { display: none; }
 .final-text {
@@ -1473,7 +1476,7 @@ body.is-dragging .card-actions { opacity: 0 !important; }
 
 /* ------------------------------------------------------------------ menu */
 
-.menu {
+.menu, .app-menu { /* .app-menu: the top bar's ☰ dropdown (1.20.1), which stays in the page */
   position: fixed;
   z-index: 900;
   min-width: 210px;
@@ -1726,7 +1729,7 @@ body.theme-deep .empty-board p { color: rgba(236, 253, 245, 0.75); }
 body.theme-deep .empty-board svg { color: #34d399; --rib: var(--canvas); }
 body.theme-deep .col-placeholder { border-color: rgba(236, 253, 245, 0.35); background: rgba(255, 255, 255, 0.06); }
 body.theme-deep .board::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.25); }
-body.theme-deep .board::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.42); }
+body.theme-deep .board::-webkit-scrollbar-thumb:hover, body.theme-deep .board::-webkit-scrollbar-thumb:active { background-color: rgba(255, 255, 255, 0.42); }
 body.theme-deep .toast, body.theme-deep .selection-bar { background: #f0fdf6; color: #0c2a1d; box-shadow: 0 18px 40px -10px rgba(0, 0, 0, 0.6); }
 body.theme-deep .toast-action, body.theme-deep .sel-btn { color: #047857; }
 body.theme-deep .toast-action:hover, body.theme-deep .sel-btn:hover { background: rgba(4, 120, 87, 0.1); }
@@ -1846,7 +1849,7 @@ body.theme-deep .sel-hint { color: var(--ink-3); }
   position: absolute;
   z-index: 5;
   right: 16px;
-  bottom: 16px;
+  bottom: calc(var(--board-bar) + 10px); /* 1.20.3: above the board's scrollbar, so it never covers it */
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -1897,32 +1900,37 @@ body.eaten-open .eating { right: calc(min(400px, 100vw - 44px) + 22px); max-widt
 @keyframes eat-flow { from { background-position: -50% 0; } to { background-position: 150% 0; } }
 body.theme-deep .eating { background: #f4fdf8; border-color: rgba(110, 231, 183, 0.55); box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.14), 0 18px 40px -10px rgba(0, 0, 0, 0.6); }
 
-/* a minimized column: a slim strip in its header colour (leaf, name, count); a click opens it */
-.column.is-minimized { width: 46px !important; min-height: 190px; }
+/* a minimized column (1.20.2): a row in its header colour (leaf, name across, Eating dot, count). Minimized
+   columns side by side share one slot, a stack of rows (.mini-stack); a click opens one, a drag moves it */
+.mini-stack { flex: none; align-self: flex-start; width: 184px; display: flex; flex-direction: column; gap: 6px; }
+/* 1.20.3: never taller than the board; a long stack scrolls on its own (wheel over it, or its thin bar) */
+.mini-stack { max-height: 100%; overflow-y: auto; overscroll-behavior: contain; border-radius: 12px; }
+.mini-stack::-webkit-scrollbar { width: 6px; }
+.mini-stack::-webkit-scrollbar-thumb { background: rgba(12, 42, 29, 0.22); border-radius: 999px; }
+body.theme-deep .mini-stack::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.28); }
+.column.is-minimized { width: 100% !important; min-height: 0; }
 .column.is-minimized > :not(.col-head) { display: none; }
 .column.is-minimized .col-head {
-  flex: 1;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 10px;
-  min-height: 0;
-  padding: 13px 0 12px;
-  border-radius: 15px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 10px 6px 12px;
+  border-radius: 12px;
   border-bottom: 0;
   cursor: pointer;
 }
 .column.is-minimized .col-name {
   display: block;
-  writing-mode: vertical-rl;
-  max-height: 300px;
+  flex: 1 1 auto;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 14px;
-  line-height: 1;
+  font-size: 13.5px;
+  line-height: 1.2;
 }
 .column.is-minimized .col-menu { display: none; }
-.column.is-minimized .col-mini { flex-direction: column; margin-top: auto; }
+.column.is-minimized .col-mini { flex-direction: row; gap: 6px; }
 .column.is-minimized .mini-count {
   display: block;
   min-width: 22px;
@@ -1934,7 +1942,8 @@ body.theme-deep .eating { background: #f4fdf8; border-color: rgba(110, 231, 183,
   font-size: 10.5px;
   text-align: center;
 }
-.column.is-minimized:hover .col-head { filter: brightness(1.04); }
+.column.is-minimized:hover .col-head { filter: brightness(1.06); }
+.column.is-minimized + .col-placeholder, .mini-stack > .col-placeholder { width: 100% !important; }
 body.theme-deep .column.is-minimized .mini-count { background: rgba(255, 255, 255, 0.2); color: #fff; }
 
 /* a group of columns: a faint lane with a slim labelled band on top; folded, a narrow strip */
@@ -2254,9 +2263,7 @@ body.is-widget .brand,
 body.is-widget .search,
 body.is-widget #new-column,
 body.is-widget #redo,
-body.is-widget #reset-widths,
-body.is-widget #open-help,
-body.is-widget #open-settings { display: none; }
+body.is-widget #reset-widths { display: none; } /* 1.20.1: help and settings are in the ☰ menu, there in the widget too */
 body.is-widget .topbar-actions { margin-left: auto; gap: 2px; }
 body.is-widget .stage { margin: 2px 8px 8px; }
 body.is-widget .board { padding: 8px; overflow-x: hidden; }
@@ -2276,6 +2283,135 @@ body.is-widget .eat-badge { width: 24px; height: 24px; border-radius: 8px; }
 body.is-widget .eat-name, body.is-widget .eat-done, body.is-widget .eat-word { display: none; }
 body.is-widget .eat-time { font-size: 11px; color: var(--ink-2); }
 body.is-widget .eat-chip.is-shown { box-shadow: 0 0 0 2px var(--accent); }
+
+/* ---- 1.20: a whole group drags by its band; a column drags into and out of groups */
+.col-group.is-drag-source { display: none; }
+.group-placeholder { align-self: stretch; height: auto !important; min-height: 190px; border-radius: 18px; }
+.group-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px 0 11px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--col-edge);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: transform 0.2s var(--spring), box-shadow 0.2s;
+}
+.drag-ghost.is-lifted > .group-ghost { transform: rotate(1.4deg) scale(1.03); box-shadow: var(--shadow-lg); }
+.group-ghost-leaves { display: inline-flex; gap: 3px; }
+.group-ghost-leaves svg { width: 13px; height: 14px; --rib: rgba(255, 255, 255, 0.5); transform: rotate(-14deg); }
+.group-ghost-count { color: var(--ink-3); font-weight: 600; }
+.col-group.is-landed { animation: group-land 0.4s var(--ease); }
+@keyframes group-land {
+  from { box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 45%, transparent); }
+  to { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ---- 1.20: the notepad, one scratch page in a drawer over the board's right side (light in both
+   themes, like Eaten). Another computer's version, after typing on both at once, waits under the page. */
+.notepad-panel {
+  position: fixed;
+  z-index: 900;
+  top: calc(var(--topbar-h) + 10px);
+  right: 22px;
+  bottom: 22px;
+  width: min(420px, calc(100vw - 44px));
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--col-edge);
+  box-shadow: var(--shadow-lg);
+  color: var(--ink);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  translate: 18px 0;
+  transition: opacity 0.18s var(--ease), translate 0.22s var(--ease), visibility 0s linear 0.22s;
+}
+.notepad-panel.is-open { opacity: 1; visibility: visible; pointer-events: auto; translate: 0 0; transition: opacity 0.18s var(--ease), translate 0.22s var(--ease); }
+body.theme-deep .notepad-panel { border-color: transparent; box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.7); }
+body.notepad-open .eating { right: calc(min(420px, 100vw - 44px) + 22px); max-width: calc(100% - min(420px, 100vw - 44px) - 54px); transition: right 0.22s var(--ease); }
+.notepad-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 12px 10px 10px 16px; }
+.notepad-head > .icon { width: 18px; height: 18px; color: var(--primary-deep); }
+.notepad-head h2 { margin: 0; font-family: var(--font-head); font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.notepad-head .spacer, .notepad-foot .spacer { flex: 1; }
+.notepad-act { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px; border-radius: 8px; color: var(--ink-2); font-size: 12px; font-weight: 600; }
+.notepad-act .icon { width: 14px; height: 14px; }
+.notepad-act:hover { background: rgba(12, 42, 29, 0.06); color: var(--ink); }
+.notepad-text {
+  flex: 1 1 auto;
+  min-height: 120px;
+  margin: 0 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfcfb;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+}
+.notepad-text::placeholder { color: var(--ink-3); }
+.notepad-text:focus { background: #fff; border-color: color-mix(in srgb, var(--primary) 50%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent); }
+.notepad-text::-webkit-scrollbar { width: 8px; }
+.notepad-text::-webkit-scrollbar-thumb { background: rgba(12, 42, 29, 0.16); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+.notepad-others { flex: 0 1 auto; max-height: 40%; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 0; }
+.notepad-others-head { margin: 0; color: var(--ink-2); font-size: 12px; font-weight: 600; }
+.notepad-other { border-radius: 10px; border: 1px solid rgba(245, 158, 11, 0.45); background: #fff8e8; }
+.notepad-other-text { max-height: 140px; overflow-y: auto; padding: 9px 11px 4px; color: var(--ink); font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.notepad-other footer { display: flex; justify-content: flex-end; gap: 2px; padding: 2px 6px 6px; }
+.notepad-other .notepad-drop:hover { background: rgba(220, 79, 58, 0.1); color: var(--danger); }
+.notepad-foot { flex: none; display: flex; align-items: center; gap: 8px; margin: 10px 0 0; padding: 8px 16px 10px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 11px; }
+
+/* ---- 1.20.1: the top bar's ☰ menu (Eaten, the widget, Reset column widths, help, settings), and the
+   notepad as a labelled pill, the one prominent button there */
+.app-menu { min-width: 248px; }
+.app-menu[hidden] { display: none; }
+.app-menu-label { flex: 1; min-width: 0; }
+.app-menu .menu-item kbd, body.theme-deep .app-menu .menu-item kbd { flex: none; padding: 0 5px; font-size: 10.5px; background: #fff; border-color: var(--line-strong); color: var(--ink-3); }
+.app-menu .eaten-badge { position: static; flex: none; box-shadow: none; }
+.app-menu .eaten-btn.is-open { background: var(--primary-mist); }
+.app-menu-btn.is-open { background: rgba(12, 42, 29, 0.08); color: var(--ink); }
+body.theme-deep .topbar .app-menu-btn.is-open { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.notepad-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 14px 0 11px;
+  margin-right: 4px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary-deep);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 650;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.notepad-btn .icon { width: 17px; height: 17px; }
+.notepad-btn:hover { background: color-mix(in srgb, var(--primary) 20%, transparent); border-color: color-mix(in srgb, var(--primary) 70%, transparent); }
+.notepad-btn.is-open { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(5, 122, 85, 0.3); }
+body.theme-deep .topbar .notepad-btn { background: rgba(110, 231, 183, 0.14); border-color: rgba(110, 231, 183, 0.42); color: #d1fae5; }
+body.theme-deep .topbar .notepad-btn:hover { background: rgba(110, 231, 183, 0.22); border-color: rgba(110, 231, 183, 0.7); color: #fff; }
+body.theme-deep .topbar .notepad-btn.is-open { background: #10a874; border-color: #34d399; color: #fff; box-shadow: 0 2px 10px rgba(16, 168, 116, 0.35); }
+body.is-widget .notepad-btn { padding: 0 8px; margin-right: 0; }
+body.is-widget .notepad-label { display: none; }
+.notepad-text, .eaten-search input { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='24' viewBox='0 0 16 24'%3E%3Cpath d='M4.5 3.5c1.8 0 3.5.6 3.5 2.3v12.4c0 1.7-1.7 2.3-3.5 2.3M11.5 3.5c-1.8 0-3.5.6-3.5 2.3v12.4c0 1.7 1.7 2.3 3.5 2.3' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3Cpath d='M4.5 3.5c1.8 0 3.5.6 3.5 2.3v12.4c0 1.7-1.7 2.3-3.5 2.3M11.5 3.5c-1.8 0-3.5.6-3.5 2.3v12.4c0 1.7 1.7 2.3 3.5 2.3' fill='none' stroke='%230c2a1d' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E") 8 12, text; }
+.notepad-hint kbd, body.theme-deep .notepad-hint kbd { font-size: 10px; background: #fff; border-color: var(--line-strong); color: var(--ink-2); }
 
 /* ------------------------------------------------------------------ macOS (body.is-mac, 1.16 Mac edition) */
 

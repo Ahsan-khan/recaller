@@ -230,6 +230,14 @@ Eleventh session (2026-10-21, on the Mac, branch `v1.19`):
     - What was built: the redesigned Eating strip, the Mac zoomed-out column drag, and the widget. See `04` §28 and `08` (1.19.0).
     - The owner then had it pushed ("push"), asked for it on `main` (pull request #5, since the merge needed a review), installed 1.19.0, and rejected the zoomed-out drag ("go back to normal drag"): 1.19.1 removed it (`10`, messages 72 to 75).
 
+Twelfth session (2026-10-23, on the PC):
+
+28. **Round 22 → v1.20.0.** (The owner's words are in `10`, messages 76 to 81.)
+    - First: the 1.19.1 Windows installer, built and fully tested on the PC (the first full PC run since 1.17), and the docs committed to `main`.
+    - The request: minimized columns should sync to every computer; a notepad for random notes, quickly; and columns and groups that can be moved once a column is in a group.
+    - One question was asked first: the notepad's form (**"One scratch page"**).
+    - What was built: all three, on a new branch `v1.20`. See `04` §29 and `08` (1.20.0).
+
 ## Things the owner has not decided or confirmed
 
 - **Separator:** whether they want a blank line or a single new line between joined notes. The default stays blank line; the setting exists.
@@ -250,4 +258,5 @@ Eleventh session (2026-10-21, on the Mac, branch `v1.19`):
 - **Intel Macs:** whether a universal build is needed. The dmg is for Apple Silicon only.
 - **1.18 (tenth session):** whether the fixed Claude Code template says the right things (its "how to work" lines include "don't commit, push or delete anything unless the request asks for it"); whether Eating should also show elsewhere (the Mac's Dock badge, the window title); whether groups should be dragged as a whole, or columns dragged into and out of them; and whether text now shows soon enough while talking.
 - **1.19 (eleventh session):** whether the redesigned Eating strip is "sexy" enough; whether moving columns on the trackpad is still hard (the zoomed-out drag was rejected, so 1.19.1 is back to the normal drag); whether the widget should also have a menu-bar icon, stay on every Space, or show more than one column.
+- **1.20 (twelfth session):** whether folded groups should sync too; whether the notepad needs more pages or a hotkey from any app; whether dragging a group by its band (click to fold) feels right.
 - **Moving data to the Mac:** whether to bring the PC's notes over (copy `recaller-data.json` and `images/` only; the saved API key can't move) or keep a separate board on each computer.

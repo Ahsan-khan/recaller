@@ -236,3 +236,16 @@ These were covered only by simulations: a fake microphone, a mock OpenAI server,
 - **The widget** stays on the Space it was on (no `setVisibleOnAllWorkspaces`, which flickers the Dock), shows one column, and has no search box: ⌘K / Ctrl+K there go back to the full board and focus search, and the show/hide hotkey brings the widget up without focusing search. Its tests stub the window's resize, so the real move to the screen's top right and "always on top" over other apps haven't been seen by a person yet.
 - **The Eating strip** with many columns can take several rows; the board gives them the room, so the columns get shorter.
 - 24. **1.19 questions for the owner:** is the Eating strip right now? Is moving columns on the trackpad still hard now that the drag is back to normal (1.19.1)? Should the widget get a menu-bar icon, follow you across Spaces, or have a hotkey of its own?
+
+## 1.20.0: known limits (twelfth session)
+
+- **Folded groups still don't sync** (`prefs.foldedGroups`, per computer); only minimized columns do now. Syncing folds would need a board-level synced field or a flag on the members.
+- **A column minimized by 1.18–1.19** (`localMinimized`) stays a strip only on that computer until it is opened or minimized again; nothing converts it at start (update safety).
+- **Older versions and the notepad:** 1.19 and earlier draw the notepad project as an ordinary column named "Notepad" (the Mac had 1.19.1 built, 1.19.0 installed). Notes added to it there show in 1.20 under the page ("Also in the notepad"). Update both computers.
+- **The notepad is one page**, plain text, no pictures, not searched by the top search, and not in Eaten or backups beyond the data file (it is in the data file, so in every local backup).
+- **Privacy note:** the notepad's text goes to the account like any note; the note's wording ("every project and note…") covers it, but doesn't name it. If the note is revised, name the notepad and bump its version.
+- **Group drag hit-testing:** a column enters a group's lane when the pointer is more than 28 px inside its sides; nearer the edge it lands beside the group. Dropping onto a folded group's strip doesn't put it in the group (the ⋯ menu does).
+- **Not tested by a person yet:** the drags with a real mouse or trackpad, and the notepad's sync between the two computers (the suites cover the conflict view with a seeded copy, and the sync engine treats both new fields as ordinary project fields).
+
+25. **1.20 questions for the owner:** should folded groups sync like minimized columns? Should the notepad have more than one page, or a global hotkey that opens it from any app? Does the group drag feel right (band to move, click to fold)?
+- **1.20.1:** the pointer fix over the notepad is a reasoned guess (an inverting system I-beam over a floating layer); ask whether the pointer now stays visible there. Eaten no longer shows in the top bar itself, only in ☰ (with its count), so new rounds are less visible; a dot on ☰ could flag them if the owner misses it.

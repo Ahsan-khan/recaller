@@ -104,7 +104,14 @@ The recipes apply to both platforms unless marked **On a Mac** or **On Windows**
 ## Add a per-column state like Eating or Minimize (1.18)
 
 - **Synced** (the other computer should see it): an ordinary project field (`eating`, `group`, `cookedFormat`). If it isn't an undoable edit, raise `contentSeq` and push a label when it changes (see `setEating()`), so a sync patch built before it is stale instead of deleting it, and carry it over in `applySnapshot()` so undo leaves it alone.
-- **Per computer:** a key starting with `local` (`localMinimized`) never syncs. Carry it over in `applySnapshot()` too if it isn't undoable.
+- **Per computer:** a key starting with `local` never syncs (`localMinimized` was one until 1.20 made minimizing synced as `minimized`). Carry it over in `applySnapshot()` too if it isn't undoable.
+
+## Keep a hidden project off the board (like the 1.20 notepad)
+
+- Mark it with a project field (`notepad: true`) and test it with `isNotepad(p)`. It syncs like any project.
+- Anything that lists or orders the board's columns uses `boardProjects()`, and every new order is written with `setBoardOrder(list)`, which keeps hidden projects at the end of `data.projects`. Never assign `data.projects = …` from a board layout directly: the hidden project would be dropped (and deleted everywhere by the next push).
+- `boardLayout()` skips it; `applySnapshot()` keeps the live one, so the board's undo never rewinds it.
+- Remember that older versions draw it as an ordinary column.
 - **Drawing:** a class on the column in `updateColumn()`; a state that hides a column (minimized, a folded group) must also be skipped by `columnAt()` (drops) and opened by `unhide()` when something writes into it.
 
 ## Make a change undoable

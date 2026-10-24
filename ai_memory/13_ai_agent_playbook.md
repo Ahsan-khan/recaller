@@ -15,7 +15,7 @@
    - Don't commit or push unless asked (details in `06`, "Git status").
 4. **Tests:** `npm install` if needed, then `npm test`. Run it in the background and grep the log.
    - On the PC: `npm test` on `main` (1.17+) runs the unit tests (714), then 12 + 21 + 166, the same three again with accounts on (`test:accounts-on`), and ends with the sync suite (43). First passed on the PC on 2026-10-23 (1.19.1), from source and packaged; about 8 minutes each. `v1` (1.16) has only the three e2e suites.
-   - Since 1.18 (branch `v1.18`) features counts 158 on Windows and 163 on a Mac (+24 checks); since 1.19 (branch `v1.19`) 166 and 171 (+8 on both).
+   - Since 1.18 (branch `v1.18`) features counts 158 on Windows and 163 on a Mac (+24 checks); since 1.19 (branch `v1.19`) 166 and 171 (+8 on both); since 1.20 (branch `v1.20`) 180 and 185 (+14 on both), and the unit tests 715; since 1.20.1, 184 and 189; since 1.20.2, 187 and 192; since 1.20.3, 189 and 194.
    - On the Mac, on `masos` or `v1.18` (where `tests/e2e/mac-harness.js` exists): expect 12 + 21 + 171, with one `SKIP` line (the real snip) and one `INFO` line; with 1.17, the unit tests first (714), then the three suites, the same three again with accounts on (`test:accounts-on`), and 43 sync checks last. Never run the suites on a Mac from a branch without `mac-harness.js` (`main`, `v1`): those are Windows-only and would, among other things, snip the real screen.
    - The sync tests use only the local mock: none of them reaches Google or the keychain.
 5. **Cloud state (1.17), read-only:**
@@ -57,7 +57,7 @@
    - For wider boards or variants, copy `tests/e2e/capture-board.js` into the scratchpad and change the seed (many columns, hover a card with `sendInputEvent({ type: 'mouseMove' })`, toggle a body class per option). Use the same off-screen `show` override. In the copy, point `SCRATCH` and `APP_MAIN` at env vars (Windows paths via `pwd -W` on the PC; plain `$PWD` paths on the Mac) and run it with `env -u ELECTRON_RUN_AS_NODE npx electron <file>`. Hover things in the first column; near the right edge the › arrow shows up and covers things (`07` #56). A scratch script must be copied into `tests/e2e/.out/` to run, since the scratchpad has no `node_modules` (`07` #60); there its harness import becomes `require('../mac-harness')`, and `quiet()` must still run before `require(APP_MAIN)`. For pure design comparisons, render a standalone HTML page in an offscreen-rendering window (see `07` #46; on the Mac, check that the result isn't blank) and combine crops into one sheet.
    - Fix overlaps, truncation and contrast before moving on.
    - Never open the screenshots from the real screen-snip test, which captures the owner's actual screen.
-5. **Test.**
+5. **Test.** Keep it proportionate (the owner, 2026-10-24: "i think the tests are too much"): for a small UI change, run the suite that covers it (usually `npm run test:features`, ~5 minutes), build, and check the package matches the source; hand over the installer as soon as that passes, and run anything extra in the background. The full set (every suite from source and against the packaged app, plus `MODE=real`) is for a merge or release, or for changes to data, sync or main-process code.
    - Add checks for every new behaviour to `features.e2e.js`; Mac-only behaviour goes inside its `if (IS_MAC)` block.
    - Accounts and sync: unit tests in `tests/unit/` (with the mock and the peer), then `sync.e2e.js`; never the real cloud (`12`, "Work on accounts and sync safely").
    - Run the suites on source.

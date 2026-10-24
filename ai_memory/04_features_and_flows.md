@@ -9,7 +9,7 @@ Terms used below:
 - **Cooked** (Combined in 1.6–1.7, Augmented before 1.6): the middle stage (data field `used`), shown as ONE combined note.
 - **Served** (Final in 1.6–1.7, Used before 1.6): the bottom stage (data field `combined`), the final combined text.
 
-§28 describes 1.19 (the Eating strip redesign and the widget; 1.19.0 also had a Mac zoomed-out column drag, removed in 1.19.1). §27 describes what 1.18.0 added (Eating, the Claude Code format, Clear, minimized columns, groups, the top-bar +, live text while talking). §1–§24 describe the Windows app, 1.16.0, which is the owner's main install. The Mac edition of the same version (branch `masos`, merged into `main` on 2026-10-06) works the same way except where an "(on a Mac: …)" note says otherwise. §25 describes every Mac flow. §26 describes the accounts and sync of 1.17.0 (both platforms; released on 2026-10-06), briefly; the full design is `15_accounts_and_sync.md`.
+§29 describes 1.20 (minimized columns sync, columns and groups drag freely, the notepad). §28 describes 1.19 (the Eating strip redesign and the widget; 1.19.0 also had a Mac zoomed-out column drag, removed in 1.19.1). §27 describes what 1.18.0 added (Eating, the Claude Code format, Clear, minimized columns, groups, the top-bar +, live text while talking). §1–§24 describe the Windows app, 1.16.0, which is the owner's main install. The Mac edition of the same version (branch `masos`, merged into `main` on 2026-10-06) works the same way except where an "(on a Mac: …)" note says otherwise. §25 describes every Mac flow. §26 describes the accounts and sync of 1.17.0 (both platforms; released on 2026-10-06), briefly; the full design is `15_accounts_and_sync.md`.
 
 ## 1. Screen layout (top to bottom, left to right)
 
@@ -314,7 +314,7 @@ Settings → **Join notes with**: "Blank line" (`\n\n`, the default) or "New lin
 - The mouse wheel over anything that can't scroll vertically (headers, gaps, short columns) scrolls the board sideways. Over something that scrolls itself (a column, an opened-up Cooked/Served text, a long Notes list, a textarea), the wheel scrolls that. Shift+wheel always scrolls sideways (Chromium's default).
 - Dragging empty canvas pans the board. A press on empty canvas without moving clears any Ctrl+click selection.
 - Holding the middle mouse button and dragging anywhere pans. (On a Mac trackpad there is no middle button: drag empty canvas instead. A two-finger sideways swipe scrolls the board; §25.)
-- The bottom scrollbar is thick and easy to grab.
+- The bottom scrollbar is thick and easy to grab (1.20.3: a 28 px bar with a 20 px thumb, 24 px under the pointer; the Eating strip sits just above it).
 - Board and column scroll positions are remembered across restarts, but only positions the user scrolled to.
 
 ## 17. Settings dialog (gear icon or Ctrl+,)
@@ -717,3 +717,34 @@ The owner's words are in `10`, messages 69 to 75. 1.19.1 is 1.19.0 without the M
   5. **Out:** the same button (now arrows out, "Back to the full board"): the window goes back to the board's own size and place (maximized if it was), not on top, and scrolls to the column the widget showed.
   6. **Remembered per computer** in the settings file, never synced: `widget` (on or off; Recaller starts as it was), `widgetBounds` (the widget's size and place, saved as it moves) and `widgetProject` (its column). While the widget is on, the board's own `bounds` aren't touched. All three keys are written only once the widget has been used.
   - Code: `setWidget()` / `widgetBounds()` / `applyWidgetWindow()` in `main.js`, IPC `window:widget` (`api.setWidget(on, projectId)`); in `app.js` `ui.widget`, `ui.widgetId`, `widgetProject()`, `paintWidget()`, `setWidget()`, `showInWidget()`, `openWidgetPicker()`, and `render()` drawing only that column; `body.is-widget` CSS in its own block before the macOS block.
+
+## 29. What 1.20 added (twelfth session, 2026-10-23, branch `v1.20`)
+
+The owner's words are in `10`, messages 80 and 81. Both platforms; nothing is fenced by `IS_MAC`.
+
+- **Minimize syncs.** ⋯ › Minimize column sets `project.minimized`, a synced project field, so the other computer shows the strip too (after its next pull). Clicking the strip, or writing into the column (Ctrl+N, Ctrl+M, a global snip), opens it everywhere. Not undoable, like Eating. A column minimized by 1.18–1.19 (`localMinimized`) still shows as a strip on that computer and becomes synced the next time it is minimized; opening it removes both keys.
+- **Dragging columns and groups.**
+  1. **A column** (press its header and move): drop it anywhere. Over an open group's lane (more than 28 px inside its sides) its dashed slot moves into the lane, among the group's columns; on release it joins that group ("Added to “Lane” · Undo"). Dropped on the board (beside or between groups) it leaves its group ("Taken out of “Lane” · Undo"). Without a group change it is the old reorder ("Reorder projects", no toast). Once inside a lane the slot stays there until the pointer leaves the lane, so the lane growing and shrinking can't make it flicker. Folded groups and minimized columns are passed over like any column. A group whose last column is dragged out disappears.
+  2. **A group** (press its band, the name and count, or its folded strip, and move; not its ⋯): a small card with the group's leaves, name and count follows the pointer, and a dashed slot the group's width and height shows where it lands among the board's columns and groups. On release the group's columns keep their order and move together ("Move group", undoable). A plain click on the band still folds or opens the group; the click that ends any column or group drag is ignored for 350 ms (`clickBlockedUntil`), so a release over a band or a minimized strip never folds or opens it.
+  3. **⋯ › Move left / Move right** on a group's first or last column reads "Move left, out of “Lane”" (or right) and moves the column out, just beside the group.
+  4. While a column or group is dragged, the empty Cooked and Served sections stay as they are (no "Move prompts here" drop zone); that hint shows only for card drags (`body.is-col-drag`).
+  5. Not in the widget (it shows one column, and its drags are off as before).
+- **The notepad.**
+  1. **Open:** the page icon in the top bar (before the Eaten button; also in the widget) or Ctrl+J (⌘J on a Mac). A drawer slides in over the board's right side (420 px, or the window less 44 px; light in both themes, like Eaten, which it replaces if open). The cursor goes to the end of the page.
+  2. **Type:** one big text area, 14 px, saved as you go: 500 ms after a pause (`saveNotepadNow()`), and at once on blur, on closing it and when the page unloads (on Windows too). The footer says "Saving…", then "Saved · n words", and "Ctrl J opens and closes it". The first letter typed into an empty notepad creates the hidden project.
+  3. **Copy** in the header copies the whole page ("Notepad copied"; "The notepad is empty" when it is).
+  4. **Close:** Esc, ×, Ctrl+J again, or the icon.
+  5. **Sync:** the page is the first note of a hidden project `{ name: 'Notepad', color: 'slate', notepad: true }`, so it syncs like any note when signed in. While the page has focus, or a save is waiting, a change from the cloud waits (`notepadBusy()` in `syncBusy()`); it lands once you click away, and the page then shows it. Two computers typing at once give a conflict copy, which shows under the page in an amber box ("Changed on two computers at once, so both versions are kept. The other one:") with **Add to the page** (appends it after a blank line, then removes it) and **Delete** (with Undo on its toast). Any other note found in a notepad project (one added on an older Recaller, where the notepad is a column) shows there too, under "Also in the notepad:".
+  6. **Undo:** the notepad has the text box's own undo (Ctrl+Z while typing). The board's undo never changes it: `applySnapshot()` keeps the live notepad.
+  7. The board never draws it: `boardLayout()` skips it, and every reorder (`setBoardOrder()`), the widget's column and picker, colour picking for a new project, the current column and the empty-board check use `boardProjects()`. Search doesn't look in it.
+- **Help** gains a Notepad line, the group drag in "Tidy the board", and Ctrl+J under Shortcuts.
+
+### 1.20.1 (the same session)
+
+- **The top bar** now holds, right of the search box: the **Notepad** pill (icon and word, tinted emerald; filled while open), **+**, undo and redo, the sync cloud (only when sync needs a look) and **☰**.
+- **☰** opens a dropdown under it, right-aligned: **Eaten** with its count (shown once a round exists), **Widget: a small window on top** (in the widget: **Back to the full board**), **Reset column widths** (disabled while nothing is resized), a line, **How Recaller works** with F1 (? on a Mac), **Settings** with Ctrl , (⌘, on a Mac). A row does its job and closes the menu; a click elsewhere, Esc or opening another menu closes it too. Shortcuts are unchanged (F1, Ctrl+,, Ctrl+J). The Mac menu bar is unchanged.
+- **Pointer:** over the notepad's page (and Eaten's search field) the pointer is Recaller's own dark I-beam with a white edge, because the system's inverting I-beam could vanish there.
+
+### 1.20.2 (the same session)
+
+- **Minimized columns are rows in a stack.** ⋯ › Minimize column turns the column into a 184 × 40 px row in its header colour: leaf, name across (one line, … when long, the full name in the tooltip), the Eating dot and its count (Cooking + Cooked). Minimized columns next to each other (on the board, or inside a group's lane) stack in one slot, 6 px apart; a lone one is a stack of one. A click on a row opens the column; a drag moves it like any column (out of the stack, anywhere on the board or into a group). Synced as before (`minimized`). 1.20.3: a stack is never taller than the board; with more rows than fit (a small window), it scrolls on its own (the wheel over it, or its thin bar).

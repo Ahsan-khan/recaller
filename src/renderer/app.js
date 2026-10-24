@@ -74,12 +74,22 @@
 
   // 1.18. Column groups: a project's `group` is the name of the group it sits in (synced, like the
   // name). Members are drawn together where the first one is; folded groups are per computer
-  // (prefs.foldedGroups). `localMinimized` folds one column to a slim strip (per computer: keys
-  // starting with "local" never sync). `eating` is when "Eating" was switched on: an agent is
-  // running that column's Served text.
+  // (prefs.foldedGroups). `minimized` folds one column to a slim strip; since 1.20 it syncs like the
+  // name. 1.18–1.19 wrote `localMinimized` (per computer: keys starting with "local" never sync); it is
+  // still read, and goes when the column is opened. `eating` is when "Eating" was switched on: an
+  // agent is running that column's Served text.
   const groupOf = (p) => (typeof p.group === 'string' && p.group.trim() ? p.group.trim() : '');
   const foldedGroups = () => (Array.isArray(data.prefs.foldedGroups) ? data.prefs.foldedGroups.filter((g) => typeof g === 'string') : []);
   const isEating = (p) => Number.isFinite(p.eating) && p.eating > 0;
+  const isMinimized = (p) => p.minimized === true || p.localMinimized === true;
+
+  // The notepad (1.20): one scratch page, kept as the first note of a hidden project marked
+  // `notepad: true`, so it syncs like any note (a conflict keeps both texts). It is never drawn on the
+  // board; an older Recaller shows it as an ordinary column named "Notepad".
+  const isNotepad = (p) => p?.notepad === true;
+  const boardProjects = () => data.projects.filter((p) => !isNotepad(p));
+  // A new board order (from a drag or a move): the hidden notepad stays at the end.
+  const setBoardOrder = (list) => { data.projects = list.concat(data.projects.filter(isNotepad)); };
 
   // Eaten (1.18): the rounds an agent finished. Done on an eating column moves its Served text here, newest
   // first: { id, project, name, color, text, images, parts, startedAt, doneAt }. Kept on this computer only
@@ -316,7 +326,7 @@
       `Hold ${IS_MAC ? '⌘' : 'Ctrl'} and click several notes to copy them all at once, with a blank line between each.`,
       'New prompts start in “Cooking”. Move them down into “Cooked” and they join into one note. Move that note down into “Served” (swipe it left, drag it, or click Move to Served) and it is added to the final text. Click either one to copy it; the pencil edits it.',
       'Hover a note and click the highlighter to colour-mark it, e.g. to check it again later.',
-      'Drag the right edge of a column to make it wider or narrower. The ↔ button in the top bar puts every column back to the default width.',
+      'Drag the right edge of a column to make it wider or narrower. The top bar’s ☰ menu › Reset column widths puts every column back to the default width.',
       `${kb('Ctrl+K')} search · ${kb('Ctrl+N')} new prompt · ${kb('Ctrl+M')} dictate · ${kb('Ctrl+Shift+S')} screenshot · ${kb('Ctrl+Z')} undo`,
     ];
     return {
@@ -417,7 +427,7 @@
         p.augExpanded = live.augExpanded;
         p.usedExpanded = live.usedExpanded;
         // Eating and a minimized column are states, not edits: undo leaves them as they are.
-        for (const k of ['eating', 'localMinimized']) {
+        for (const k of ['eating', 'minimized', 'localMinimized']) {
           if (restore.includes(k)) continue;
           if (live[k] !== undefined) p[k] = live[k];
           else delete p[k];
@@ -435,7 +445,8 @@
         }
       }
     }
-    data.projects = next.projects;
+    // The notepad is typed like a draft, outside the board's history: undo leaves it as it is now.
+    data.projects = next.projects.filter((p) => !isNotepad(p)).concat(data.projects.filter(isNotepad));
     if (ui.editing && !nextNoteIds.has(ui.editing)) ui.editing = null;
     if (ui.composing && !findProject(ui.composing)) ui.composing = null;
     persist();
@@ -831,11 +842,11 @@
 
   function updateColumn(col, project, query, seen) {
     col.root.style.setProperty('--accent', colorOf(project));
-    const minimized = Boolean(project.localMinimized) && !ui.widget; // the widget always shows its column open
+    const minimized = isMinimized(project) && !ui.widget; // the widget always shows its column open
     col.root.classList.toggle('is-minimized', minimized);
     col.root.classList.toggle('is-eating', isEating(project));
     col.miniCount.textContent = String(project.notes.length + project.used.length);
-    col.head.title = minimized ? `${project.name} · click to open the column` : '';
+    col.head.title = minimized ? `${project.name} · click to open the column, drag to move it` : '';
     if (resizing !== col) {
       const w = colWidth(project.id);
       const width = w ? `${w}px` : '';
@@ -990,6 +1001,7 @@
     };
     const folded = new Set(foldedGroups());
     const liveGroups = new Set();
+    const liveStacks = new Set();
     const shown = ui.widget ? widgetProject() : null;
     if (shown) {
       ui.widgetId = shown.id;
@@ -1004,13 +1016,19 @@
       const view = groupView(unit.group);
       liveGroups.add(unit.group);
       updateGroup(view, unit.group, members, folded.has(unit.group));
-      syncChildren(view.cols, members.map(columnNode));
+      syncChildren(view.cols, stackMinimized(members.map(columnNode), liveStacks));
       nodes.push(view.root);
     }
+    if (!shown) nodes.splice(0, nodes.length, ...stackMinimized(nodes, liveStacks));
     for (const [name, view] of groups) {
       if (liveGroups.has(name) || view.renaming) continue;
       view.root.remove();
       groups.delete(name);
+    }
+    for (const [key, box] of stacks) {
+      if (liveStacks.has(key)) continue;
+      box.remove();
+      stacks.delete(key);
     }
     for (const [id, col] of columns) {
       if (findProject(id)) continue;
@@ -1025,7 +1043,7 @@
       view.root.remove();
       cards.delete(id);
     }
-    if (!data.projects.length) nodes.push(emptyEl);
+    if (!boardProjects().length) nodes.push(emptyEl);
     else if (!shown) nodes.push(addColumnEl);
     syncChildren(board, nodes);
     paintWidget();
@@ -1035,6 +1053,7 @@
     paintWidthReset();
     paintEating();
     paintEaten();
+    paintNotepad();
   }
 
   // ---- the widget (1.19): a small window that stays on top of other apps and shows one column.
@@ -1045,7 +1064,8 @@
   const widgetPick = $('#widget-pick');
 
   function widgetProject() {
-    return findProject(ui.widgetId) || findProject(ui.lastProjectId) || data.projects[0] || null;
+    const keep = (p) => (p && !isNotepad(p) ? p : null);
+    return keep(findProject(ui.widgetId)) || keep(findProject(ui.lastProjectId)) || boardProjects()[0] || null;
   }
 
   function paintWidget() {
@@ -1053,6 +1073,8 @@
       ? 'Back to the full board'
       : 'Widget: a small window that stays on top, with one column';
     widgetBtn.setAttribute('aria-pressed', String(ui.widget));
+    const widgetLabel = ui.widget ? 'Back to the full board' : 'Widget: a small window on top';
+    if ($('#widget-label').textContent !== widgetLabel) $('#widget-label').textContent = widgetLabel;
     widgetPick.hidden = !ui.widget;
     if (!ui.widget) return;
     const p = widgetProject();
@@ -1105,6 +1127,39 @@
   widgetBtn.addEventListener('click', () => setWidget(!ui.widget));
   widgetPick.addEventListener('click', () => (openMenuEl?.anchor === widgetPick ? closeMenu() : openWidgetPicker()));
 
+  // ---- minimized columns (1.20.2): side by side on the board (or in a group), they share one slot as a
+  // stack of rows, each with its leaf, name and count, so the names read across instead of down a strip.
+  // A lone minimized column is a stack of one. Nothing is stored: the stack follows the board order.
+
+  const stacks = new Map(); // id of a stack's first column -> its element
+
+  function stackMinimized(nodes, live) {
+    const out = [];
+    let run = [];
+    const flush = () => {
+      if (!run.length) return;
+      const key = run[0].dataset.id;
+      let box = stacks.get(key);
+      if (!box) {
+        box = el('div', 'mini-stack');
+        stacks.set(key, box);
+      }
+      live.add(key);
+      syncChildren(box, run);
+      out.push(box);
+      run = [];
+    };
+    for (const n of nodes) {
+      if (n.classList.contains('column') && n.classList.contains('is-minimized')) run.push(n);
+      else {
+        flush();
+        out.push(n);
+      }
+    }
+    flush();
+    return out;
+  }
+
   // ---- column groups (1.18)
 
   const groups = new Map(); // group name -> group view
@@ -1115,6 +1170,7 @@
     const units = [];
     const byGroup = new Map();
     for (const p of data.projects) {
+      if (isNotepad(p)) continue; // the notepad is never drawn on the board
       const g = groupOf(p);
       if (!g) units.push({ group: null, ids: [p.id] });
       else if (byGroup.has(g)) byGroup.get(g).ids.push(p.id);
@@ -1135,10 +1191,10 @@
     const root = el('section', 'col-group');
     root.innerHTML = `
       <header class="group-head">
-        <button class="group-toggle" title="Fold the group away, or open it"><span class="chev">${I.chevron}</span><span class="group-name"></span><span class="group-count"></span></button>
+        <button class="group-toggle" title="Click to fold the group away or open it · drag to move the whole group"><span class="chev">${I.chevron}</span><span class="group-name"></span><span class="group-count"></span></button>
         <button class="head-btn group-menu" title="Group options" aria-label="Group options">${I.more}</button>
       </header>
-      <div class="group-strip" title="Open the group"><span class="strip-name"></span><span class="strip-dots"></span></div>
+      <div class="group-strip" title="Open the group · drag to move it"><span class="strip-name"></span><span class="strip-dots"></span></div>
       <div class="group-cols"></div>`;
     view = {
       root,
@@ -1270,7 +1326,7 @@
     if (i < 0 || j < 0 || j >= units.length) return;
     checkpoint('Move group');
     [units[i], units[j]] = [units[j], units[i]];
-    data.projects = units.flatMap((u) => u.ids).map(findProject);
+    setBoardOrder(units.flatMap((u) => u.ids).map(findProject));
     persist();
     render();
   }
@@ -1391,6 +1447,7 @@
 
   function openEaten(projectId = null) {
     closeMenu();
+    if (isNotepadOpen()) closeNotepad(); // one drawer at a time
     eatenUi.filter = projectId && eatenList().some((r) => r.project === projectId) ? projectId : null;
     eatenPanel.classList.add('is-open');
     document.body.classList.add('eaten-open');
@@ -1541,6 +1598,192 @@
     }
   });
 
+  // ---- the notepad (1.20): one scratch page for random notes, from the top bar or Ctrl+J. It saves as
+  // you type and syncs like any note, as the first note of a hidden "Notepad" project (see isNotepad).
+  // Two computers typing at once keep both texts: the other one shows under the page, to add or drop.
+
+  const notepadPanel = $('#notepad-panel');
+  const notepadText = $('#notepad-text');
+  const notepadBtn = $('#open-notepad');
+  const notepadStatus = $('#notepad-status');
+  const notepadOthers = $('#notepad-others');
+  const NOTEPAD_SAVE_MS = 500;
+  let notepadTimer = null;
+
+  const isNotepadOpen = () => notepadPanel.classList.contains('is-open');
+  const notepadProjects = () => data.projects.filter(isNotepad);
+  // The page is the first note of the first notepad project; every other note in one is "another version".
+  const notepadPage = () => {
+    for (const p of notepadProjects()) if (p.notes[0]) return { project: p, note: p.notes[0] };
+    return null;
+  };
+  const notepadExtras = () => {
+    const page = notepadPage();
+    return notepadProjects().flatMap((p) => p.notes.concat(p.used, p.combined)).filter((n) => n !== page?.note);
+  };
+  // While the page has focus, or a save is waiting, a change from the cloud waits (like an open editor).
+  const notepadBusy = () => Boolean(notepadTimer) || (isNotepadOpen() && document.activeElement === notepadText);
+
+  function openNotepad() {
+    closeMenu();
+    if (isEatenOpen()) closeEaten();
+    notepadPanel.classList.add('is-open');
+    document.body.classList.add('notepad-open');
+    notepadPanel.setAttribute('aria-hidden', 'false');
+    notepadBtn.classList.add('is-open');
+    paintNotepad(true);
+    notepadText.focus();
+    const end = notepadText.value.length;
+    if (notepadText.selectionStart === 0 && notepadText.selectionEnd === 0) notepadText.setSelectionRange(end, end);
+  }
+
+  function closeNotepad() {
+    if (!isNotepadOpen()) return;
+    saveNotepadNow();
+    notepadPanel.classList.remove('is-open');
+    document.body.classList.remove('notepad-open');
+    notepadPanel.setAttribute('aria-hidden', 'true');
+    notepadBtn.classList.remove('is-open');
+    if (document.activeElement === notepadText) notepadText.blur();
+  }
+
+  // The text goes into the data at once; the save (and its sync) follows a short pause in typing.
+  function notepadInput() {
+    const text = notepadText.value;
+    let page = notepadPage();
+    if (!page) {
+      if (!text) return;
+      const now = Date.now();
+      const note = { id: uid(), text: '', images: [], createdAt: now, updatedAt: now, copied: 0, lastCopiedAt: 0, usedAt: 0 };
+      let project = notepadProjects()[0];
+      if (!project) {
+        project = { id: uid(), name: 'Notepad', color: 'slate', notepad: true, usedCollapsed: false, augCollapsed: false, draft: '', draftImages: [], createdAt: now, notes: [], used: [], combined: [] };
+        data.projects.push(project);
+      }
+      project.notes.unshift(note);
+      page = { project, note };
+    }
+    if (page.note.text === text) return;
+    page.note.text = text;
+    page.note.updatedAt = Date.now();
+    delete page.note.syncConflict; // the page as typed here is the page
+    clearTimeout(notepadTimer);
+    notepadTimer = setTimeout(saveNotepadNow, NOTEPAD_SAVE_MS);
+    paintNotepadStatus();
+  }
+
+  function saveNotepadNow() {
+    if (!notepadTimer) return;
+    clearTimeout(notepadTimer);
+    notepadTimer = null;
+    contentSeq++; // synced: a sync patch from before this is stale
+    persist();
+    paintNotepadStatus();
+    if (pendingPatch) tryApplyPatch();
+  }
+
+  function paintNotepadStatus() {
+    const text = notepadText.value.trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    notepadStatus.textContent = notepadTimer ? 'Saving…' : notepadPage() ? `Saved · ${words.toLocaleString()} word${words === 1 ? '' : 's'}` : 'Saves as you type';
+  }
+
+  // Called from render(): shows the page as the data has it (after a sync or an undo elsewhere), never
+  // under the cursor while someone is typing.
+  function paintNotepad(force = false) {
+    notepadBtn.title = `Notepad (${kb('Ctrl+J')})`;
+    if (!isNotepadOpen()) return;
+    const page = notepadPage();
+    const text = page ? page.note.text : '';
+    if ((force || document.activeElement !== notepadText) && !notepadTimer && notepadText.value !== text) notepadText.value = text;
+    const extras = notepadExtras();
+    notepadOthers.hidden = !extras.length;
+    const html = extras.length ? `<p class="notepad-others-head">${extras.some((n) => n.syncConflict)
+      ? 'Changed on two computers at once, so both versions are kept. The other one:'
+      : 'Also in the notepad:'}</p>${extras.map((n) => `
+        <article class="notepad-other" data-id="${escapeHtml(n.id)}">
+          <div class="notepad-other-text">${escapeHtml(n.text) || '<i>(empty)</i>'}</div>
+          <footer>
+            <button class="notepad-act notepad-take" title="Add this text to the end of the page">${I.plus}<span>Add to the page</span></button>
+            <button class="notepad-act notepad-drop" title="Delete this version">${I.trash}<span>Delete</span></button>
+          </footer>
+        </article>`).join('')}` : '';
+    if (notepadOthers.innerHTML !== html) notepadOthers.innerHTML = html;
+    paintNotepadStatus();
+  }
+
+  // Removes a note from the notepad (an extra version), and its project when nothing is left in it.
+  function dropNotepadNote(id) {
+    for (const p of notepadProjects()) {
+      for (const list of LISTS) {
+        const i = p[list].findIndex((n) => n.id === id);
+        if (i < 0) continue;
+        const [note] = p[list].splice(i, 1);
+        const emptied = !p.notes.length && !p.used.length && !p.combined.length && p !== notepadPage()?.project;
+        if (emptied) data.projects.splice(data.projects.indexOf(p), 1);
+        contentSeq++;
+        pendingLabels.push('Delete note');
+        if (emptied) pendingLabels.push('Delete project');
+        return { project: p, list, index: i, note, emptied };
+      }
+    }
+    return null;
+  }
+
+  notepadBtn.addEventListener('click', () => (isNotepadOpen() ? closeNotepad() : openNotepad()));
+  $('#notepad-close').addEventListener('click', closeNotepad);
+  notepadText.addEventListener('input', notepadInput);
+  notepadText.addEventListener('blur', () => {
+    saveNotepadNow();
+    if (pendingPatch) tryApplyPatch();
+  });
+  $('#notepad-copy').addEventListener('click', async () => {
+    const text = notepadText.value;
+    if (!text.trim()) return toast('The notepad is empty');
+    try {
+      await api.copy(text);
+      toast('Notepad copied');
+    } catch {
+      toast("Couldn't copy to the clipboard.");
+    }
+  });
+  notepadOthers.addEventListener('click', (e) => {
+    const item = e.target.closest('.notepad-other');
+    if (!item) return;
+    const id = item.dataset.id;
+    const note = notepadExtras().find((n) => n.id === id);
+    if (!note) return;
+    if (e.target.closest('.notepad-take')) {
+      saveNotepadNow();
+      const cur = notepadText.value.replace(/\s+$/, '');
+      notepadText.value = cur ? `${cur}\n\n${note.text}` : note.text;
+      notepadInput();
+      dropNotepadNote(id);
+      saveNotepadNow();
+      paintNotepad(true);
+      return;
+    }
+    if (e.target.closest('.notepad-drop')) {
+      const gone = dropNotepadNote(id);
+      persist();
+      paintNotepad(true);
+      toast('Deleted the other version', {
+        action: 'Undo',
+        duration: 7000,
+        onAction: () => {
+          if (!gone) return;
+          if (gone.emptied) data.projects.push(gone.project);
+          gone.project[gone.list].splice(gone.index, 0, gone.note);
+          contentSeq++;
+          persist();
+          paintNotepad(true);
+        },
+      });
+    }
+  });
+  // The last keystrokes are saved when the window goes (on Windows the draft timer isn't flushed then).
+  window.addEventListener('beforeunload', saveNotepadNow);
+
   // Scrolls a column into view, opening its group or strip first, and flashes it.
   function revealColumn(id) {
     const project = findProject(id);
@@ -1558,27 +1801,37 @@
     const project = findProject(projectId);
     if (!project) return;
     const g = groupOf(project);
-    if (!project.localMinimized && !(g && foldedGroups().includes(g))) return;
-    delete project.localMinimized;
+    if (!isMinimized(project) && !(g && foldedGroups().includes(g))) return;
+    if (isMinimized(project)) {
+      delete project.minimized;
+      delete project.localMinimized;
+      contentSeq++; // synced (1.20)
+      pendingLabels.push('Open column');
+    }
     const folded = foldedGroups().filter((n) => n !== g);
     if (folded.length) data.prefs.foldedGroups = folded;
     else delete data.prefs.foldedGroups;
     persist();
   }
 
-  // ---- minimize a column to a slim strip (per computer; ⋯ › Minimize, a click on the strip opens it)
+  // ---- minimize a column to a slim strip (⋯ › Minimize, a click on the strip opens it). Since 1.20
+  // it syncs, so the column is minimized on every computer; it isn't undoable (a state, like Eating).
 
   function setMinimized(projectId, on) {
     const project = findProject(projectId);
-    if (!project || Boolean(project.localMinimized) === on) return;
+    if (!project || isMinimized(project) === on) return;
     if (on) {
-      project.localMinimized = true;
+      project.minimized = true;
+      delete project.localMinimized;
       if (ui.composing === projectId) closeComposer();
       if (columns.get(projectId)?.stageEditor) closeStageEditor(columns.get(projectId));
       if (ui.editing && locate(ui.editing)?.project === project) stopEditing();
     } else {
+      delete project.minimized;
       delete project.localMinimized;
     }
+    contentSeq++; // synced like any project field: a sync patch from before this is stale
+    pendingLabels.push(on ? 'Minimize column' : 'Open column');
     persist();
     render();
     if (!on) remeasure([columns.get(projectId)]);
@@ -1604,8 +1857,8 @@
   // ================================================================ note actions
 
   function currentProjectId() {
-    if (ui.lastProjectId && findProject(ui.lastProjectId)) return ui.lastProjectId;
-    return data.projects[0]?.id ?? null;
+    if (ui.lastProjectId && findProject(ui.lastProjectId) && !isNotepad(findProject(ui.lastProjectId))) return ui.lastProjectId;
+    return boardProjects()[0]?.id ?? null;
   }
 
   // Which column you last worked in is remembered across restarts.
@@ -2254,10 +2507,10 @@
 
   function createProject(name = 'New project') {
     checkpoint('New project');
-    const taken = new Set(data.projects.map((p) => p.color));
-    const color = (PALETTE.find((c) => !taken.has(c.id)) || PALETTE[data.projects.length % PALETTE.length]).id;
+    const taken = new Set(boardProjects().map((p) => p.color));
+    const color = (PALETTE.find((c) => !taken.has(c.id)) || PALETTE[boardProjects().length % PALETTE.length]).id;
     const project = { id: uid(), name, color, usedCollapsed: false, augCollapsed: false, draft: '', draftImages: [], createdAt: Date.now(), notes: [], used: [], combined: [] };
-    data.projects.push(project);
+    setBoardOrder(boardProjects().concat(project));
     ui.lastProjectId = project.id;
     if (ui.widget) { // the widget shows the new column (1.19)
       ui.widgetId = project.id;
@@ -2347,7 +2600,10 @@
       const unit = units.find((u) => u.group === g);
       const i = unit.ids.indexOf(id);
       const j = i + delta;
-      return j < 0 || j >= unit.ids.length ? null : { units, swap: () => { [unit.ids[i], unit.ids[j]] = [unit.ids[j], unit.ids[i]]; } };
+      if (j >= 0 && j < unit.ids.length) return { units, swap: () => { [unit.ids[i], unit.ids[j]] = [unit.ids[j], unit.ids[i]]; } };
+      // 1.20: at the group's edge it steps out of the group, to just beside it
+      const gi = units.indexOf(unit);
+      return { units, leaves: g, swap: () => { unit.ids.splice(i, 1); units.splice(delta < 0 ? gi : gi + 1, 0, { group: null, ids: [id] }); delete project.group; } };
     }
     const i = units.findIndex((u) => !u.group && u.ids[0] === id);
     const j = i + delta;
@@ -2357,11 +2613,11 @@
   function moveProject(id, delta) {
     const move = moveTarget(id, delta);
     if (!move) return;
-    checkpoint('Move project');
+    checkpoint(move.leaves ? 'Remove from group' : 'Move project');
     const cols = [...columns.values()].map((c) => c.root);
     flip(cols, () => {
       move.swap();
-      data.projects = move.units.flatMap((u) => u.ids).map(findProject);
+      setBoardOrder(move.units.flatMap((u) => u.ids).map(findProject));
       render();
     }, 260);
     persist();
@@ -2898,14 +3154,14 @@
 
   // Things inside a column that scroll on their own (the opened-up Cooked and Served
   // texts and their Notes lists scroll inside a capped height).
-  const SCROLLERS = '.col-scroll, textarea, .aug-text, .final-text, .aug-parts, .final-parts';
+  const SCROLLERS = '.col-scroll, textarea, .aug-text, .final-text, .aug-parts, .final-parts, .mini-stack';
   const onScrollbar = (e) => e.target instanceof HTMLElement && e.target.matches(SCROLLERS) && e.offsetX >= e.target.clientWidth;
 
   board.addEventListener('pointerdown', (e) => {
     // On a Mac, Control+click is a right-click: no copy, select, drag or pan (the contextmenu listener edits).
     if (IS_MAC && e.ctrlKey && e.button === 0) return;
     // Middle button anywhere, or left button on empty canvas: pan the board.
-    const canvas = e.target === board || e.target.classList.contains('group-cols') || e.target.classList.contains('col-group');
+    const canvas = (e.target === board || e.target.classList.contains('group-cols') || e.target.classList.contains('col-group') || e.target.classList.contains('mini-stack')) && !onScrollbar(e);
     if (e.button === 1 || (e.button === 0 && canvas)) {
       e.preventDefault();
       startPan(e);
@@ -2922,6 +3178,12 @@
     }
     if (colEl && e.target.closest('.col-resize')) {
       startColumnResize(e, columns.get(colEl.dataset.id));
+      return;
+    }
+    const groupGrip = !ui.widget && e.target.closest('.group-head, .group-strip');
+    if (groupGrip && !e.target.closest('.group-menu, input')) {
+      const groupEl = groupGrip.closest('.col-group');
+      if (groupEl && !groups.get(groupEl.dataset.group)?.renaming) startGroupGesture(e, groupEl);
       return;
     }
     if (e.target.closest('button, input, textarea, select, .composer, a')) return;
@@ -3389,7 +3651,12 @@
     }
   }
 
-  // ---- column drag (reorder projects)
+  // ---- column drag (reorder projects). Since 1.20 a column goes wherever it is dropped: among the
+  // board's columns and groups, or into an open group's lane, which it then joins; dropped on the
+  // board, it leaves its group. A whole group moves the same way, by its band or its folded strip.
+
+  const GROUP_EDGE = 28; // px just inside a group's sides that still mean "next to the group", not "into it"
+  let clickBlockedUntil = 0; // the click that ends a drag mustn't fold a group or open a minimized strip
 
   function startColumnGesture(e, colEl) {
     const g = { id: colEl.dataset.id, colEl, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, mode: null };
@@ -3426,62 +3693,101 @@
     g.placeholder = el('div', 'col-placeholder');
     g.placeholder.style.height = `${rect.height}px`;
     g.placeholder.style.width = `${rect.width}px`;
-    // A column reorders among its neighbours: on the board, or inside its group.
-    g.container = g.colEl.parentNode;
-    g.container.insertBefore(g.placeholder, g.colEl);
+    g.container = g.colEl.parentNode; // the board, or a group's lane
+    if (g.container.classList.contains('mini-stack')) g.container = g.container.parentNode; // a minimized column (1.20.2)
+    g.fromGroup = g.container.classList.contains('group-cols') ? g.container.parentNode.dataset.group : '';
+    g.colEl.parentNode.insertBefore(g.placeholder, g.colEl);
     g.colEl.classList.add('is-drag-source');
-    document.body.classList.add('is-dragging');
+    document.body.classList.add('is-dragging', 'is-col-drag'); // is-col-drag: no card drop zones
     positionGhost(g);
     requestAnimationFrame(() => g.ghost.classList.add('is-lifted'));
     g.raf = requestAnimationFrame(() => autoScroll(g, () => columnDragMove(g)));
   }
 
-  function columnDragMove(g) {
-    positionGhost(g);
-    const inBoard = g.container === board;
-    const cols = [...g.container.children].filter((n) => (n.classList.contains('column') || (inBoard && n.classList.contains('col-group'))) && n !== g.colEl);
-    let before = inBoard ? addColumnEl : null;
-    for (const c of cols) {
-      // Layout boxes, not transformed ones, so in-flight FLIP moves cause no jitter.
+  // The open group lane under the pointer, else the board. Once inside a lane, the column stays in it
+  // until the pointer leaves the lane, so the lane growing and shrinking can't make it flicker.
+  function dropContainer(g) {
+    for (const view of groups.values()) {
+      const root = view.root;
+      if (!root.isConnected || root.classList.contains('is-folded')) continue;
+      const box = root.getBoundingClientRect();
+      const edge = g.container === view.cols ? 0 : GROUP_EDGE;
+      if (g.x > box.left + edge && g.x < box.right - edge) return view.cols;
+    }
+    return board;
+  }
+
+  // What a dragged column or group can land between, in a container.
+  function dropUnits(parent, skip) {
+    return [...parent.children].filter((n) => !skip.includes(n)
+      && (n.classList.contains('column') || n.classList.contains('mini-stack') || (parent === board && n.classList.contains('col-group'))));
+  }
+
+  // The first unit whose middle is right of the pointer (layout boxes, not transformed ones, so
+  // in-flight FLIP moves cause no jitter).
+  function unitAfter(units, x, fallback) {
+    for (const c of units) {
       const r = c.getBoundingClientRect();
       const shift = c.style.transform ? new DOMMatrix(getComputedStyle(c).transform).m41 : 0;
-      const mid = r.left - shift + r.width / 2;
-      if (g.x < mid) {
-        before = c;
-        break;
-      }
+      if (x < r.left - shift + r.width / 2) return c;
     }
+    return fallback;
+  }
+
+  function columnDragMove(g) {
+    positionGhost(g);
+    const container = dropContainer(g);
+    const inBoard = container === board;
+    const skip = [g.colEl, g.placeholder];
+    const cols = dropUnits(container, skip);
+    const before = unitAfter(cols, g.x, inBoard ? addColumnEl : null);
     let next = g.placeholder.nextSibling;
     if (next === g.colEl) next = next.nextSibling;
-    if (next === before) return;
-    flip(cols, () => g.container.insertBefore(g.placeholder, before), 240);
+    const same = g.placeholder.parentNode === container;
+    if (same && next === before) return;
+    // Within a group its columns slide; anything else moves the board's columns and groups.
+    const items = same && !inBoard ? cols : dropUnits(board, skip);
+    g.container = container;
+    flip(items, () => container.insertBefore(g.placeholder, before), 240);
   }
 
   function columnDragEnd(g, cancelled) {
     g.done = true;
     cancelAnimationFrame(g.raf);
+    clickBlockedUntil = Date.now() + 350;
     if (!cancelled) {
+      const lane = g.placeholder.parentNode;
+      const into = lane?.classList.contains('group-cols') ? lane.parentNode.dataset.group || '' : '';
       const order = [];
       const walk = (parent) => {
         for (const n of parent.children) {
           if (n === g.placeholder) order.push(g.id);
           else if (n.classList.contains('column') && n !== g.colEl) order.push(n.dataset.id);
           else if (n.classList.contains('col-group')) walk(n.querySelector('.group-cols'));
+          else if (n.classList.contains('mini-stack')) walk(n);
         }
       };
       walk(board);
       const byId = new Map(data.projects.map((p) => [p.id, p]));
       const next = order.map((id) => byId.get(id)).filter(Boolean);
-      if (next.length === data.projects.length && next.some((p, i) => p !== data.projects[i])) {
-        checkpoint('Reorder projects');
-        data.projects = next;
+      const now = boardProjects();
+      const project = byId.get(g.id);
+      const regroup = project && groupOf(project) !== into;
+      if (project && next.length === now.length && (regroup || next.some((p, i) => p !== now[i]))) {
+        checkpoint(regroup ? (into ? 'Move to group' : 'Remove from group') : 'Reorder projects');
+        if (into) project.group = into;
+        else delete project.group;
+        setBoardOrder(next);
         persist();
+        if (regroup) {
+          toast(into ? `Added to “${into}”` : `Taken out of “${g.fromGroup}”`, { action: 'Undo', onAction: undo, history: true });
+        }
       }
     }
     const from = g.ghost.firstChild.getBoundingClientRect();
     g.placeholder.remove();
     g.colEl.classList.remove('is-drag-source');
-    document.body.classList.remove('is-dragging');
+    document.body.classList.remove('is-dragging', 'is-col-drag');
     dragActive = false;
     render();
     const to = g.colEl.getBoundingClientRect();
@@ -3496,6 +3802,95 @@
       g.colEl.style.transition = '';
       g.colEl.style.zIndex = '';
     }, 300);
+  }
+
+  // ---- group drag (1.20): press the group's band (or its folded strip) and move. A plain click still
+  // folds or opens it. The ghost is a small card with the group's name and leaves, so the board under it
+  // stays visible; a dashed slot the group's size shows where it will land.
+
+  function startGroupGesture(e, groupEl) {
+    const g = { name: groupEl.dataset.group, groupEl, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, mode: null };
+    trackPointer(e, {
+      onMove(ev) {
+        g.x = ev.clientX;
+        g.y = ev.clientY;
+        if (!g.mode) {
+          if (Math.hypot(g.x - g.x0, g.y - g.y0) < MOVE_SLOP) return;
+          beginGroupDrag(g);
+        }
+        groupDragMove(g);
+      },
+      onEnd(_ev, cancelled) {
+        if (g.mode) groupDragEnd(g, cancelled);
+      },
+    });
+  }
+
+  function beginGroupDrag(g) {
+    g.mode = 'group';
+    dragActive = true;
+    closeMenu();
+    const rect = g.groupEl.getBoundingClientRect();
+    const members = data.projects.filter((p) => groupOf(p) === g.name);
+    g.ghost = el('div', 'drag-ghost');
+    const card = el('div', 'group-ghost');
+    card.innerHTML = `<span class="group-ghost-leaves">${members.slice(0, 8).map((p) => `<svg style="color:${colorOf(p)}"><use href="#monstera"/></svg>`).join('')}</span><b class="group-ghost-name"></b><span class="group-ghost-count"></span>`;
+    $('.group-ghost-name', card).textContent = g.name;
+    $('.group-ghost-count', card).textContent = `· ${members.length}`;
+    g.ghost.appendChild(card);
+    document.body.appendChild(g.ghost);
+    g.offX = Math.min(Math.max(0, g.x0 - rect.left), 36);
+    g.offY = 18;
+    g.placeholder = el('div', 'col-placeholder group-placeholder');
+    g.placeholder.style.width = `${rect.width}px`;
+    g.placeholder.style.height = `${rect.height}px`;
+    board.insertBefore(g.placeholder, g.groupEl);
+    g.groupEl.classList.add('is-drag-source');
+    document.body.classList.add('is-dragging', 'is-col-drag');
+    positionGhost(g);
+    requestAnimationFrame(() => g.ghost.classList.add('is-lifted'));
+    g.raf = requestAnimationFrame(() => autoScroll(g, () => groupDragMove(g)));
+  }
+
+  function groupDragMove(g) {
+    positionGhost(g);
+    const units = dropUnits(board, [g.groupEl, g.placeholder]);
+    const before = unitAfter(units, g.x, addColumnEl);
+    let next = g.placeholder.nextSibling;
+    if (next === g.groupEl) next = next.nextSibling;
+    if (next === before) return;
+    flip(units, () => board.insertBefore(g.placeholder, before), 240);
+  }
+
+  function groupDragEnd(g, cancelled) {
+    g.done = true;
+    cancelAnimationFrame(g.raf);
+    clickBlockedUntil = Date.now() + 350;
+    if (!cancelled) {
+      const ids = [];
+      for (const n of board.children) {
+        if (n === g.placeholder) ids.push(...data.projects.filter((p) => groupOf(p) === g.name).map((p) => p.id));
+        else if (n === g.groupEl) continue;
+        else if (n.classList.contains('column')) ids.push(n.dataset.id);
+        else if (n.classList.contains('mini-stack')) for (const c of n.children) ids.push(c.dataset.id);
+        else if (n.classList.contains('col-group')) for (const c of n.querySelectorAll('.group-cols .column')) ids.push(c.dataset.id);
+      }
+      const next = ids.map(findProject).filter(Boolean);
+      const now = boardProjects();
+      if (next.length === now.length && next.some((p, i) => p !== now[i])) {
+        checkpoint('Move group');
+        setBoardOrder(next);
+        persist();
+      }
+    }
+    g.placeholder.remove();
+    g.groupEl.classList.remove('is-drag-source');
+    document.body.classList.remove('is-dragging', 'is-col-drag');
+    dragActive = false;
+    g.ghost.remove();
+    render();
+    g.groupEl.classList.add('is-landed');
+    setTimeout(() => g.groupEl.classList.remove('is-landed'), 400);
   }
 
   // ---- column width: drag a column's right edge. Widths live in data.prefs.colWidths
@@ -3737,6 +4132,7 @@
   // ================================================================ clicks & keys on the board
 
   board.addEventListener('click', (e) => {
+    if (Date.now() < clickBlockedUntil) return; // the end of a column or group drag
     const colEl = e.target.closest('.column');
     const col = colEl && columns.get(colEl.dataset.id);
     const wrap = e.target.closest('.card-wrap');
@@ -3951,9 +4347,39 @@
   function closeMenu() {
     if (!openMenuEl) return;
     openMenuEl.anchor?.classList.remove('is-open');
-    openMenuEl.remove();
+    if (openMenuEl === appMenu) {
+      appMenu.hidden = true; // it lives in the page; the other menus are built each time
+      appMenuBtn.setAttribute('aria-expanded', 'false');
+    } else {
+      openMenuEl.remove();
+    }
     openMenuEl = null;
   }
+
+  // ---- the app menu (1.20.1): Eaten, the widget, Reset column widths, How Recaller works and Settings,
+  // in one dropdown from the top bar's ☰ (they were five buttons). It is a menu like the others: a click
+  // outside, Esc or another menu closes it. Its rows are the old buttons, with their ids and handlers.
+  const appMenu = $('#app-menu');
+  const appMenuBtn = $('#app-menu-btn');
+
+  function openAppMenu() {
+    closeMenu();
+    appMenu.anchor = appMenuBtn;
+    appMenu.hidden = false;
+    appMenuBtn.classList.add('is-open');
+    appMenuBtn.setAttribute('aria-expanded', 'true');
+    const r = appMenuBtn.getBoundingClientRect();
+    const mw = appMenu.offsetWidth;
+    appMenu.style.left = `${Math.max(8, Math.min(window.innerWidth - mw - 8, r.right - mw))}px`;
+    appMenu.style.top = `${r.bottom + 6}px`;
+    openMenuEl = appMenu;
+  }
+
+  appMenuBtn.addEventListener('click', () => (openMenuEl === appMenu ? closeMenu() : openAppMenu()));
+  // a row does its job (its own listener runs first), then the menu closes
+  appMenu.addEventListener('click', (e) => {
+    if (e.target.closest('.menu-item:not(:disabled)') && openMenuEl === appMenu) closeMenu();
+  });
 
   function openMenu(anchor, build) {
     closeMenu();
@@ -4015,8 +4441,10 @@
       menuItem(menu, I.group, 'New group…', () => newGroupFrom(col.id));
       if (group) menuItem(menu, I.close, `Remove from “${group}”`, () => setGroup(col.id, ''));
       menu.appendChild(el('div', 'menu-sep'));
-      menuItem(menu, I.arrowLeft, 'Move left', () => moveProject(col.id, -1), { disabled: !moveTarget(col.id, -1) });
-      menuItem(menu, I.arrowRight, 'Move right', () => moveProject(col.id, 1), { disabled: !moveTarget(col.id, 1) });
+      const left = moveTarget(col.id, -1);
+      const right = moveTarget(col.id, 1);
+      menuItem(menu, I.arrowLeft, left?.leaves ? `Move left, out of “${left.leaves}”` : 'Move left', () => moveProject(col.id, -1), { disabled: !left });
+      menuItem(menu, I.arrowRight, right?.leaves ? `Move right, out of “${right.leaves}”` : 'Move right', () => moveProject(col.id, 1), { disabled: !right });
       menuItem(menu, I.width, 'Reset width', () => resetColumnWidth(col.id), { disabled: !colWidth(col.id) });
       menuItem(menu, I.sort, 'Sort prompts oldest first', () => sortOldestFirst(col.id), { disabled: project.notes.length < 2 || isOldestFirst(project.notes) });
       menu.appendChild(el('div', 'menu-sep'));
@@ -4391,6 +4819,10 @@
       closeMenu();
       return;
     }
+    if (e.key === 'Escape' && isNotepadOpen()) {
+      closeNotepad();
+      return;
+    }
     if (e.key === 'Escape' && isEatenOpen()) {
       if (e.target === eatenSearch && eatenSearch.value) {
         eatenSearch.value = '';
@@ -4434,6 +4866,10 @@
       } else {
         openComposer(currentProjectId(), { voice: true });
       }
+    } else if (mod && !e.shiftKey && k === 'j') {
+      e.preventDefault();
+      if (isNotepadOpen()) closeNotepad();
+      else openNotepad();
     } else if (mod && k === ',') {
       e.preventDefault();
       openSettings();
@@ -4610,6 +5046,7 @@
     if (Date.now() - releasedAt < 1000 && board.querySelector('.used.is-swiping')) return true;
     for (const c of columns.values()) if (c.stageEditor || c.renaming || c.composer?.isBusy()) return true;
     if (ui.composing && p.projects.remove.includes(ui.composing)) return true;
+    if (notepadBusy()) return true; // someone is typing in the notepad (1.20)
     return Boolean(toastHost.querySelector('.toast[data-history]:not(.is-leaving)')); // wait out an Undo toast
   }
 
@@ -4692,7 +5129,8 @@
     // Only write on load when there was nothing to load (first run) or the file
     // predates the current format; an up-to-date file is left byte-for-byte alone.
     if (!raw || !(Number(raw.version) >= DATA_VERSION)) persist();
-    ui.lastProjectId = findProject(data.prefs.lastProjectId) ? data.prefs.lastProjectId : data.projects[0]?.id ?? null;
+    const last = findProject(data.prefs.lastProjectId);
+    ui.lastProjectId = last && !isNotepad(last) ? last.id : boardProjects()[0]?.id ?? null;
     lastProjectSaved = ui.lastProjectId;
     try {
       ui.settings = await api.getSettings();

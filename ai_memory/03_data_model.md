@@ -95,8 +95,13 @@ Both editions read and write exactly this; the Mac edition added no fields.
                               //   text). Synced. Not undoable: undo carries it over like a fold
   "cookedFormat": "claude-code", // optional (1.18): the Cooked note is shown, copied and served formatted for
                               //   Claude Code. Synced, undoable; removed once Cooked is empty again
-  "localMinimized": true,     // optional (1.18): the column is a slim strip. Per computer (a "local" key never
-                              //   syncs). Only present while minimized
+  "minimized": true,          // optional (1.20): the column is a slim strip, on every computer (synced). Only
+                              //   present while minimized; not undoable
+  "localMinimized": true,     // optional (1.18–1.19): the same, per computer (a "local" key never syncs). Still
+                              //   read; 1.20 never writes it, and removes it when the column is opened
+  "notepad": true,            // optional (1.20): this project is the notepad, never drawn on the board. Its first
+                              //   note is the page; other notes in it are versions from another computer.
+                              //   Synced; an older version shows it as a column named "Notepad"
   "usedCollapsed": false,     // Cooked section collapsed (data name "used"; see the naming trap below)
   "augCollapsed": false,      // Served section collapsed
   "usedExpanded": true,       // optional, NOT READ since 1.7 (was: Combined note shows all lines). Kept as-is in the file
@@ -328,6 +333,8 @@ Every invariant below still holds, signed in or not:
 - **The 1.16.0 Mac edition** (branch `masos`, committed and pushed as "mac build" on 2026-09-29) added no data fields and doesn't change the format. Its only settings difference is the default `hotkey` (`"Control+Alt+R"` on a Mac). It adds flushes (`closed`, `will-quit`, the page's `beforeunload` draft save) and the hourly daily-backup check, all on a Mac only.
 - **1.17.0** (accounts and sync, both platforms; built on `masos`, released on 2026-10-06) added `note.syncConflict` (only on conflict copies), the `before-sync` backup kind, and, only while signed in, the `sync/` folder and `recaller-data.unreadable-*.json` copies. `DATA_VERSION` is still 2, and the settings file is unchanged.
 - **1.18.0** (tenth session, branch `v1.18`) added four optional project fields, `group`, `eating`, `cookedFormat` (synced, as unknown project fields always were) and `localMinimized` (per computer), and `prefs.foldedGroups` (per computer, like every pref but `joiner`). Since the same session's follow-up, also the top-level `localEaten` (the Eaten history, per computer). All are written only while set. `DATA_VERSION` is still 2; 1.17 and older keep the fields untouched and simply don't draw them.
+
+- **1.20.0** (twelfth session, branch `v1.20`) added two optional, synced project fields: `minimized` (replacing the per-computer `localMinimized` for new minimizes; the old key is still read and goes when the column opens) and `notepad` (the hidden project holding the notepad page). Nothing is rewritten at start. `DATA_VERSION` is still 2.
 
 - **1.19.0** added nothing to the data file. The settings file gains `widget`, `widgetBounds` and `widgetProject`, written only once the widget is used, never synced (the device record's settings are an allow-list).
 
