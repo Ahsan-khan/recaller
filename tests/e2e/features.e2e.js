@@ -82,8 +82,9 @@ fs.writeFileSync(path.join(DATA_DIR, 'recaller-data.json'), JSON.stringify({
       n('Convert the dataset annotations from COCO to YOLO format with a script.', 4 * 86400e3),
     ], used: [n('Label studio setup steps', 9 * 86400e3, { usedAt: now - 86400e3 })] },
     ...moreProjects,
-    // 1.20: the notepad (a hidden project), with another computer's version waiting under the page
-    { id: 'pad', name: 'Notepad', color: 'slate', notepad: true, usedCollapsed: false, draft: '', draftImages: [], createdAt: now, notes: [
+    // 1.20: the notepad (a hidden project), with another computer's version waiting under the page.
+    // 1.20.4: it carries 1.18–1.19's per-computer `localMinimized`, which start-up turns into `minimized`.
+    { id: 'pad', name: 'Notepad', color: 'slate', notepad: true, localMinimized: true, usedCollapsed: false, draft: '', draftImages: [], createdAt: now, notes: [
       n('Seeded page', 60e3),
       n('From the other computer', 30e3, { syncConflict: { of: 'x', device: 'b0'.repeat(16), at: now } }),
     ], used: [] },
@@ -1287,6 +1288,7 @@ async function run() {
   check('1.20.1: the notepad page shows its own dark I-beam pointer (the system one could vanish over it)', /^url\(/.test(await js(`getComputedStyle(document.querySelector('#notepad-text')).cursor`)));
   const boardOrder = () => js(`[...document.querySelectorAll('#board > .column, #board > .col-group')].map((n) => n.dataset.id || 'G:' + n.dataset.group).join()`);
   const savedOrder = () => savedData().projects.filter((p) => !p.notepad).map((p) => p.id + (p.group ? '@' + p.group : '')).join();
+  check('1.20.4: a column minimized by 1.18–1.19 (`localMinimized`) is saved as the synced `minimized` at start', savedProject('pad').minimized === true && !('localMinimized' in savedProject('pad')));
   check('1.20: "minimized" is a synced project field (the old "localMinimized" stays on one computer)', await js(`window.SyncApply.isLocalKey('minimized') === false && window.SyncApply.isLocalKey('localMinimized') === true`));
   await js('document.querySelector("#board").scrollLeft = 0');
   await sleep(300);

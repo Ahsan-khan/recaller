@@ -98,7 +98,7 @@ Both editions read and write exactly this; the Mac edition added no fields.
   "minimized": true,          // optional (1.20): the column is a slim strip, on every computer (synced). Only
                               //   present while minimized; not undoable
   "localMinimized": true,     // optional (1.18–1.19): the same, per computer (a "local" key never syncs). Still
-                              //   read; 1.20 never writes it, and removes it when the column is opened
+                              //   read; 1.20 never writes it; since 1.20.4 start-up turns it into `minimized`
   "notepad": true,            // optional (1.20): this project is the notepad, never drawn on the board. Its first
                               //   note is the page; other notes in it are versions from another computer.
                               //   Synced; an older version shows it as a column named "Notepad"

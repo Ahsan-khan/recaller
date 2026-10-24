@@ -5126,9 +5126,20 @@
       console.error('load failed', err);
     }
     data = normalize(raw) || seedData();
-    // Only write on load when there was nothing to load (first run) or the file
-    // predates the current format; an up-to-date file is left byte-for-byte alone.
-    if (!raw || !(Number(raw.version) >= DATA_VERSION)) persist();
+    // 1.20.4: a column minimized by 1.18–1.19 carries the per-computer `localMinimized`, so it stayed
+    // minimized on that computer only. Turn it into the synced flag once, so every computer gets it.
+    const oldMinimized = data.projects.filter((p) => p.localMinimized === true);
+    for (const p of oldMinimized) {
+      p.minimized = true;
+      delete p.localMinimized;
+    }
+    if (oldMinimized.length) {
+      contentSeq++;
+      pendingLabels.push('Minimize column');
+    }
+    // Only write on load when there was nothing to load (first run), the file predates the current
+    // format, or old minimized columns were just converted; otherwise the file is left byte-for-byte alone.
+    if (!raw || !(Number(raw.version) >= DATA_VERSION) || oldMinimized.length) persist();
     const last = findProject(data.prefs.lastProjectId);
     ui.lastProjectId = last && !isNotepad(last) ? last.id : boardProjects()[0]?.id ?? null;
     lastProjectSaved = ui.lastProjectId;
