@@ -10,6 +10,8 @@
   const HOLD_MS = 240;       // press-and-hold before a card lifts for dragging
   const MOVE_SLOP = 7;       // px of movement before a press becomes a gesture
   const SWIPE_RATIO = 0.36;  // fraction of card width to swipe for delete
+  // On a Mac (trackpad) a shorter swipe deletes: 22% of the card, at most 60 px. Windows keeps 36%.
+  const swipeDistance = (width) => (IS_MAC ? Math.min(width * 0.22, 60) : width * SWIPE_RATIO);
   const EDGE = 64;           // auto-scroll zone while dragging
   const EDGE_SPEED = 18;
   const HISTORY_LIMIT = 80;
@@ -3394,7 +3396,7 @@
     const shown = x > -limit ? x : -limit + (x + limit) * 0.25;
     g.lastX = x;
     g.card.style.transform = `translateX(${shown}px)`;
-    const progress = Math.min(1, -x / (g.width * SWIPE_RATIO));
+    const progress = Math.min(1, -x / swipeDistance(g.width));
     g.wrap.style.setProperty('--swipe', progress.toFixed(3));
     g.wrap.classList.toggle('will-delete', progress >= 1);
     g.samples.push({ x, t });
@@ -3405,7 +3407,8 @@
     const s = g.samples;
     const velocity = s.length > 1 ? (s[s.length - 1].x - s[0].x) / Math.max(1, s[s.length - 1].t - s[0].t) : 0;
     const distance = -(g.lastX || 0);
-    const commit = !cancelled && (distance >= g.width * SWIPE_RATIO || (velocity < -0.8 && distance > 50));
+    const flick = IS_MAC ? velocity < -0.4 && distance > 28 : velocity < -0.8 && distance > 50;
+    const commit = !cancelled && (distance >= swipeDistance(g.width) || flick);
     if (commit) {
       deleteNote(g.id);
       return;
@@ -3734,13 +3737,37 @@
     return fallback;
   }
 
+  // Mac only: within the container that holds the slot, the column itself decides, not the pointer.
+  // It passes a neighbour once its leading edge crosses that neighbour's middle (its right edge going
+  // right, its left edge going left), so a slot is about half a column away wherever the header was
+  // grabbed. By the pointer, grabbing the name and moving right took over a column's width.
+  const COL_SNAP_SLACK = 4; // px either side of a middle, so the slot can't flicker at the boundary
+  function unitAfterGhost(units, g, fallback) {
+    const left = g.x - g.offX;
+    const right = left + g.ghost.offsetWidth;
+    for (const c of units) {
+      // The resting box: a neighbour still sliding (its FLIP has already cleared style.transform) is
+      // measured where it will settle, or the slot would flip back mid-slide.
+      const r = c.getBoundingClientRect();
+      const t = getComputedStyle(c).transform;
+      const shift = t && t !== 'none' ? new DOMMatrix(t).m41 : 0;
+      const mid = r.left - shift + r.width / 2;
+      const beforeSlot = g.placeholder.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_PRECEDING;
+      if (beforeSlot ? left < mid - COL_SNAP_SLACK : right <= mid + COL_SNAP_SLACK) return c;
+    }
+    return fallback;
+  }
+
   function columnDragMove(g) {
     positionGhost(g);
     const container = dropContainer(g);
     const inBoard = container === board;
     const skip = [g.colEl, g.placeholder];
     const cols = dropUnits(container, skip);
-    const before = unitAfter(cols, g.x, inBoard ? addColumnEl : null);
+    const fallback = inBoard ? addColumnEl : null;
+    const before = IS_MAC && g.placeholder.parentNode === container
+      ? unitAfterGhost(cols, g, fallback)
+      : unitAfter(cols, g.x, fallback);
     let next = g.placeholder.nextSibling;
     if (next === g.colEl) next = next.nextSibling;
     const same = g.placeholder.parentNode === container;
