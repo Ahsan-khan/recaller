@@ -143,7 +143,7 @@ struct ComposerView: View {
 
     private func appear() {
         switch request.kind {
-        case .newNote(let pid): store.setBusy("composer", pid)
+        case .newNote(let pid): store.setComposer(pid)
         default: store.setBusy("editing", true)
         }
         dictAt = text.utf16.count
@@ -164,7 +164,7 @@ struct ComposerView: View {
     private func disappear() {
         dictation.stop()
         switch request.kind {
-        case .newNote: store.setBusy("composer", false)
+        case .newNote: store.setComposer(nil)
         default: store.setBusy("editing", false)
         }
     }

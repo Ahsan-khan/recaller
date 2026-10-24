@@ -24,17 +24,17 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Recaller uses the camera only when you take a picture to attach to a note.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Recaller listens only while you dictate a prompt, and sends the recording to OpenAI to turn it into text.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Recaller saves a picture to your photos only when you ask it to.</string>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsLocalNetworking</key>
-		<true/>
-	</dict>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

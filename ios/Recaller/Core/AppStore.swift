@@ -196,9 +196,17 @@ final class AppStore: ObservableObject {
         }
     }
 
-    func setBusy(_ what: String, _ on: Any) {
+    /// Holds the account's changes back while something is mid-edit ('editing', 'dictation', 'menu', 'undoToast', 'drag').
+    func setBusy(_ what: String, _ on: Bool) {
         host.queue.async { [host] in
             _ = host.core?.invokeMethod("setBusy", withArguments: [what, on])
+        }
+    }
+
+    /// The column whose new-text editor is open (nil when it closes): a change that removes that column waits.
+    func setComposer(_ projectId: String?) {
+        host.queue.async { [host] in
+            _ = host.core?.invokeMethod("setBusy", withArguments: ["composer", projectId.map { $0 as Any } ?? false])
         }
     }
 
@@ -317,6 +325,7 @@ enum Clipboard {
     }
 }
 
+@MainActor
 enum Haptics {
     static func tap() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
     static func soft() { UIImpactFeedbackGenerator(style: .soft).impactOccurred() }
