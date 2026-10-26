@@ -4566,7 +4566,8 @@
   // click landed inside other text. The click that clears a selection doesn't also copy the Served text.
   // Fields and the notepad keep their own selections; a Mac's Control+click (a right-click) is left alone.
   let selectionClearedAt = 0;
-  const clearSelection = () => {
+  // (named clearTextSelection: clearSelection, above, empties the Ctrl+click card selection)
+  const clearTextSelection = () => {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || !String(sel).trim()) return false;
     const node = sel.anchorNode?.nodeType === Node.TEXT_NODE ? sel.anchorNode.parentElement : sel.anchorNode;
@@ -4577,10 +4578,10 @@
   document.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 || (IS_MAC && e.ctrlKey)) return;
     if (e.target.closest?.('input, textarea, [contenteditable="true"], .composer')) return;
-    if (clearSelection()) selectionClearedAt = Date.now();
+    if (clearTextSelection()) selectionClearedAt = Date.now();
   }, true);
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !isTyping(e.target)) clearSelection();
+    if (e.key === 'Escape' && !isTyping(e.target)) clearTextSelection();
   }, true);
 
   // A Mac selects the word under a right-click (or Control+click) before contextmenu fires,
