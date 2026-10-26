@@ -135,7 +135,7 @@ Found by the seventh session's audit of the code. They are reported here and **n
 15. **A second Esc (or ✕) while the composer shows "Writing…" drops dictation.** The first Esc stops listening. A second one closes the composer while phrases are still queued or streaming, and those are lost; only text already inserted survives, in the draft.
 16. **The selection bar can be stale.** Clicking the Cooked note or the Served text overwrites the clipboard but leaves a Ctrl+click selection and its "n notes copied" bar in place. Only a card click (`copyNote`) clears the selection.
 17. **"Minimize after copying" and multi-copy.** Ctrl+click copies (⌘-click on a Mac) never minimise or hide the window; only single copies do. With the setting on, a plain click minimises or hides the window, and the blur clears the Explorer-style anchor, so "a plain click, then Ctrl+clicks" never includes the first note.
-18. **A Served text with only pictures copies nothing.** `copyFinal()` stops when the text is empty, while the Cooked note copies its first picture in that case.
+18. **(Fixed in 1.20.7.) A Served text with only pictures copies nothing.** `copyFinal()` stops when the text is empty, while the Cooked note copies its first picture in that case.
 19. **Settings can misstate the API key.** It says "Saved and encrypted on this PC" (on a Mac, "Saved in your Mac’s keychain") whenever the settings file holds a key object and some key is usable. That includes a `{ plain }` key (saved unencrypted when OS encryption was unavailable), and a key that can't be decrypted, such as a DPAPI key copied from the PC to a Mac, while `OPENAI_API_KEY` is set: `getApiKey()` then silently uses the env key instead. Without the env var, a key that can't be decrypted shows "Needed for voice…" and a Remove button.
 20. **Backups contain the API key.** Every backup folder copies `recaller-settings.json`, including the saved key (in plain text if it was saved as `{ plain }`). Never share a backup folder. Restore writes back only the data file.
 21. **Enter closes Settings.** Settings is a `<form method="dialog">`, so pressing Enter in the API key, Language or Vocabulary field closes it (the typed key is saved on close). Any new button in Settings needs `type="button"`.
@@ -239,13 +239,24 @@ These were covered only by simulations: a fake microphone, a mock OpenAI server,
 
 ## 1.20.0: known limits (twelfth session)
 
-- **Folded groups still don't sync** (`prefs.foldedGroups`, per computer); only minimized columns do now. Syncing folds would need a board-level synced field or a flag on the members.
+- **Folded groups still don't sync** (`prefs.foldedGroups`, per computer); only minimized columns do now. **Fixed in 1.20.7:** a flag on the members (`groupFolded`).
 - **A column minimized by 1.18–1.19** (`localMinimized`) stays a strip only on that computer until it is opened or minimized again; nothing converts it at start (update safety).
 - **Older versions and the notepad:** 1.19 and earlier draw the notepad project as an ordinary column named "Notepad" (the Mac had 1.19.1 built, 1.19.0 installed). Notes added to it there show in 1.20 under the page ("Also in the notepad"). Update both computers.
 - **The notepad is one page**, plain text, no pictures, not searched by the top search, and not in Eaten or backups beyond the data file (it is in the data file, so in every local backup).
 - **Privacy note:** the notepad's text goes to the account like any note; the note's wording ("every project and note…") covers it, but doesn't name it. If the note is revised, name the notepad and bump its version.
 - **Group drag hit-testing:** a column enters a group's lane when the pointer is more than 28 px inside its sides; nearer the edge it lands beside the group. Dropping onto a folded group's strip doesn't put it in the group (the ⋯ menu does).
 - **Not tested by a person yet:** the drags with a real mouse or trackpad, and the notepad's sync between the two computers (the suites cover the conflict view with a seeded copy, and the sync engine treats both new fields as ordinary project fields).
+
+## 1.20.7: known limits (fifteenth session)
+
+- **Both computers need 1.20.7.** 1.20.6 and older ignore `groupFolded` (folds stay per computer there), show a column's notepad project as a column named "Notepad: <name>", and show a formatted page as its plain text (bullets as "• ").
+- **A column's notepad outlives the column** (hidden, still synced). Undoing a column delete then finds its page again. A clean-up for pages of long-deleted columns isn't built.
+- **Formatting is the page's own:** Copy gives plain text (no rich clipboard), and the conflict copy shown under the page is plain text.
+- **The legend's colours are a convention:** nothing checks or counts them; Sun (amber `#d97706`) stands for yellow, since the palette has no pure yellow.
+- **The minimized card's label** is a CSS `::before`, so it scrolls with the card only as a sticky header; it isn't clickable.
+- **Not seen by a person yet:** the header buttons with a real mouse, formatting with the real keyboard, the drawer resize, and folds syncing between two real computers.
+
+26. **1.20.7 questions for the owner:** should copying the Served (or Cooked) text also bring its pictures in one paste, even though chat boxes like Claude Code's then drop the text (`07` #54)? Is the legend wanted with counts ("Done 3")? Should the notepad's Copy keep the formatting where the paste target supports it?
 
 25. **1.20 questions for the owner:** should folded groups sync like minimized columns? Should the notepad have more than one page, or a global hotkey that opens it from any app? Does the group drag feel right (band to move, click to fold)?
 - **1.20.1:** the pointer fix over the notepad is a reasoned guess (an inverting system I-beam over a floating layer); ask whether the pointer now stays visible there. Eaten no longer shows in the top bar itself, only in ☰ (with its count), so new rounds are less visible; a dot on ☰ could flag them if the owner misses it.

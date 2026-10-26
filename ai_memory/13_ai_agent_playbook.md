@@ -2,6 +2,7 @@
 
 ## Session start (about 5 minutes)
 
+0. **Pull first** (the owner, 2026-10-26: "always pull when starting"): `git status -sb`, `git fetch`, then `git pull --ff-only` (or branch from `origin/main`). Never discard local changes to do it; ask if it can't fast-forward.
 1. Read `README.md`, then `03_data_model.md`, then `04_features_and_flows.md` in this folder. Skim `09` for open issues and `10` for how the owner phrases things. Before any Mac work, also read `14_macos.md`. **Check which machine you're on:** the environment names the platform (`win32` is the Windows PC, `darwin` the Mac). Paths, shells, keys and test counts differ, and the Mac has extra checks (below).
 2. **Installed version:**
    - On the PC: from the repo root, `node -e "const a=require('@electron/asar');console.log(JSON.parse(a.extractFile(process.env.LOCALAPPDATA+'/Programs/recaller/resources/app.asar','package.json')).version)"` (writes nothing; `npx @electron/asar` failed in the fourth session, see `07` #55). On 2026-10-06 the PC had 1.17.0, installed on 2026-10-01 at about 20:23 (1.15.0 before that; whether 1.16.0 ever was is unknown). The owner installs new versions themselves.
@@ -15,7 +16,7 @@
    - Don't commit or push unless asked (details in `06`, "Git status").
 4. **Tests:** `npm install` if needed, then `npm test`. Run it in the background and grep the log.
    - On the PC: `npm test` on `main` (1.17+) runs the unit tests (714), then 12 + 21 + 166, the same three again with accounts on (`test:accounts-on`), and ends with the sync suite (43). First passed on the PC on 2026-10-23 (1.19.1), from source and packaged; about 8 minutes each. `v1` (1.16) has only the three e2e suites.
-   - Since 1.18 (branch `v1.18`) features counts 158 on Windows and 163 on a Mac (+24 checks); since 1.19 (branch `v1.19`) 166 and 171 (+8 on both); since 1.20 (branch `v1.20`) 180 and 185 (+14 on both), and the unit tests 715; since 1.20.1, 184 and 189; since 1.20.2, 187 and 192; since 1.20.3, 189 and 194; since 1.20.4, 190 on Windows; since 1.20.5 (Mac-only checks), 190 and 197; since 1.20.6, 194 and 201 (+4 on both).
+   - Since 1.18 (branch `v1.18`) features counts 158 on Windows and 163 on a Mac (+24 checks); since 1.19 (branch `v1.19`) 166 and 171 (+8 on both); since 1.20 (branch `v1.20`) 180 and 185 (+14 on both), and the unit tests 715; since 1.20.1, 184 and 189; since 1.20.2, 187 and 192; since 1.20.3, 189 and 194; since 1.20.4, 190 on Windows; since 1.20.5 (Mac-only checks), 190 and 197; since 1.20.6, 194 and 201 (+4 on both); since 1.20.7, 205 on Windows (Mac expected 212).
    - On the Mac, on `masos` or `v1.18` (where `tests/e2e/mac-harness.js` exists): expect 12 + 21 + 171, with one `SKIP` line (the real snip) and one `INFO` line; with 1.17, the unit tests first (714), then the three suites, the same three again with accounts on (`test:accounts-on`), and 43 sync checks last. Never run the suites on a Mac from a branch without `mac-harness.js` (`main`, `v1`): those are Windows-only and would, among other things, snip the real screen.
    - The sync tests use only the local mock: none of them reaches Google or the keychain.
 5. **Cloud state (1.17), read-only:**

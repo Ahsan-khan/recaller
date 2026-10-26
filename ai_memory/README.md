@@ -2,6 +2,10 @@
 
 This folder is the complete handoff for **Recaller**. It lets any person, AI agent or LLM continue development without the original conversation. Everything here is plain text, and every user flow is described in words.
 
+Status as of **2026-10-26**, fifteenth session (on another PC: Windows 11 Pro, user `Ahsan`, repo `C:\Users\Ahsan\Desktop\recaller`):
+- **1.20.7 is built on a new branch `v1.20.7`** (from `origin/main` = `e9df19b`, 1.20.6 + the iPhone app), uncommitted: a minimize button and a notepad button by each column name, minimized columns in one light "Minimized" card, a colour legend (top bar and colour menu), group folds that sync (`groupFolded`), a resizable notepad with bold, italic, underline and lists, a notepad page per column, and a picture-only Served that copies its picture (`08`, 1.20.7; the owner's words `10`, messages 92–97). See the end of `08` 1.20.7 for test results and the installer.
+- This PC also holds the separate "Recall" app work (`C:\Users\Ahsan\Desktop\recall`); the checkout here was on `recaller-v3` with one untracked research file before the switch.
+
 Status as of **2026-10-24**, thirteenth session, later (on the Mac):
 - **1.20.4** (PR #7, merged on GitHub from the PC: columns minimized under 1.18–1.19 become synced at start) is on `main` here, with the 1.20.3 Mac docs commit rebased on top. **`dist/Recaller-1.20.4-arm64.dmg` is built** (codesign valid, 52 app files byte-identical to the source); from source unit 715/715, update-safety 21/21, features 195/195. The owner asked for shorter test runs ("tests are too long"), so sync and the packaged-app runs were skipped (`08`, 1.20.4). `/Applications/Recaller.app` was 1.20.3; the owner installs 1.20.4.
 

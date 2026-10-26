@@ -238,6 +238,13 @@ Twelfth session (2026-10-23, on the PC):
     - One question was asked first: the notepad's form (**"One scratch page"**).
     - What was built: all three, on a new branch `v1.20`. See `04` §29 and `08` (1.20.0).
 
+Fifteenth session (2026-10-25/26, on another PC, `C:\Users\Ahsan\Desktop\recaller`):
+
+29. **Round 23 → v1.20.7.** (The owner's words are in `10`, messages 92 to 97.)
+    - The request: a subtle minimize button by the column name; a better look for minimized columns; a colour legend (green done, red blocked, blue pending, yellow working); group folds that sync; then, while it was being built, a resizable notepad with bold, italic, underline and lists, a notepad for every column from its header, and pictures in Served not copying.
+    - Two questions were asked: the minimized look (**"C. One card"**) and the legend (**"Top bar + colour menu"**).
+    - What was built: all of it, on a new branch `v1.20.7`. See `04` (1.20.7) and `08`.
+
 ## Things the owner has not decided or confirmed
 
 - **Separator:** whether they want a blank line or a single new line between joined notes. The default stays blank line; the setting exists.

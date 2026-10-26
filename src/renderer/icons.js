@@ -39,6 +39,9 @@ window.ICONS = (() => {
     utensils: svg('<path d="M5 3v6a2.5 2.5 0 0 0 5 0V3M7.5 3v18"/><path d="M19 15V3a4.5 4.5 0 0 0-4.5 4.5V13a2 2 0 0 0 2 2H19Zm0 0v6"/>'),
     terminal: svg('<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="m7 9.5 3 2.5-3 2.5M12.5 15H17"/>'),
     eraser: svg('<path d="m7 20-3.3-3.3a2 2 0 0 1 0-2.8L13.9 3.7a2 2 0 0 1 2.8 0l3.6 3.6a2 2 0 0 1 0 2.8L10.5 20"/><path d="M7 20h13M8.5 9.5l6 6"/>'),
+    // 1.20.7: a column's own notepad (a page with lines), and the notepad's bullet-list button
+    pad: svg('<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>'),
+    list: svg('<path d="M9.5 6.5H20M9.5 12H20M9.5 17.5H20"/><circle cx="5" cy="6.5" r="1.1" class="fill"/><circle cx="5" cy="12" r="1.1" class="fill"/><circle cx="5" cy="17.5" r="1.1" class="fill"/>'),
     minimize: svg('<path d="M10 4v6H4M14 20v-6h6M10 10 3.5 3.5M14 14l6.5 6.5"/>'),
     group: svg('<rect x="3" y="3.5" width="18" height="4" rx="1.5"/><rect x="4" y="10" width="7" height="10.5" rx="1.5"/><rect x="13" y="10" width="7" height="10.5" rx="1.5"/>'),
   };

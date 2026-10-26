@@ -60,6 +60,8 @@
       <input id="search" type="search" placeholder="Search prompts" spellcheck="false" autocomplete="off" />
       <kbd data-mac="⌘K">Ctrl K</kbd>
     </label>
+    <!-- 1.20.7: what the four status colours mean (filled in by app.js from STATUS) -->
+    <div class="legend" id="legend" aria-label="What the column colours mean"></div>
     <div class="topbar-actions">
       <button class="notepad-btn" id="open-notepad" title="Notepad (Ctrl+J)" data-mac-title="Notepad (⌘J)" aria-label="Notepad">
         <svg class="icon" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5" /><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4" /></svg><span class="notepad-label">Notepad</span>
@@ -153,13 +155,21 @@
     <header class="notepad-head">
       <svg class="icon" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5" /><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4" /></svg>
       <h2>Notepad</h2>
+      <span class="notepad-for" id="notepad-for" hidden><svg class="notepad-for-leaf"><use href="#monstera"/></svg><span class="notepad-for-name"></span></span>
       <span class="spacer"></span>
       <button class="notepad-act" id="notepad-copy" title="Copy the whole page"><svg class="icon" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5" /><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" /></svg><span>Copy</span></button>
       <button class="icon-btn" id="notepad-close" title="Close (Esc)" aria-label="Close">
         <svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
       </button>
     </header>
-    <textarea class="notepad-text" id="notepad-text" spellcheck="true" placeholder="Jot anything here. It saves as you type."></textarea>
+    <div class="notepad-tools" role="toolbar" aria-label="Formatting">
+      <button class="pad-tool pad-b" data-cmd="bold" title="Bold (Ctrl+B)" data-mac-title="Bold (⌘B)" aria-label="Bold" aria-pressed="false">B</button>
+      <button class="pad-tool pad-i" data-cmd="italic" title="Italic (Ctrl+I)" data-mac-title="Italic (⌘I)" aria-label="Italic" aria-pressed="false">I</button>
+      <button class="pad-tool pad-u" data-cmd="underline" title="Underline (Ctrl+U)" data-mac-title="Underline (⌘U)" aria-label="Underline" aria-pressed="false">U</button>
+      <button class="pad-tool pad-list" data-cmd="insertUnorderedList" title="Bullet list" aria-label="Bullet list" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24"><path d="M9.5 6.5H20M9.5 12H20M9.5 17.5H20"/><circle cx="5" cy="6.5" r="1.1" class="fill"/><circle cx="5" cy="12" r="1.1" class="fill"/><circle cx="5" cy="17.5" r="1.1" class="fill"/></svg></button>
+    </div>
+    <div class="notepad-text is-empty" id="notepad-text" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Notepad page" spellcheck="true" data-placeholder="Jot anything here. It saves as you type."></div>
+    <div class="notepad-resize" id="notepad-resize" title="Drag to resize · double-click for the default width"></div>
     <div class="notepad-others" id="notepad-others" hidden></div>
     <p class="notepad-foot"><span id="notepad-status">Saves as you type</span><span class="spacer"></span><span class="notepad-hint"><kbd data-mac="⌘J">Ctrl J</kbd> opens and closes it</span></p>
   </aside>
@@ -205,8 +215,9 @@
         <li><b>Fold a stage away:</b> click its name (Cooking, Cooked or Served).</li>
         <li><b>Eating, then Eaten:</b> once you've handed the Served text to an agent, switch on <b>Eating</b> in Served. The board's bottom right shows every column that's eating. When the agent is done, click ✓ there (or <b>Eating › Done</b>): the prompt moves to <b>Eaten</b> (in the top bar's <b>☰</b> menu) and Served is ready for the next batch. Eaten keeps every finished prompt by day, to copy, search or serve again.</li>
         <li><b>Claude Code:</b> the <b>&gt;_</b> button under the Cooked note wraps its prompts in a Claude Code task (request, how to work, what to report). Click it again for the original. Moving it to Served serves the formatted text.</li>
-        <li><b>Tidy the board:</b> a column's <b>⋯</b> menu can minimize it to a small row (minimized columns side by side stack in one slot; click a row to open it), or put it in a group such as “Important”. Drag a column into a group, or out of it, by its header; drag a whole group by its name. Click a group's name to fold all its columns away.</li>
-        <li><b>Notepad:</b> the <b>Notepad</b> button in the top bar (or <kbd data-mac="⌘J">Ctrl J</kbd>) opens one scratch page for random notes. It saves as you type, and syncs to your other computers when you're signed in.</li>
+        <li><b>Tidy the board:</b> the arrows-in button by a column's name (or its <b>⋯</b> menu) minimizes it into the “Minimized” card; click its row to open it. The <b>⋯</b> menu also puts a column in a group such as “Important”. Drag a column into a group, or out of it, by its header; drag a whole group by its name. Click a group's name to fold all its columns away; folds and minimized columns show the same on every computer.</li>
+        <li><b>Colours:</b> green is done or live, red is blocked or needs attention, blue is pending, yellow is being worked on (the legend is in the top bar). Pick one at the top of a column's <b>⋯</b> menu.</li>
+        <li><b>Notepad:</b> the <b>Notepad</b> button in the top bar (or <kbd data-mac="⌘J">Ctrl J</kbd>) opens one scratch page for random notes, and the page button by a column's name opens that column's own page. Both save as you type, take <b>bold</b>, <i>italic</i>, <u>underline</u> and bullet lists, and sync to your other computers when you're signed in. Drag the page's left edge to make it wider.</li>
         <li><b>Highlight a prompt</b> to check it again later: hover, then click the marker.</li>
         <li><b>Resize a column:</b> drag its right edge. <b>☰ › Reset column widths</b> in the top bar puts every width back.</li>
         <li><b>Zoom:</b> <b>☰ › Zoom</b> makes everything bigger or smaller (<b>−</b> and <b>+</b>; click the percentage for 100%). <kbd data-mac="⌘+">Ctrl +</kbd>, <kbd data-mac="⌘−">Ctrl −</kbd>, <kbd data-mac="⌘0">Ctrl 0</kbd> and Ctrl with the mouse wheel do the same. It's kept for this computer.</li>

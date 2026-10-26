@@ -39,6 +39,14 @@
     { id: 'navy', name: 'Navy', color: '#1e3a8a' },
     { id: 'wine', name: 'Wine', color: '#9f1239' },
   ];
+  // 1.20.7: four column colours carry a meaning, shown as a legend in the top bar and named first in a
+  // column's colour menu. Only the meaning is new: they are ordinary palette colours (ids unchanged).
+  const STATUS = [
+    { id: 'monstera', label: 'Done', meaning: 'Green: done, active or live' },
+    { id: 'ruby', label: 'Blocked', meaning: 'Red: blocked, stopped or needs attention' },
+    { id: 'moss', label: 'Pending', meaning: 'Blue: pending, needs work' },
+    { id: 'sun', label: 'Working', meaning: 'Yellow: working on it now' },
+  ];
   const DATA_VERSION = 2;
   const DENSITIES = ['compact', 'slim', 'roomy'];
   const THEMES = ['deep', 'soft'];
@@ -75,13 +83,17 @@
   const IMAGE_ID = /^[a-f0-9]{32}$/;
 
   // 1.18. Column groups: a project's `group` is the name of the group it sits in (synced, like the
-  // name). Members are drawn together where the first one is; folded groups are per computer
-  // (prefs.foldedGroups). `minimized` folds one column to a slim strip; since 1.20 it syncs like the
+  // name). Members are drawn together where the first one is; a folded group is marked on its members
+  // (`groupFolded`, below). `minimized` folds one column to a slim strip; since 1.20 it syncs like the
   // name. 1.18–1.19 wrote `localMinimized` (per computer: keys starting with "local" never sync); it is
   // still read, and goes when the column is opened. `eating` is when "Eating" was switched on: an
   // agent is running that column's Served text.
   const groupOf = (p) => (typeof p.group === 'string' && p.group.trim() ? p.group.trim() : '');
-  const foldedGroups = () => (Array.isArray(data.prefs.foldedGroups) ? data.prefs.foldedGroups.filter((g) => typeof g === 'string') : []);
+  // 1.20.7: a folded group is marked on its members (`groupFolded: true`, synced like `minimized`), so
+  // it is folded on every computer. 1.18–1.20.6 kept folds per computer in prefs.foldedGroups; init()
+  // turns those into the flag once. A group is folded while any member carries the flag.
+  // A column that leaves its group drops the flag (a stale one would fold the next group it joins).
+  const foldedGroups = () => [...new Set(data.projects.filter((p) => p.groupFolded === true && groupOf(p)).map(groupOf))];
   const isEating = (p) => Number.isFinite(p.eating) && p.eating > 0;
   const isMinimized = (p) => p.minimized === true || p.localMinimized === true;
 
@@ -429,11 +441,12 @@
         p.augExpanded = live.augExpanded;
         p.usedExpanded = live.usedExpanded;
         // Eating and a minimized column are states, not edits: undo leaves them as they are.
-        for (const k of ['eating', 'minimized', 'localMinimized']) {
+        for (const k of ['eating', 'minimized', 'localMinimized', 'groupFolded']) {
           if (restore.includes(k)) continue;
           if (live[k] !== undefined) p[k] = live[k];
           else delete p[k];
         }
+        if (p.groupFolded !== undefined && !groupOf(p)) delete p.groupFolded;
       }
       for (const n of p.notes.concat(p.used, p.combined)) {
         nextNoteIds.add(n.id);
@@ -569,6 +582,8 @@
       <header class="col-head">
         <svg class="col-leaf"><use href="#monstera"/></svg>
         <h2 class="col-name"></h2>
+        <button class="head-btn col-quick col-pad" title="This column's notepad" aria-label="This column's notepad">${I.pad}</button>
+        <button class="head-btn col-quick col-min" title="Minimize column" aria-label="Minimize column">${I.minimize}</button>
         <span class="col-mini" aria-hidden="true"><span class="mini-eat"></span><span class="mini-count"></span></span>
         <button class="head-btn col-menu" title="Project options" aria-label="Project options">${I.more}</button>
       </header>
@@ -646,6 +661,7 @@
       eatBtn: $('.eat-btn', root),
       eatTime: $('.eat-btn-time', root),
       miniCount: $('.mini-count', root),
+      padBtn: $('.col-pad', root),
       augSig: null,
       // Cooked and Served always start at their fixed size; "Show more" opens them up
       // for the session only. (Older versions saved that as usedExpanded / augExpanded;
@@ -849,6 +865,11 @@
     col.root.classList.toggle('is-eating', isEating(project));
     col.miniCount.textContent = String(project.notes.length + project.used.length);
     col.head.title = minimized ? `${project.name} · click to open the column, drag to move it` : '';
+    // 1.20.7: the column's notepad button stays visible once its page has text, and looks pressed while open
+    const padText = Boolean(columnPad(project.id)?.note.text.trim());
+    col.padBtn.classList.toggle('has-pad', padText);
+    col.padBtn.classList.toggle('is-open', isNotepadOpen() && notepadFor === project.id);
+    col.padBtn.title = padText ? `${project.name}: notepad` : `Notepad for ${project.name}`;
     if (resizing !== col) {
       const w = colWidth(project.id);
       const width = w ? `${w}px` : '';
@@ -1224,11 +1245,23 @@
     if (view.stripDots.innerHTML !== dots) view.stripDots.innerHTML = dots;
   }
 
+  // Folding is a state, like minimizing: synced (1.20.7), not undoable.
+  function markGroupFolded(name, fold) {
+    let changed = false;
+    for (const p of data.projects) {
+      if (groupOf(p) !== name || (p.groupFolded === true) === fold) continue;
+      if (fold) p.groupFolded = true;
+      else delete p.groupFolded;
+      changed = true;
+    }
+    if (!changed) return false;
+    contentSeq++; // synced like any project field: a sync patch from before this is stale
+    pendingLabels.push(fold ? 'Fold group' : 'Open group');
+    return true;
+  }
+
   function setGroupFolded(name, fold) {
-    const list = foldedGroups().filter((g) => g !== name);
-    if (fold) list.push(name);
-    if (list.length) data.prefs.foldedGroups = list;
-    else delete data.prefs.foldedGroups;
+    if (!markGroupFolded(name, fold)) return;
     persist();
     render();
   }
@@ -1244,8 +1277,11 @@
     const project = findProject(projectId);
     if (!project || groupOf(project) === name) return;
     checkpoint(name ? 'Move to group' : 'Remove from group');
+    const joinsFolded = Boolean(name) && foldedGroups().includes(name);
     if (name) project.group = name;
     else delete project.group;
+    if (joinsFolded) project.groupFolded = true;
+    else delete project.groupFolded;
     const members = data.projects.filter((p) => p !== project && groupOf(p) === name);
     if (name && members.length) {
       data.projects.splice(data.projects.indexOf(project), 1);
@@ -1266,8 +1302,10 @@
     const members = data.projects.filter((p) => groupOf(p) === name);
     if (!members.length) return;
     checkpoint('Ungroup');
-    for (const p of members) delete p.group;
-    if (foldedGroups().includes(name)) setGroupFolded(name, false);
+    for (const p of members) {
+      delete p.group;
+      delete p.groupFolded;
+    }
     persist();
     render();
     toast(`Ungrouped “${name}”`, { action: 'Undo', onAction: undo, history: true });
@@ -1279,14 +1317,9 @@
     const members = data.projects.filter((p) => groupOf(p) === from);
     if (!members.length) return;
     checkpoint('Rename group');
-    // Renaming into an existing group's name joins the two.
+    // Renaming into an existing group's name joins the two. The fold flag sits on the members, so it
+    // follows the rename.
     for (const p of members) p.group = to;
-    // The fold is per computer and keyed by name, so it follows the rename.
-    const folded = foldedGroups();
-    const next = folded.filter((g) => g !== from);
-    if (folded.includes(from) && !next.includes(to)) next.push(to);
-    if (next.length) data.prefs.foldedGroups = next;
-    else delete data.prefs.foldedGroups;
     persist();
   }
 
@@ -1601,25 +1634,42 @@
     }
   });
 
+  // ---- the colour legend (1.20.7): the four status colours in the top bar; hover one for its meaning
+  $('#legend').innerHTML = STATUS.map((st) => {
+    const c = PALETTE.find((x) => x.id === st.id).color;
+    return `<span class="legend-item" style="--c:${c}" title="${escapeHtml(st.meaning)}"><i></i>${escapeHtml(st.label)}</span>`;
+  }).join('');
+
   // ---- the notepad (1.20): one scratch page for random notes, from the top bar or Ctrl+J. It saves as
   // you type and syncs like any note, as the first note of a hidden "Notepad" project (see isNotepad).
   // Two computers typing at once keep both texts: the other one shows under the page, to add or drop.
+  // 1.20.7: every column can have a page of its own too (the page button in its header): a hidden
+  // notepad project with `padFor: <column id>`. The page takes bold, italic, underline and bullet lists:
+  // the note keeps the plain text in `text` (search, copy, older versions) and the formatting in `html`,
+  // which is drawn only while it still matches `text` (an older version may have edited the text since).
+  // The drawer can be resized from its left edge; the width stays on this computer (prefs.notepadWidth).
 
   const notepadPanel = $('#notepad-panel');
   const notepadText = $('#notepad-text');
   const notepadBtn = $('#open-notepad');
   const notepadStatus = $('#notepad-status');
   const notepadOthers = $('#notepad-others');
+  const notepadForEl = $('#notepad-for');
   const NOTEPAD_SAVE_MS = 500;
+  const NOTEPAD_MIN_W = 300;
   let notepadTimer = null;
+  let notepadFor = null; // the column whose page is open, or null for the main notepad
 
   const isNotepadOpen = () => notepadPanel.classList.contains('is-open');
-  const notepadProjects = () => data.projects.filter(isNotepad);
+  const padKey = (p) => (typeof p.padFor === 'string' && p.padFor ? p.padFor : null);
+  const notepadProjects = (forId = notepadFor) => data.projects.filter((p) => isNotepad(p) && padKey(p) === forId);
   // The page is the first note of the first notepad project; every other note in one is "another version".
-  const notepadPage = () => {
-    for (const p of notepadProjects()) if (p.notes[0]) return { project: p, note: p.notes[0] };
+  const pageOf = (forId) => {
+    for (const p of notepadProjects(forId)) if (p.notes[0]) return { project: p, note: p.notes[0] };
     return null;
   };
+  const notepadPage = () => pageOf(notepadFor);
+  const columnPad = (id) => pageOf(id);
   const notepadExtras = () => {
     const page = notepadPage();
     return notepadProjects().flatMap((p) => p.notes.concat(p.used, p.combined)).filter((n) => n !== page?.note);
@@ -1627,17 +1677,96 @@
   // While the page has focus, or a save is waiting, a change from the cloud waits (like an open editor).
   const notepadBusy = () => Boolean(notepadTimer) || (isNotepadOpen() && document.activeElement === notepadText);
 
-  function openNotepad() {
+  // -- the page's formatting: only these tags are kept, without attributes (the html may come from
+  // another computer, so it is always cleaned before it is drawn).
+  const PAD_TAGS = { B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u', UL: 'ul', OL: 'ol', LI: 'li', BR: 'br', DIV: 'div', P: 'div' };
+  function cleanPadHtml(html) {
+    const t = document.createElement('template');
+    t.innerHTML = String(html || '');
+    const out = document.createElement('div');
+    const walk = (src, dst) => {
+      for (const n of src.childNodes) {
+        if (n.nodeType === Node.TEXT_NODE) dst.appendChild(document.createTextNode(n.data));
+        else if (n.nodeType !== Node.ELEMENT_NODE || /^(SCRIPT|STYLE|TEMPLATE|IFRAME|OBJECT)$/.test(n.tagName)) continue;
+        else if (PAD_TAGS[n.tagName]) walk(n, dst.appendChild(document.createElement(PAD_TAGS[n.tagName])));
+        else walk(n, dst); // any other tag: keep its text, drop the tag
+      }
+    };
+    walk(t.content, out);
+    return out.innerHTML;
+  }
+  // The plain text of the page: one line per block, "• " before a bullet, "1. " in a numbered list.
+  function padTextOf(root) {
+    let s = '';
+    const block = (n) => /^(DIV|P|LI|UL|OL)$/.test(n.tagName);
+    const walk = (node) => {
+      for (const n of node.childNodes) {
+        if (n.nodeType === Node.TEXT_NODE) s += n.data.replace(/ /g, ' ');
+        else if (n.nodeType !== Node.ELEMENT_NODE) continue;
+        else if (n.tagName === 'BR') s += '\n';
+        else if (block(n)) {
+          if (s && !s.endsWith('\n')) s += '\n';
+          if (n.tagName === 'LI') {
+            const ol = n.parentNode?.tagName === 'OL';
+            s += ol ? `${[...n.parentNode.children].indexOf(n) + 1}. ` : '• ';
+          }
+          walk(n);
+          if (!s.endsWith('\n')) s += '\n';
+        } else walk(n);
+      }
+    };
+    walk(root);
+    return s.endsWith('\n') ? s.slice(0, -1) : s;
+  }
+  const plainToPadHtml = (text) => String(text).split('\n').map((line) => (line ? `<div>${escapeHtml(line)}</div>` : '<div><br></div>')).join('');
+  const hasFormatting = (html) => /<(b|i|u|ul|ol)\b/i.test(html);
+  // What the page should show for a note: its formatting while it still matches the text, else the text.
+  function padHtmlOf(note) {
+    if (!note) return '';
+    if (typeof note.html === 'string' && note.html) {
+      const clean = cleanPadHtml(note.html);
+      const probe = document.createElement('div');
+      probe.innerHTML = clean;
+      if (padTextOf(probe) === note.text) return clean;
+    }
+    return note.text ? plainToPadHtml(note.text) : '';
+  }
+
+  function notepadWidth() {
+    const w = Number(data.prefs.notepadWidth);
+    return Number.isFinite(w) && w >= NOTEPAD_MIN_W ? Math.round(w) : null;
+  }
+  function applyNotepadWidth() {
+    const w = notepadWidth();
+    if (w) document.body.style.setProperty('--notepad-w', `${w}px`);
+    else document.body.style.removeProperty('--notepad-w');
+  }
+
+  function caretToEnd() {
+    const r = document.createRange();
+    r.selectNodeContents(notepadText);
+    r.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
+
+  function openNotepad(forId = null) {
     closeMenu();
     if (isEatenOpen()) closeEaten();
+    if (forId && !findProject(forId)) forId = null;
+    if (isNotepadOpen() && notepadFor !== forId) saveNotepadNow();
+    const switching = notepadFor !== forId;
+    notepadFor = forId;
     notepadPanel.classList.add('is-open');
     document.body.classList.add('notepad-open');
     notepadPanel.setAttribute('aria-hidden', 'false');
-    notepadBtn.classList.add('is-open');
+    notepadBtn.classList.toggle('is-open', !forId);
+    if (switching) notepadText.innerHTML = '';
     paintNotepad(true);
     notepadText.focus();
-    const end = notepadText.value.length;
-    if (notepadText.selectionStart === 0 && notepadText.selectionEnd === 0) notepadText.setSelectionRange(end, end);
+    caretToEnd();
+    render(); // the column's page button shows it's open
   }
 
   function closeNotepad() {
@@ -1648,11 +1777,13 @@
     notepadPanel.setAttribute('aria-hidden', 'true');
     notepadBtn.classList.remove('is-open');
     if (document.activeElement === notepadText) notepadText.blur();
+    render();
   }
 
   // The text goes into the data at once; the save (and its sync) follows a short pause in typing.
   function notepadInput() {
-    const text = notepadText.value;
+    const text = padTextOf(notepadText);
+    const html = cleanPadHtml(notepadText.innerHTML);
     let page = notepadPage();
     if (!page) {
       if (!text) return;
@@ -1660,14 +1791,21 @@
       const note = { id: uid(), text: '', images: [], createdAt: now, updatedAt: now, copied: 0, lastCopiedAt: 0, usedAt: 0 };
       let project = notepadProjects()[0];
       if (!project) {
-        project = { id: uid(), name: 'Notepad', color: 'slate', notepad: true, usedCollapsed: false, augCollapsed: false, draft: '', draftImages: [], createdAt: now, notes: [], used: [], combined: [] };
+        const col = notepadFor ? findProject(notepadFor) : null;
+        project = col
+          ? { id: uid(), name: `Notepad: ${col.name}`, color: col.color, notepad: true, padFor: col.id }
+          : { id: uid(), name: 'Notepad', color: 'slate', notepad: true };
+        Object.assign(project, { usedCollapsed: false, augCollapsed: false, draft: '', draftImages: [], createdAt: now, notes: [], used: [], combined: [] });
         data.projects.push(project);
       }
       project.notes.unshift(note);
       page = { project, note };
     }
-    if (page.note.text === text) return;
+    const keepHtml = hasFormatting(html) ? html : undefined;
+    if (page.note.text === text && page.note.html === keepHtml) return;
     page.note.text = text;
+    if (keepHtml) page.note.html = keepHtml;
+    else delete page.note.html;
     page.note.updatedAt = Date.now();
     delete page.note.syncConflict; // the page as typed here is the page
     clearTimeout(notepadTimer);
@@ -1682,26 +1820,57 @@
     contentSeq++; // synced: a sync patch from before this is stale
     persist();
     paintNotepadStatus();
+    if (notepadFor) render(); // the column's page button
     if (pendingPatch) tryApplyPatch();
   }
 
   function paintNotepadStatus() {
-    const text = notepadText.value.trim();
+    const text = padTextOf(notepadText).trim();
     const words = text ? text.split(/\s+/).length : 0;
     notepadStatus.textContent = notepadTimer ? 'Saving…' : notepadPage() ? `Saved · ${words.toLocaleString()} word${words === 1 ? '' : 's'}` : 'Saves as you type';
+  }
+
+  // The B / I / U / list buttons light up for the text under the cursor.
+  function paintNotepadTools() {
+    if (!isNotepadOpen()) return;
+    for (const b of notepadPanel.querySelectorAll('.pad-tool')) {
+      let on = false;
+      try {
+        on = document.activeElement === notepadText && document.queryCommandState(b.dataset.cmd);
+      } catch {}
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', String(on));
+    }
   }
 
   // Called from render(): shows the page as the data has it (after a sync or an undo elsewhere), never
   // under the cursor while someone is typing.
   function paintNotepad(force = false) {
     notepadBtn.title = `Notepad (${kb('Ctrl+J')})`;
+    applyNotepadWidth();
     if (!isNotepadOpen()) return;
+    if (notepadFor && !findProject(notepadFor)) {
+      // its column was deleted (here or on another computer): back to the main notepad
+      notepadFor = null;
+      notepadText.innerHTML = '';
+      force = true;
+    }
+    const col = notepadFor ? findProject(notepadFor) : null;
+    notepadForEl.hidden = !col;
+    if (col) {
+      notepadForEl.style.setProperty('--accent', colorOf(col));
+      const label = notepadForEl.querySelector('.notepad-for-name');
+      if (label.textContent !== col.name) label.textContent = col.name;
+      notepadForEl.title = `This page belongs to ${col.name}`;
+    }
+    notepadText.dataset.placeholder = col ? `Notes for ${col.name}. They save as you type.` : 'Jot anything here. It saves as you type.';
     const page = notepadPage();
-    const text = page ? page.note.text : '';
-    if ((force || document.activeElement !== notepadText) && !notepadTimer && notepadText.value !== text) notepadText.value = text;
+    const html = padHtmlOf(page?.note);
+    if ((force || document.activeElement !== notepadText) && !notepadTimer && cleanPadHtml(notepadText.innerHTML) !== html) notepadText.innerHTML = html;
+    notepadText.classList.toggle('is-empty', !padTextOf(notepadText) && !notepadText.querySelector('li'));
     const extras = notepadExtras();
     notepadOthers.hidden = !extras.length;
-    const html = extras.length ? `<p class="notepad-others-head">${extras.some((n) => n.syncConflict)
+    const others = extras.length ? `<p class="notepad-others-head">${extras.some((n) => n.syncConflict)
       ? 'Changed on two computers at once, so both versions are kept. The other one:'
       : 'Also in the notepad:'}</p>${extras.map((n) => `
         <article class="notepad-other" data-id="${escapeHtml(n.id)}">
@@ -1711,8 +1880,9 @@
             <button class="notepad-act notepad-drop" title="Delete this version">${I.trash}<span>Delete</span></button>
           </footer>
         </article>`).join('')}` : '';
-    if (notepadOthers.innerHTML !== html) notepadOthers.innerHTML = html;
+    if (notepadOthers.innerHTML !== others) notepadOthers.innerHTML = others;
     paintNotepadStatus();
+    paintNotepadTools();
   }
 
   // Removes a note from the notepad (an extra version), and its project when nothing is left in it.
@@ -1733,15 +1903,46 @@
     return null;
   }
 
-  notepadBtn.addEventListener('click', () => (isNotepadOpen() ? closeNotepad() : openNotepad()));
+  notepadBtn.addEventListener('click', () => (isNotepadOpen() && !notepadFor ? closeNotepad() : openNotepad()));
   $('#notepad-close').addEventListener('click', closeNotepad);
-  notepadText.addEventListener('input', notepadInput);
+  notepadText.addEventListener('input', () => {
+    notepadInput();
+    notepadText.classList.toggle('is-empty', !padTextOf(notepadText) && !notepadText.querySelector('li'));
+    paintNotepadTools();
+  });
+  // Pasting brings plain text only, so nothing foreign (fonts, colours, links, pictures) lands on the page.
+  notepadText.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const text = e.clipboardData?.getData('text/plain') || '';
+    if (text) document.execCommand('insertText', false, text);
+  });
+  notepadText.addEventListener('drop', (e) => e.preventDefault());
+  notepadText.addEventListener('keydown', (e) => {
+    // Ctrl+B / I / U are the browser's own; keep them, and the button states, in step
+    if (modKey(e) && /^[biu]$/i.test(e.key)) setTimeout(paintNotepadTools, 0);
+  });
   notepadText.addEventListener('blur', () => {
     saveNotepadNow();
+    paintNotepadTools();
     if (pendingPatch) tryApplyPatch();
   });
+  document.addEventListener('selectionchange', () => {
+    if (document.activeElement === notepadText) paintNotepadTools();
+  });
+  for (const b of notepadPanel.querySelectorAll('.pad-tool')) {
+    b.addEventListener('mousedown', (e) => e.preventDefault()); // keep the selection in the page
+    b.addEventListener('click', () => {
+      if (document.activeElement !== notepadText) {
+        notepadText.focus();
+        caretToEnd();
+      }
+      document.execCommand(b.dataset.cmd, false);
+      notepadInput();
+      paintNotepadTools();
+    });
+  }
   $('#notepad-copy').addEventListener('click', async () => {
-    const text = notepadText.value;
+    const text = padTextOf(notepadText);
     if (!text.trim()) return toast('The notepad is empty');
     try {
       await api.copy(text);
@@ -1758,8 +1959,12 @@
     if (!note) return;
     if (e.target.closest('.notepad-take')) {
       saveNotepadNow();
-      const cur = notepadText.value.replace(/\s+$/, '');
-      notepadText.value = cur ? `${cur}\n\n${note.text}` : note.text;
+      // trailing empty lines go, then a blank line, then the other version
+      const blank = (n) => (n.nodeType === Node.TEXT_NODE ? !n.data.trim()
+        : n.nodeType !== Node.ELEMENT_NODE || (!/^(UL|OL)$/.test(n.tagName) && !n.textContent.trim()));
+      while (notepadText.lastChild && blank(notepadText.lastChild)) notepadText.lastChild.remove();
+      const has = Boolean(padTextOf(notepadText).trim());
+      notepadText.insertAdjacentHTML('beforeend', (has ? '<div><br></div>' : '') + plainToPadHtml(note.text));
       notepadInput();
       dropNotepadNote(id);
       saveNotepadNow();
@@ -1783,6 +1988,32 @@
         },
       });
     }
+  });
+  // Resize from the left edge (double-click: back to the default width). Per computer, like column widths.
+  $('#notepad-resize').addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const right = notepadPanel.getBoundingClientRect().right;
+    document.body.classList.add('is-resizing-pad');
+    trackPointer(e, {
+      onMove(ev) {
+        const w = Math.max(NOTEPAD_MIN_W, Math.min(window.innerWidth - 80, right - ev.clientX));
+        document.body.style.setProperty('--notepad-w', `${Math.round(w)}px`);
+      },
+      onEnd() {
+        document.body.classList.remove('is-resizing-pad');
+        const w = parseInt(document.body.style.getPropertyValue('--notepad-w'), 10);
+        if (Number.isFinite(w) && w !== notepadWidth()) {
+          data.prefs.notepadWidth = w;
+          persist();
+        }
+      },
+    });
+  });
+  $('#notepad-resize').addEventListener('dblclick', () => {
+    delete data.prefs.notepadWidth;
+    persist();
+    applyNotepadWidth();
   });
   // The last keystrokes are saved when the window goes (on Windows the draft timer isn't flushed then).
   window.addEventListener('beforeunload', saveNotepadNow);
@@ -1811,9 +2042,7 @@
       contentSeq++; // synced (1.20)
       pendingLabels.push('Open column');
     }
-    const folded = foldedGroups().filter((n) => n !== g);
-    if (folded.length) data.prefs.foldedGroups = folded;
-    else delete data.prefs.foldedGroups;
+    if (g) markGroupFolded(g, false);
     persist();
   }
 
@@ -2073,7 +2302,8 @@
     const project = findProject(projectId);
     if (!col || !project) return;
     const text = finalText(project);
-    if (!text) return;
+    // Only pictures, no text: copy the first picture, as Cooked does (1.20.7; it copied nothing before).
+    if (!text) return void (col.finalImages.firstElementChild && copyStageImage(col, col.finalImages.firstElementChild, event));
     try {
       await api.copy(text);
     } catch (err) {
@@ -2606,7 +2836,7 @@
       if (j >= 0 && j < unit.ids.length) return { units, swap: () => { [unit.ids[i], unit.ids[j]] = [unit.ids[j], unit.ids[i]]; } };
       // 1.20: at the group's edge it steps out of the group, to just beside it
       const gi = units.indexOf(unit);
-      return { units, leaves: g, swap: () => { unit.ids.splice(i, 1); units.splice(delta < 0 ? gi : gi + 1, 0, { group: null, ids: [id] }); delete project.group; } };
+      return { units, leaves: g, swap: () => { unit.ids.splice(i, 1); units.splice(delta < 0 ? gi : gi + 1, 0, { group: null, ids: [id] }); delete project.group; delete project.groupFolded; } };
     }
     const i = units.findIndex((u) => !u.group && u.ids[0] === id);
     const j = i + delta;
@@ -3805,6 +4035,7 @@
         checkpoint(regroup ? (into ? 'Move to group' : 'Remove from group') : 'Reorder projects');
         if (into) project.group = into;
         else delete project.group;
+        if (regroup) delete project.groupFolded; // dropped into an open lane or onto the board
         setBoardOrder(next);
         persist();
         if (regroup) {
@@ -4202,6 +4433,8 @@
     if (e.target.closest('.col-add')) return openComposer(col.id);
     if (e.target.closest('.col-mic')) return openComposer(col.id, { voice: true });
     if (e.target.closest('.col-menu')) return openColumnMenu(col, e.target.closest('.col-menu'));
+    if (e.target.closest('.col-min')) return setMinimized(col.id, true);
+    if (e.target.closest('.col-pad')) return isNotepadOpen() && notepadFor === col.id ? closeNotepad() : openNotepad(col.id);
     if (e.target.closest('.used-head')) {
       const p = findProject(col.id);
       p.usedCollapsed = !p.usedCollapsed;
@@ -4464,6 +4697,25 @@
     openMenu(anchor, (menu) => {
       menuItem(menu, I.camera, 'New from screenshot', () => openComposer(col.id, { screenshot: true }));
       menuItem(menu, I.pencilLine, 'Rename', () => startRename(col));
+      // the four status colours first, named (1.20.7)
+      const statusRow = el('div', 'menu-status');
+      for (const st of STATUS) {
+        const c = PALETTE.find((x) => x.id === st.id);
+        const b = el('button', `status-pick${project.color === st.id ? ' is-active' : ''}`);
+        b.style.setProperty('--c', c.color);
+        b.title = st.meaning;
+        b.innerHTML = `<i></i><span>${st.label}</span>`;
+        b.addEventListener('click', () => {
+          closeMenu();
+          if (project.color === st.id) return;
+          checkpoint('Change color');
+          project.color = st.id;
+          persist();
+          render();
+        });
+        statusRow.appendChild(b);
+      }
+      menu.appendChild(statusRow);
       const swatches = el('div', 'menu-swatches');
       for (const c of PALETTE) {
         const s = el('button', `swatch${c.id === project.color ? ' is-active' : ''}`);
@@ -4926,7 +5178,7 @@
       }
     } else if (mod && !e.shiftKey && k === 'j') {
       e.preventDefault();
-      if (isNotepadOpen()) closeNotepad();
+      if (isNotepadOpen() && !notepadFor) closeNotepad();
       else openNotepad();
     } else if (mod && k === ',') {
       e.preventDefault();
@@ -5195,9 +5447,17 @@
       contentSeq++;
       pendingLabels.push('Minimize column');
     }
+    // 1.20.7: groups folded on this computer only (prefs.foldedGroups) become synced folds, once.
+    let oldFolds = false;
+    if ('foldedGroups' in data.prefs) {
+      const names = Array.isArray(data.prefs.foldedGroups) ? data.prefs.foldedGroups.filter((g) => typeof g === 'string') : [];
+      delete data.prefs.foldedGroups;
+      for (const name of names) markGroupFolded(name.trim(), true);
+      oldFolds = true;
+    }
     // Only write on load when there was nothing to load (first run), the file predates the current
-    // format, or old minimized columns were just converted; otherwise the file is left byte-for-byte alone.
-    if (!raw || !(Number(raw.version) >= DATA_VERSION) || oldMinimized.length) persist();
+    // format, or old minimized columns or folds were just converted; otherwise the file is left alone.
+    if (!raw || !(Number(raw.version) >= DATA_VERSION) || oldMinimized.length || oldFolds) persist();
     const last = findProject(data.prefs.lastProjectId);
     ui.lastProjectId = last && !isNotepad(last) ? last.id : boardProjects()[0]?.id ?? null;
     lastProjectSaved = ui.lastProjectId;

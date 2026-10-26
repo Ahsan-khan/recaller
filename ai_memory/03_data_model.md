@@ -71,7 +71,9 @@ Both editions read and write exactly this; the Mac edition added no fields.
     "lastProjectId": "<project id>",  // column last worked in; Ctrl+N / Ctrl+M (⌘N / ⌘M on a Mac) target it.
                                       //   Saved through the 400ms persistSoon(), like draft typing
     "scroll": { "board": 240, "cols": { "<project id>": 120 } },  // only saved when the USER scrolls
-    "foldedGroups": ["Important"] // 1.18: groups folded to a strip, by name. Per computer; absent when none
+    "foldedGroups": ["Important"], // 1.18–1.20.6: groups folded to a strip, by name, per computer. 1.20.7 converts
+                                  //   it at start into each member's `groupFolded` and deletes it
+    "notepadWidth": 520              // 1.20.7: the notepad drawer's width in px (300+), per computer; absent = 420
   },
   "projects": [ Project, ... ],       // array order = column order on the board
   "localEaten": [ Round, ... ],       // 1.18, optional: the Eaten history, newest first, at most 300. Per computer
@@ -91,6 +93,8 @@ Both editions read and write exactly this; the Mac edition added no fields.
   "notesCollapsed": true,     // optional (1.8): Cooking folded away. Only present while folded
   "group": "Important",       // optional (1.18): the name of the column group it sits in. Synced. Members are drawn
                               //   together where the first one is; absent or blank = not in a group
+  "groupFolded": true,        // optional (1.20.7): its group is folded, on every computer (synced). Set on every
+                              //   member; the group is folded while any member has it. Only present while folded
   "eating": 1760900000000,    // optional (1.18): when "Eating" was switched on (an agent is running the Served
                               //   text). Synced. Not undoable: undo carries it over like a fold
   "cookedFormat": "claude-code", // optional (1.18): the Cooked note is shown, copied and served formatted for
@@ -99,6 +103,7 @@ Both editions read and write exactly this; the Mac edition added no fields.
                               //   present while minimized; not undoable
   "localMinimized": true,     // optional (1.18–1.19): the same, per computer (a "local" key never syncs). Still
                               //   read; 1.20 never writes it; since 1.20.4 start-up turns it into `minimized`
+  "padFor": "<project id>",   // optional (1.20.7, with notepad): this hidden notepad is that column's own page
   "notepad": true,            // optional (1.20): this project is the notepad, never drawn on the board. Its first
                               //   note is the page; other notes in it are versions from another computer.
                               //   Synced; an older version shows it as a column named "Notepad"
@@ -130,6 +135,8 @@ Both editions read and write exactly this; the Mac edition added no fields.
   "usedAt": ms,               // when it entered Cooked or Served (0 for notes that never did)
   "highlight": "amber",       // optional: "amber" (Check again) | "rose" (Important) | "sky" (Idea) | "lime" (Ready)
   "expanded": true,           // optional: card shows all lines instead of the clamp
+  "html": "<b>Ship</b> it",  // optional (1.20.7, notepad pages only): the page's formatting (b, i, u, ul, ol, li,
+                              //   br, div; no attributes). Drawn only while its plain text equals `text`. Synced
   "syncConflict": { "of": "<original note id>", "device": "<32 hex device id>", "at": ms },
                               // 1.17, optional: only on a conflict copy made by sync ("Other version" tag).
                               //   Saving the note from its editor deletes it. Synced like any note field
@@ -336,6 +343,8 @@ Every invariant below still holds, signed in or not:
 - **1.18.0** (tenth session, branch `v1.18`) added four optional project fields, `group`, `eating`, `cookedFormat` (synced, as unknown project fields always were) and `localMinimized` (per computer), and `prefs.foldedGroups` (per computer, like every pref but `joiner`). Since the same session's follow-up, also the top-level `localEaten` (the Eaten history, per computer). All are written only while set. `DATA_VERSION` is still 2; 1.17 and older keep the fields untouched and simply don't draw them.
 
 - **1.20.0** (twelfth session, branch `v1.20`) added two optional, synced project fields: `minimized` (replacing the per-computer `localMinimized` for new minimizes; the old key is still read and goes when the column opens) and `notepad` (the hidden project holding the notepad page). Nothing is rewritten at start. `DATA_VERSION` is still 2.
+
+- **1.20.7** (fifteenth session, branch `v1.20.7`) added the synced project fields `groupFolded` and `padFor` (a column's own notepad), the synced note field `html` (notepad formatting), and `prefs.notepadWidth` (per computer). Start-up converts `prefs.foldedGroups` into `groupFolded` once and deletes it (the file is written at that start). `DATA_VERSION` is still 2.
 
 - **1.19.0** added nothing to the data file. The settings file gains `widget`, `widgetBounds` and `widgetProject`, written only once the widget is used, never synced (the device record's settings are an allow-list).
 

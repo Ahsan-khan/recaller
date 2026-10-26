@@ -749,6 +749,16 @@ The owner's words are in `10`, messages 80 and 81. Both platforms; nothing is fe
 
 - **Minimized columns are rows in a stack.** ⋯ › Minimize column turns the column into a 184 × 40 px row in its header colour: leaf, name across (one line, … when long, the full name in the tooltip), the Eating dot and its count (Cooking + Cooked). Minimized columns next to each other (on the board, or inside a group's lane) stack in one slot, 6 px apart; a lone one is a stack of one. A click on a row opens the column; a drag moves it like any column (out of the stack, anywhere on the board or into a group). Synced as before (`minimized`). 1.20.3: a stack is never taller than the board; with more rows than fit (a small window), it scrolls on its own (the wheel over it, or its thin bar).
 
+### 1.20.7 (fifteenth session, 2026-10-25/26, on a PC)
+
+- **Column header:** right of the name, two quiet buttons: the column's **notepad** and **minimize**. Invisible until the pointer is on the header; the notepad button stays visible once its page has text and looks pressed while it is open.
+- **Minimized columns** are rows in one light **Minimized** card (leaf in the column colour, the name, the count). Click a row to open it; drag it like a column. Several side by side share the card; it scrolls when tall.
+- **Colour legend:** after the search box, Done (green), Blocked (red), Pending (blue), Working (yellow); hover one for its meaning. A column's ⋯ menu names the same four at the top of its colours.
+- **Group folds sync:** folding a group marks every member (`groupFolded`), so it is folded on every computer.
+- **The notepad:** resizable from its left edge (double-click: default width); a toolbar with **B**, **I**, **U** and a bullet list (Ctrl+B / I / U too); pasting brings plain text. **Copy** copies plain text (bullets as "• ").
+- **A notepad per column:** the header's page button opens that column's own page in the same drawer, its name and leaf shown as a chip by "Notepad". Ctrl+J and the top-bar Notepad open the main page.
+- **Served with only pictures:** a click copies its first picture, like Cooked.
+
 ### 1.20.6 (thirteenth session, 2026-10-24)
 
 - **The Eating switch in Served never covers the word Served.** Both shrink before they touch (Served ends in "…" as a last resort). Below about 262 px of Served width the Served icon goes; below about 226 px the word "Eating" goes and the pill shows only the dot and the time ("● 2h 35m"). Container queries on `.final`.

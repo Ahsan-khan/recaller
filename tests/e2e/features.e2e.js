@@ -63,6 +63,7 @@ const moreProjects = ['Ideas', 'Writing', 'Research', 'Admin'].map((name, i) => 
 }));
 fs.writeFileSync(path.join(DATA_DIR, 'recaller-data.json'), JSON.stringify({
   version: 1,
+  prefs: { foldedGroups: ['Gone'] }, // 1.20.7: an old per-computer fold, converted (and dropped) at start
   projects: [
     { id: 'p1', name: 'Wildfire RL', color: 'monstera', usedCollapsed: false, draft: '', createdAt: now, notes: [
       n('Review the fire spread model in fire_model.py — wind should bias ignition probability, not just direction. Propose a fix with a unit test.', 3600e3),
@@ -1173,11 +1174,11 @@ async function run() {
   await sleep(300);
   await clickSel('.col-group .group-toggle');
   await sleep(500);
-  const foldedGroup = { w: (await rect('.col-group')).w, prefs: prefsNow().foldedGroups, hidden: await js(`document.querySelector('.column[data-id="p2"]').offsetWidth === 0`) };
-  check('clicking the group name folds its columns into a strip (kept on this computer only)', foldedGroup.w < 60 && JSON.stringify(foldedGroup.prefs) === '["Important"]' && foldedGroup.hidden, JSON.stringify(foldedGroup));
+  const foldedGroup = { w: (await rect('.col-group')).w, flags: [savedProject(NEW).groupFolded, savedProject('p2').groupFolded], prefs: 'foldedGroups' in prefsNow(), hidden: await js(`document.querySelector('.column[data-id="p2"]').offsetWidth === 0`) };
+  check('clicking the group name folds its columns into a strip (1.20.7: synced, as `groupFolded` on each member)', foldedGroup.w < 60 && foldedGroup.flags.join() === 'true,true' && !foldedGroup.prefs && foldedGroup.hidden, JSON.stringify(foldedGroup));
   await clickSel('.col-group .group-strip');
   await sleep(500);
-  check('a click on the strip opens the group again', !('foldedGroups' in prefsNow()) && await js(`document.querySelector('.column[data-id="p2"]').offsetWidth > 200`));
+  check('a click on the strip opens the group again', !('groupFolded' in savedProject('p2')) && !('groupFolded' in savedProject(NEW)) && await js(`document.querySelector('.column[data-id="p2"]').offsetWidth > 200`));
   key('Z', [MOD]);
   await sleep(400);
   key('Z', [MOD]);
@@ -1379,7 +1380,7 @@ async function run() {
   await sleep(700);
   const afterGroup = await boardOrder();
   check('1.20: a group drags by its band (a small ghost with its name, a slot its size) and lands before p1', midGroup.ghost === 'Lane' && midGroup.slot && midGroup.quiet && afterGroup.startsWith('G:Lane,p1') && savedOrder().startsWith('p2@Lane,p3@Lane,p1'), JSON.stringify({ midGroup, afterGroup, saved: savedOrder() }));
-  check('1.20: the release that ends a group drag doesn’t fold the group', !('foldedGroups' in prefsNow()) && !(await js(`document.querySelector('.col-group').classList.contains('is-folded')`)));
+  check('1.20: the release that ends a group drag doesn’t fold the group', !savedData().projects.some((p) => p.groupFolded) && !(await js(`document.querySelector('.col-group').classList.contains('is-folded')`)));
   // a column dragged by its header into the group's lane joins the group
   const lane = await rect('.col-group');
   const p1head = await rect('.column[data-id="p1"] .col-name');
@@ -1446,12 +1447,64 @@ async function run() {
   await sleep(500);
   check('1.20.2: a click on a row opens its column; the stack goes when nothing is minimized', !(await js(`!!document.querySelector('.mini-stack')`)) && !('minimized' in savedProject('p2')) && !('minimized' in savedProject('p3')) && savedOrder() === order0, JSON.stringify({ order: savedOrder() }));
 
+  // ---------------------------------------------------------------- 1.20.7
+  check('1.20.7: a group fold is a synced project field, and old per-computer folds were converted at start', await js(`window.SyncApply.isLocalKey('groupFolded') === false`) && !('foldedGroups' in prefsNow()));
+  await clickSel('.column[data-id="p2"] .col-min');
+  await sleep(500);
+  const miniCard = await js(`(() => { const s = document.querySelector('.column[data-id="p2"]').closest('.mini-stack'); return s && { label: getComputedStyle(s, '::before').content, bg: getComputedStyle(s).backgroundColor }; })()`);
+  check('1.20.7: the button by the column name minimizes it, into the light "Minimized" card', savedProject('p2').minimized === true && miniCard?.label === '"Minimized"' && /^rgb\(2[0-9]{2}, 2[0-9]{2}, 2[0-9]{2}\)$/.test(miniCard.bg), JSON.stringify(miniCard));
+  await shot('14a-minimized-card');
+  await clickSel('.column[data-id="p2"] .col-head');
+  await sleep(500);
+  check('1.20.7: …and its row opens it again', !('minimized' in savedProject('p2')));
+  check('1.20.7: the top bar has the colour legend (Done, Blocked, Pending, Working)', (await texts('#legend .legend-item')).join() === 'Done,Blocked,Pending,Working');
+  const color0 = savedProject('p2').color;
+  await clickSel('.column[data-id="p2"] .col-menu');
+  await sleep(300);
+  const statusPicks = await texts('.menu .status-pick');
+  await js(`[...document.querySelectorAll('.menu .status-pick')].find((b) => b.textContent === 'Blocked').click()`);
+  await sleep(400);
+  check('1.20.7: the colour menu names the four status colours first; Blocked makes the column red', statusPicks.join() === 'Done,Blocked,Pending,Working' && savedProject('p2').color === 'ruby', JSON.stringify(statusPicks));
+  key('Z', [MOD]);
+  await sleep(400);
+  check('1.20.7: …undoable', savedProject('p2').color === color0);
+  // the column's own notepad page, with formatting
+  const mainPage = savedData().projects.find((p) => p.notepad && !p.padFor)?.notes[0]?.text;
+  await clickSel('.column[data-id="p2"] .col-pad');
+  await sleep(450);
+  const padHead = await js(`({ open: document.querySelector('#notepad-panel').classList.contains('is-open'), forName: document.querySelector('#notepad-for').hidden ? '' : document.querySelector('.notepad-for-name').textContent, empty: !document.querySelector('#notepad-text').innerText.trim(), focus: document.activeElement?.id })`);
+  check('1.20.7: the page button by a column name opens that column\'s own, empty notepad page', padHead.open && padHead.forName === savedProject('p2').name && padHead.empty && padHead.focus === 'notepad-text', JSON.stringify(padHead));
+  await type('Column page ');
+  key('B', [MOD]);
+  await type('bold');
+  key('B', [MOD]);
+  await clickSel('.pad-tool[data-cmd="insertUnorderedList"]');
+  await sleep(900);
+  const colPad = savedData().projects.find((p) => p.notepad && p.padFor === 'p2');
+  check('1.20.7: it saves into its own hidden page: the plain text, plus the bold and the bullet as formatting', colPad?.notes[0].text === '• Column page bold' && /<b>bold<\/b>/.test(colPad.notes[0].html) && /<ul>/.test(colPad.notes[0].html) && !colPad.notes[0].html.includes('style') && savedData().projects.find((p) => p.notepad && !p.padFor)?.notes[0]?.text === mainPage, JSON.stringify(colPad?.notes[0]));
+  check('1.20.7: the column\'s page is never a column, and its button stays visible now that it has text', !(await js(`[...document.querySelectorAll('.col-name')].some((n) => /Notepad/.test(n.textContent))`)) && await js(`document.querySelector('.column[data-id="p2"] .col-pad').classList.contains('has-pad')`));
+  await shot('14b-column-notepad');
+  const edge = await rect('#notepad-resize');
+  const w0pad = (await rect('#notepad-panel')).w;
+  mouse('mouseMove', edge.cx, edge.cy, { modifiers: [] });
+  mouse('mouseDown', edge.cx, edge.cy);
+  await drag(edge.cx, edge.cy, edge.cx - 100, edge.cy, 8);
+  mouse('mouseUp', edge.cx - 100, edge.cy);
+  await sleep(400);
+  const w1pad = (await rect('#notepad-panel')).w;
+  check('1.20.7: dragging the notepad\'s left edge makes it wider, and the width is kept', Math.abs(w1pad - w0pad - 100) <= 4 && Math.abs(prefsNow().notepadWidth - w1pad) <= 2, JSON.stringify({ w0pad, w1pad, saved: prefsNow().notepadWidth }));
+  await js(`document.querySelector('#notepad-resize').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`);
+  await sleep(300);
+  key('Escape');
+  await sleep(350);
+  check('1.20.7: double-clicking the edge puts the default width back; Esc closes the page', !('notepadWidth' in prefsNow()) && !(await js(`document.querySelector('#notepad-panel').classList.contains('is-open')`)));
+
   // the notepad: one scratch page (seeded with a page and another computer's version)
   const colsBefore = await js(`document.querySelectorAll('.column').length`);
   check('1.20: the notepad never shows up as a column', !(await js(`[...document.querySelectorAll('.col-name')].some((n) => n.textContent === 'Notepad')`)));
   key('J', [MOD]);
   await sleep(450);
-  const padOpen = await js(`({ open: document.querySelector('#notepad-panel').classList.contains('is-open'), focus: document.activeElement?.id, value: document.querySelector('#notepad-text').value, others: document.querySelectorAll('.notepad-other').length })`);
+  const padOpen = await js(`({ open: document.querySelector('#notepad-panel').classList.contains('is-open'), focus: document.activeElement?.id, value: document.querySelector('#notepad-text').innerText.trim(), others: document.querySelectorAll('.notepad-other').length })`);
   check('1.20: Ctrl+J opens the notepad with the page, the cursor in it, and the other version under it', padOpen.open && padOpen.focus === 'notepad-text' && padOpen.value === 'Seeded page' && padOpen.others === 1, JSON.stringify(padOpen));
   await type(' and a random note');
   await sleep(900);

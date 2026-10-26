@@ -823,3 +823,63 @@ Twelfth session (2026-10-23, on the PC, `C:\Users\User\Documents\recaller`; bran
 > no the 1.20.5 was macbook build i want these changes on new one 1.20.6 we just did
 
 [The PC changes were renumbered 1.20.6 and placed on top of the Mac's 1.20.5 from GitHub.]
+
+
+---
+
+Fifteenth session (2026-10-25/26, on another PC: Windows 11 Pro, `C:\Users\Ahsan\Desktop\recaller`, branch `recaller-v3`, then a new branch `v1.20.7` from `origin/main`).
+
+## Message 92 (the whole request: one line, then pasted text)
+
+> read everything in ai_memory so so we can build onward
+>
+> add minize button in header next to name (subtle)
+>
+> the minized column header bubble looks weird change it
+>
+> add color legend
+>
+> green = done / active / live
+> red  = blocked / stopped/ attention
+> blue = pending / needs working
+> yellow = working / currently doing
+>
+> group minimization not syncing
+
+[Every `ai_memory` file was read. Built as 1.20.7 (`08`). "minimize button in header next to name (subtle)": a quiet arrows-in button right of the column name. "header bubble looks weird": the minimized rows; three looks rendered side by side (message 93). "color legend": asked where (message 93). "group minimization not syncing": group folds were per computer by design (`prefs.foldedGroups`); now a synced flag on the members.]
+
+## Message 93: the owner's answers to two questions
+
+> C. One card (Recommended)
+
+[The question: which look for minimized columns: one light "Minimized" card listing them, quiet light rows with a coloured edge, or flat mini headers in the column colour.]
+
+> Top bar + colour menu (Recommended)
+
+[The question: what the legend should be and where: four dots with words in the top bar plus the four colours named in the ⋯ colour picker; a strip at the board's bottom left; or only in the colour menu.]
+
+## Message 94 (sent while the work was running)
+
+> let me be able to resize the notepad
+>
+> bold italic underline and list as well (small icons)
+
+[A resize edge on the drawer's left side, and a B / I / U / bullet-list toolbar. A question about real formatting versus Markdown markers went unanswered (message 95 came instead), so real formatting was built, with the plain text kept beside it.]
+
+## Message 95 (sent instead of answering)
+
+> give me option to have a notepad for all columns. like a small button on the header to open resizie notepad
+
+[Read as: every column gets its own notepad page, opened by a small button in its header, in the same resizable drawer.]
+
+## Message 96 (sent while the work was running)
+
+> when theres a image in served it doest get copied
+
+[A Served with only pictures copied nothing; now it copies the first picture, like Cooked. Copying the text never brings its pictures, on purpose (`07` #54): asked whether they want both in one paste.]
+
+## Message 97 (a question's answer)
+
+> Yes, run them (Recommended)
+
+[The question: may the features suite run on this PC (5 minutes; it overwrites the clipboard and shows a thin window strip). The first test run on this PC.]
