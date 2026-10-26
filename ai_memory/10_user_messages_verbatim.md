@@ -883,3 +883,27 @@ Fifteenth session (2026-10-25/26, on another PC: Windows 11 Pro, `C:\Users\Ahsan
 > Yes, run them (Recommended)
 
 [The question: may the features suite run on this PC (5 minutes; it overwrites the clipboard and shows a thin window strip). The first test run on this PC.]
+
+## Message 98 (after the summary, several short messages)
+
+> comit and push after
+>
+> and always pull when starting
+>
+> what whats the diff?
+>
+> if it looks like updates then add them right
+>
+> like i m confused;
+>
+> yes merge everything thats new into main and install here
+>
+> great
+
+[1.20.7 was committed on `v1.20.7` and pushed. "always pull when starting" became step 0 of `13`'s session start. The diff was shown in the app's diff pane. After a plain explanation of a branch versus `main`, "merge everything that's new into main": `v1.20.7` was the only unmerged branch; `gh` isn't signed in on this PC, so `main` was fast-forwarded with `git push origin v1.20.7:main` (`e9df19b..56a305f`), and 1.20.7 was installed (`/S`).]
+
+## Message 99
+
+> if ii cant seem to move a minized column
+
+[The drag worked, but the dragged copy of a minimized row was see-through on the dark board. Fixed in 1.20.8.]

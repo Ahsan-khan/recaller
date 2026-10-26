@@ -21,7 +21,7 @@ npm install
 npm run dist
 ```
 
-This builds `dist/Recaller Setup 1.20.7.exe`. It needs `src/cloud/project.json`, which isn't in git: copy it from the computer that has it, or build without accounts with `RECALLER_NO_CLOUD=1`. Run the installer to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
+This builds `dist/Recaller Setup 1.20.8.exe`. It needs `src/cloud/project.json`, which isn't in git: copy it from the computer that has it, or build without accounts with `RECALLER_NO_CLOUD=1`. Run the installer to install Recaller. It adds a desktop and Start menu shortcut. The installer is unsigned, so Windows SmartScreen may warn on first run. Choose **More info → Run anyway**.
 
 To run from source instead, use `npm start`.
 
@@ -256,7 +256,7 @@ npm install
 npm run dist:mac
 ```
 
-This builds `dist/Recaller-1.20.7-arm64.dmg`. Open it, drag **Recaller** onto **Applications**, then eject the "Recaller 1.20.7" disk (the eject button beside it in Finder's sidebar) and open Recaller from Applications. Don't open Recaller from the disk image's window: that copy runs from the disk image, which then can't be ejected. If you already did, quit it (⌘Q), eject the disk and open Recaller from Applications; your notes are the same either way.
+This builds `dist/Recaller-1.20.8-arm64.dmg`. Open it, drag **Recaller** onto **Applications**, then eject the "Recaller 1.20.8" disk (the eject button beside it in Finder's sidebar) and open Recaller from Applications. Don't open Recaller from the disk image's window: that copy runs from the disk image, which then can't be ejected. If you already did, quit it (⌘Q), eject the disk and open Recaller from Applications; your notes are the same either way.
 
 - **A copy built on your own Mac** opens straight away.
 - **A downloaded or AirDropped copy** is blocked the first time, because it isn't signed with an Apple Developer ID: macOS says it can't verify the developer. Close that message, open **System Settings › Privacy & Security**, and click **Open Anyway** next to the note about Recaller. You only do this once. (On macOS 15 and later, Control-click › Open no longer gets past this.)

@@ -2,6 +2,11 @@
 
 Newest first. Dates run from 2026-09-23 to 2026-10-20. Versions 1.0.0 to 1.5.0 were built in one long session; 1.6.0–1.13.0 in a second session on 2026-09-24; 1.14.0 in a third; 1.15.0 in a fourth on 2026-09-26; 1.16.0 in a fifth, the same day. A sixth session (2026-09-28 to 29, on the owner's new Mac) built a 1.17.0 that the owner discarded, a seventh (2026-09-29, on the Mac) built the Mac edition of 1.16.0, and an eighth (2026-09-30 to 10-01, on the Mac) built accounts and sync as a new 1.17.0. A ninth (2026-10-06, on the PC) published 1.17.0's Windows installer as a GitHub Release and merged `masos` into `main`. A tenth (2026-10-20, on a freshly set-up Mac) built 1.18.0 on a new branch, `v1.18`. Versions refer to `package.json` and the installers: `dist/Recaller Setup <version>.exe` for Windows and, for the Mac edition, `dist/Recaller-<version>-arm64.dmg`.
 
+## 1.20.8: a dragged minimized row is visible (fifteenth session, on a PC, 2026-10-26)
+
+- The owner, after installing 1.20.7: "i cant seem to move a minized column" (`10` message 99). Reproduced: the drag itself worked (it moves and drops where released), but the moving copy was invisible. 1.20.7's rows are see-through inside the Minimized card, and the ghost is a clone of the row, so on the dark board it was dark text on a dark background and looked like nothing moved. The ghost of a minimized row is now a white row with a `--col-edge` border, radius 10 and a 3 px ring in the column colour over `--shadow-lg`.
+- **Tests:** features +1 (Windows 205 -> 206): mid-drag, the ghost of a minimized row is white with a shadow. 206/206 from source (one earlier run stopped at the Eating menu after a 250 ms wait, a timing flake; the re-run passed). `dist\Recaller Setup 1.20.8.exe` built (52 app files match the source) and installed on this PC (`/S`, exit 0, the installed app reads 1.20.8). Committed and pushed to `main`.
+
 ## 1.20.7: a minimize button and a notepad per column in the header, a "Minimized" card, a colour legend, synced group folds, a formatted and resizable notepad (fifteenth session, on a PC, 2026-10-25/26)
 
 The owner's words are `10`, messages 92 to 96. Built on branch `v1.20.7` (from `origin/main` at `e9df19b`) in `C:\Users\Ahsan\Desktop\recaller` (another PC: Windows 11 Pro, user `Ahsan`).

@@ -2510,6 +2510,14 @@ body.theme-deep .mini-stack { background: #eef2f0; border-color: rgba(0, 0, 0, 0
   color: var(--ink-3);
   font-size: 11px;
 }
+/* a minimized row being dragged: a solid white row with a lift, so it shows over the dark board
+   (the row itself is see-through inside its card) */
+.drag-ghost > .column.is-minimized, body.theme-deep .drag-ghost > .column.is-minimized {
+  background: #fff;
+  border: 1px solid var(--col-edge);
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent), var(--shadow-lg);
+}
 .mini-stack::-webkit-scrollbar-thumb, body.theme-deep .mini-stack::-webkit-scrollbar-thumb { background: rgba(12, 42, 29, 0.22); background-clip: padding-box; }
 
 /* the colour legend in the top bar: four dots with a word; hover one for its meaning */

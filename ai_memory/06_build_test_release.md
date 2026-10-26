@@ -150,7 +150,7 @@ The suites drive the real app with synthetic mouse and keyboard input (`webConte
 - **Counts:** Windows 12 + 21 + 134 (unchanged). Mac 12 + 21 + 139 (134 − 3 skipped + 8 Mac checks). Seventh session, on source on the Mac: 12/12, 21/21 (synthetic) and 139/139, all 8 Mac checks passing.
 - **Windows after the Mac edition:** the Windows side was not run in the seventh session (the Mac can't run the Windows app). That Windows behaves exactly as 1.16.0 rests on every Mac difference being fenced (`07` #65) and a hunk-by-hunk review, plus a plain-Node run of `main.js` against a mocked Electron with the platform set to `win32`, whose log of Electron calls matched 1.16's apart from stack-trace line numbers (run before the last reviewer fixes, which are all Mac-only). The first real check is `npm test` on the PC: 12 + 21 + 134.
 
-### `features.e2e.js` (205 checks on Windows since 1.20.7, 194 since 1.20.6, 190 in 1.20.4, 189 in 1.20.3, 187 in 1.20.2, 184 in 1.20.1, 180 in 1.20.0, 166 in 1.19, 158 in 1.18, 134 before; 201 on a Mac since 1.20.6, 197 in 1.20.5, 194 since 1.20.3, 192 in 1.20.2, 189 in 1.20.1, 185 in 1.20.0, 171 in 1.19, 163 in 1.18, 139 before; about 4 minutes)
+### `features.e2e.js` (206 checks on Windows since 1.20.8, 205 in 1.20.7, 194 since 1.20.6, 190 in 1.20.4, 189 in 1.20.3, 187 in 1.20.2, 184 in 1.20.1, 180 in 1.20.0, 166 in 1.19, 158 in 1.18, 134 before; 201 on a Mac since 1.20.6, 197 in 1.20.5, 194 since 1.20.3, 192 in 1.20.2, 189 in 1.20.1, 185 in 1.20.0, 171 in 1.19, 163 in 1.18, 139 before; about 4 minutes)
 
 **Setup:**
 - **Seed data:** seven projects in the old v1 format, which also exercises loading old data.

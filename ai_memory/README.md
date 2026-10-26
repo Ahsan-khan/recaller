@@ -3,6 +3,7 @@
 This folder is the complete handoff for **Recaller**. It lets any person, AI agent or LLM continue development without the original conversation. Everything here is plain text, and every user flow is described in words.
 
 Status as of **2026-10-26**, fifteenth session (on another PC: Windows 11 Pro, user `Ahsan`, repo `C:\Users\Ahsan\Desktop\recaller`):
+- **1.20.8 is on `main` and installed on this PC:** 1.20.7 plus a visible dragged minimized row (`08`). 1.20.7 was merged by fast-forwarding `main` (no `gh` sign-in here). The Mac still needs the new version.
 - **1.20.7 is built on a new branch `v1.20.7`** (from `origin/main` = `e9df19b`, 1.20.6 + the iPhone app), uncommitted: a minimize button and a notepad button by each column name, minimized columns in one light "Minimized" card, a colour legend (top bar and colour menu), group folds that sync (`groupFolded`), a resizable notepad with bold, italic, underline and lists, a notepad page per column, and a picture-only Served that copies its picture (`08`, 1.20.7; the owner's words `10`, messages 92–97). See the end of `08` 1.20.7 for test results and the installer.
 - This PC also holds the separate "Recall" app work (`C:\Users\Ahsan\Desktop\recall`); the checkout here was on `recaller-v3` with one untracked research file before the switch.
 

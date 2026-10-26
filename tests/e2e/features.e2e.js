@@ -1435,6 +1435,8 @@ async function run() {
   mouse('mouseDown', row3.cx, row3.cy);
   await drag(row3.cx, row3.cy, p1left.x + 10, row3.cy + 4, 16, 20);
   await sleep(300);
+  const rowGhost = await js(`(() => { const c = document.querySelector('.drag-ghost > .column.is-minimized'); return c && { bg: getComputedStyle(c).backgroundColor, shadow: getComputedStyle(c).boxShadow !== 'none' }; })()`);
+  check('1.20.7: a dragged minimized row shows as a solid white row with a lift (it was see-through on the dark board)', rowGhost?.bg === 'rgb(255, 255, 255)' && rowGhost.shadow, JSON.stringify(rowGhost));
   mouse('mouseUp', p1left.x + 10, row3.cy + 4);
   await sleep(700);
   const afterRow = { order: savedOrder(), stacks: await js(`[...document.querySelectorAll('#board > .mini-stack')].map((b) => [...b.children].map((c) => c.dataset.id).join('+')).join()`), still: savedProject('p3').minimized === true, open: await js(`!document.querySelector('.column[data-id="p3"]').classList.contains('is-minimized')`) };
