@@ -907,3 +907,27 @@ Fifteenth session (2026-10-25/26, on another PC: Windows 11 Pro, `C:\Users\Ahsan
 > if ii cant seem to move a minized column
 
 [The drag worked, but the dragged copy of a minimized row was see-through on the dark board. Fixed in 1.20.8.]
+
+## Message 100
+
+> in the minimized column when i pull out a row its too snappy calm it down; also its hard for me to reaarge within the minized column i want to be able to move around rows easiy up and down. also ffrom the image thats what i meant for not being able to move itaround
+
+[No image arrived. Read as: reordering rows inside the Minimized card was the "can't move it around" of message 99, and pulling a row out made the board jump. Fixed in 1.20.9: rows reorder up and down inside the card, leave it only 40 px outside it, and things slide more slowly.]
+
+## Message 101 (a picture of a Minimized card with one row, "OSRS Flipping", then more)
+
+> i cant move this around
+>
+> make the pending done and blonded a working colors pastel and nice remove other color options for oclumn headers
+>
+> I switched to Ask permissions mode. Run the tests, build and install it, then commit and push.
+>
+> finish recaller  updates i asked
+
+["blonded" = blocked. Built as 1.20.10: the card itself drags; the four status colours are pastel and the only ones offered. A session hook blocked the test run and the build even after the owner switched modes, so 1.20.10 was saved but not committed; it was built and installed later, once the hook let the build through.]
+
+## Message 102 (a picture of the legend's four dots)
+
+> its too bright and the colors suck eww
+
+[The 1.20.10 pastels. Three directions were rendered on the board; the owner answered "B. Deep jewel tones (Recommended)". Built as 1.20.11 and installed.]

@@ -180,7 +180,7 @@ async function run() {
 
   if (MODE === 'synthetic') {
     const accents = await js(`[...document.querySelectorAll('.column')].map(c => c.style.getPropertyValue('--accent')).join(',')`);
-    check('project colours kept (incl. one unknown to this version)', accents.startsWith('#d97706,#0e9f6e,'), accents);
+    check('project colours kept (incl. one unknown to this version)', accents.startsWith('#8a6416,#17694d,'), accents);
     const widths = await js(`['pC', 'pD'].map((id) => Math.round(document.querySelector('.column[data-id="' + id + '"]').getBoundingClientRect().width))`);
     check('a resized column keeps its width; the others keep the default', widths[0] === 300 && widths[1] === 330, JSON.stringify(widths));
     check('unsaved draft kept (dot on +)', await js(`document.querySelector('.column[data-id="pA"] .col-add').classList.contains('has-draft')`));

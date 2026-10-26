@@ -358,9 +358,11 @@ async function run() {
 
   // ---------------------------------------------------------------- deep theme
   check('Deep colour theme is the default', await js(`document.body.classList.contains('theme-deep')`));
-  const headRgb = await js(`(() => { const c = document.createElement('canvas').getContext('2d'); c.fillStyle = getComputedStyle(document.querySelector('.column[data-id="p1"] .col-head')).backgroundImage.match(/(color\\([^)]*\\)|rgba?\\([^)]*\\))/g).pop(); return c.fillStyle; })()`);
+  const headRgb = await js(`(() => { const c = document.createElement('canvas').getContext('2d'); c.fillStyle = getComputedStyle(document.querySelector('.column[data-id="p2"] .col-head')).backgroundImage.match(/(color\\([^)]*\\)|rgba?\\([^)]*\\))/g).pop(); return c.fillStyle; })()`);
   const hg = headRgb.startsWith('#') ? parseInt(headRgb.slice(3, 5), 16) / 255 : Number((headRgb.match(/srgb\s+[\d.]+\s+([\d.]+)/) || [])[1]);
-  check('column headers are solid deep colour', hg > 0 && hg < 0.6, headRgb);
+  check('column headers in an older colour stay solid deep colour', hg > 0 && hg < 0.6, headRgb);
+  const doneHead = await js(`document.querySelector('.column[data-id="p1"]').style.getPropertyValue('--accent')`);
+  check('1.20.11: a Done column is the deep jewel green', doneHead === '#17694d', doneHead);
   // 1.16: the board sits in a rounded frame, inset from the window edges, with a gradient edge
   const frame = await js(`(() => { const st = document.querySelector('.stage'); const cs = getComputedStyle(st); const r = st.getBoundingClientRect(); const tb = document.querySelector('.topbar').getBoundingClientRect(); return { radius: parseFloat(cs.borderTopLeftRadius), bw: parseFloat(cs.borderTopWidth), left: r.left, right: innerWidth - r.right, bottom: innerHeight - r.bottom, gapTop: r.top - tb.bottom, edge: (cs.backgroundImage.match(/linear-gradient/g) || []).length >= 2 && cs.backgroundClip.split(',').pop().trim() === 'border-box', shell: getComputedStyle(document.body).backgroundColor === getComputedStyle(document.querySelector('.topbar')).backgroundColor }; })()`);
   check('the board has a rounded frame with a gradient edge, inset in a shell the colour of the top bar', frame.radius >= 10 && frame.bw >= 1 && frame.left >= 8 && frame.right >= 8 && frame.bottom >= 8 && frame.gapTop >= 0 && frame.edge && frame.shell, JSON.stringify(frame));
@@ -650,13 +652,14 @@ async function run() {
   // ---------------------------------------------------------------- more column colours
   await js(`document.querySelector('.column[data-id="px1"] .col-menu').click()`);
   await sleep(200);
-  const swatchNames = await js(`[...document.querySelectorAll('.menu .swatch')].map((s) => s.title)`);
-  await js(`[...document.querySelectorAll('.menu .swatch')].find((s) => s.title === 'Navy').click()`);
+  const swatchNames = await js(`[...document.querySelectorAll('.menu .swatch')].length`);
+  const statusNames = await texts('.menu .status-pick');
+  await js(`[...document.querySelectorAll('.menu .status-pick')].find((s) => s.textContent === 'Pending').click()`);
   await sleep(250);
-  const navy = await js(`document.querySelector('.column[data-id="px1"]').style.getPropertyValue('--accent')`);
+  const pending = await js(`({ accent: document.querySelector('.column[data-id="px1"]').style.getPropertyValue('--accent') })`);
   key('Escape');
   await sleep(150);
-  check('18 column colours to pick from, and a new one applies', swatchNames.length === 18 && navy === '#1e3a8a', `${swatchNames.length} colours, px1 → ${navy}`);
+  check('1.20.10: only the four status colours are offered, and a pick applies (1.20.11: Pending is deep blue)', swatchNames === 0 && statusNames.join() === 'Done,Blocked,Pending,Working' && pending.accent === '#24507f', JSON.stringify({ swatchNames, statusNames, pending }));
   key('Z', [MOD]);
   await sleep(300);
 
@@ -1188,7 +1191,7 @@ async function run() {
   // Soft theme: column headers are a little deeper than the light accent tint (1.18)
   const softHead = await js(`(() => {
     document.body.classList.replace('theme-deep', 'theme-soft');
-    const c = document.querySelector('.column[data-id="p1"]');
+    const c = document.querySelector('.column[data-id="p2"]'); // a non-status colour (status columns are pastel, 1.20.10)
     // rgb(…) in 0–255, or color(srgb …) in 0–1 (what color-mix() can compute to): channels summed in 0–765
     const sum = (v) => { const n = (v.match(/[\\d.]+/g) || []).slice(0, 3).map(Number); return n.reduce((a, b) => a + b, 0) * (v.startsWith('color(') ? 255 : 1); };
     const r = { head: sum(getComputedStyle(c.querySelector('.col-head')).backgroundColor) };
@@ -1428,6 +1431,36 @@ async function run() {
   const stackFit = await js(`(() => { const s = document.querySelector('.mini-stack'); const st = getComputedStyle(s); return { overflow: st.overflowY, max: st.maxHeight, inside: s.getBoundingClientRect().bottom <= document.querySelector('#board').getBoundingClientRect().bottom }; })()`);
   check('1.20.3: a stack never runs past the board: it scrolls on its own (a small window)', stackFit.overflow === 'auto' && stackFit.max !== 'none' && stackFit.inside, JSON.stringify(stackFit));
   await shot('13e-minimized-stack');
+  // 1.20.9: rows reorder up and down inside their card; the board doesn't move while they do
+  const rowA = await rect('.column[data-id="p2"] .col-name');
+  const rowB = await rect('.column[data-id="p3"]');
+  const p1before = (await rect('.column[data-id="p1"]')).x;
+  mouse('mouseMove', rowA.x + 20, rowA.cy, { modifiers: [] });
+  mouse('mouseDown', rowA.x + 20, rowA.cy);
+  await drag(rowA.x + 20, rowA.cy, rowA.x + 20, rowB.y + rowB.h + 8, 12, 25);
+  await sleep(450);
+  const inCard = await js(`(() => { const p = document.querySelector('.col-placeholder'); return { slotInCard: !!p?.parentNode.classList.contains('mini-stack'), slotLast: p?.parentNode.lastElementChild === p }; })()`);
+  const boardStill = Math.abs((await rect('.column[data-id="p1"]')).x - p1before) < 1;
+  mouse('mouseUp', rowA.x + 20, rowB.y + rowB.h + 8);
+  await sleep(700);
+  const rowOrder = savedOrder();
+  check('1.20.9: a minimized row moves down inside its card (the slot stays in the card, the board stays still)', inCard.slotInCard && inCard.slotLast && boardStill && rowOrder.includes('p3,p2') && await js(`document.querySelector('.column[data-id="p2"]').classList.contains('is-minimized')`), JSON.stringify({ inCard, boardStill, rowOrder }));
+  key('Z', [MOD]);
+  await sleep(500);
+  // 1.20.10: the card itself (its label) is a handle: the whole card moves, its rows together
+  const cardBox = await rect('#board > .mini-stack');
+  const p1box0 = await rect('.column[data-id="p1"]');
+  mouse('mouseMove', cardBox.x + 40, cardBox.y + 12, { modifiers: [] });
+  mouse('mouseDown', cardBox.x + 40, cardBox.y + 12);
+  await drag(cardBox.x + 40, cardBox.y + 12, p1box0.x + 10, cardBox.y + 30, 16, 20);
+  await sleep(400);
+  const cardGhost = await js(`!!document.querySelector('.drag-ghost > .mini-stack')`);
+  mouse('mouseUp', p1box0.x + 10, cardBox.y + 30);
+  await sleep(700);
+  const cardOrder = savedOrder();
+  check('1.20.10: a Minimized card dragged by its label moves as a whole, its rows together and still minimized', cardGhost && cardOrder.startsWith('p2,p3,p1') && savedProject('p2').minimized === true && savedProject('p3').minimized === true, JSON.stringify({ cardGhost, cardOrder }));
+  key('Z', [MOD]);
+  await sleep(500);
   // a row drags like a column: p3 to the far left, out of the stack and still minimized
   const row3 = await rect('.column[data-id="p3"] .col-head');
   const p1left = await rect('.column[data-id="p1"]');

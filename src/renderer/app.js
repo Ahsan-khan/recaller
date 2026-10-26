@@ -19,9 +19,11 @@
   // Listed in the order new projects pick them, so neighbours look different.
   // Ids are stored in the user's file: never rename one, only add new ones at the end.
   const PALETTE = [
-    { id: 'monstera', name: 'Emerald', color: '#0e9f6e' },
-    { id: 'moss', name: 'Sky', color: '#0284c7' },
-    { id: 'sun', name: 'Sun', color: '#d97706' },
+    // 1.20.11: the four status colours (STATUS, below) are deep jewel tones, picked by the owner over
+    // pastels (1.20.10, "too bright"). The other ids stay so columns that already carry them still draw.
+    { id: 'monstera', name: 'Done', color: '#17694d' },
+    { id: 'moss', name: 'Pending', color: '#24507f' },
+    { id: 'sun', name: 'Working', color: '#8a6416' },
     { id: 'orchid', name: 'Orchid', color: '#9333ea' },
     { id: 'fern', name: 'Lime', color: '#65a30d' },
     { id: 'clay', name: 'Blossom', color: '#db2777' },
@@ -31,7 +33,7 @@
     { id: 'indigo', name: 'Indigo', color: '#4f46e5' },
     { id: 'ember', name: 'Ember', color: '#ea580c' },
     { id: 'lagoon', name: 'Lagoon', color: '#0891b2' },
-    { id: 'ruby', name: 'Ruby', color: '#dc2626' },
+    { id: 'ruby', name: 'Blocked', color: '#8e2f2f' },
     { id: 'forest', name: 'Forest', color: '#15803d' },
     { id: 'fuchsia', name: 'Fuchsia', color: '#c026d3' },
     { id: 'slate', name: 'Slate', color: '#475569' },
@@ -2740,8 +2742,7 @@
 
   function createProject(name = 'New project') {
     checkpoint('New project');
-    const taken = new Set(boardProjects().map((p) => p.color));
-    const color = (PALETTE.find((c) => !taken.has(c.id)) || PALETTE[boardProjects().length % PALETTE.length]).id;
+    const color = 'moss'; // 1.20.10: a new column starts as Pending (blue)
     const project = { id: uid(), name, color, usedCollapsed: false, augCollapsed: false, draft: '', draftImages: [], createdAt: Date.now(), notes: [], used: [], combined: [] };
     setBoardOrder(boardProjects().concat(project));
     ui.lastProjectId = project.id;
@@ -3394,7 +3395,7 @@
     // On a Mac, Control+click is a right-click: no copy, select, drag or pan (the contextmenu listener edits).
     if (IS_MAC && e.ctrlKey && e.button === 0) return;
     // Middle button anywhere, or left button on empty canvas: pan the board.
-    const canvas = (e.target === board || e.target.classList.contains('group-cols') || e.target.classList.contains('col-group') || e.target.classList.contains('mini-stack')) && !onScrollbar(e);
+    const canvas = (e.target === board || e.target.classList.contains('group-cols') || e.target.classList.contains('col-group')) && !onScrollbar(e);
     if (e.button === 1 || (e.button === 0 && canvas)) {
       e.preventDefault();
       startPan(e);
@@ -3411,6 +3412,16 @@
     }
     if (colEl && e.target.closest('.col-resize')) {
       startColumnResize(e, columns.get(colEl.dataset.id));
+      return;
+    }
+    // 1.20.10: a press on a Minimized card outside its rows (its label, the space around them) moves the
+    // whole card, all its rows together. A row still moves on its own from the row itself.
+    const cardEl = !colEl && !ui.widget && e.target.closest('.mini-stack');
+    if (cardEl) {
+      if (cardEl.querySelector('.column')) {
+        e.preventDefault();
+        startColumnGesture(e, cardEl);
+      }
       return;
     }
     const groupGrip = !ui.widget && e.target.closest('.group-head, .group-strip');
@@ -3893,7 +3904,11 @@
   let clickBlockedUntil = 0; // the click that ends a drag mustn't fold a group or open a minimized strip
 
   function startColumnGesture(e, colEl) {
-    const g = { id: colEl.dataset.id, colEl, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, mode: null };
+    // A whole Minimized card (1.20.10) drags like one column carrying all its rows.
+    const ids = colEl.classList.contains('mini-stack')
+      ? [...colEl.children].filter((n) => n.classList.contains('column')).map((n) => n.dataset.id)
+      : [colEl.dataset.id];
+    const g = { id: ids[0], ids, colEl, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, mode: null };
     trackPointer(e, {
       onMove(ev) {
         g.x = ev.clientX;
@@ -3928,8 +3943,9 @@
     g.placeholder.style.height = `${rect.height}px`;
     g.placeholder.style.width = `${rect.width}px`;
     g.container = g.colEl.parentNode; // the board, or a group's lane
-    if (g.container.classList.contains('mini-stack')) g.container = g.container.parentNode; // a minimized column (1.20.2)
-    g.fromGroup = g.container.classList.contains('group-cols') ? g.container.parentNode.dataset.group : '';
+    // a minimized row starts inside its card (1.20.9: it moves up and down there; see rowDragMove)
+    const home = g.container.classList.contains('mini-stack') ? g.container.parentNode : g.container;
+    g.fromGroup = home.classList.contains('group-cols') ? home.parentNode.dataset.group : '';
     g.colEl.parentNode.insertBefore(g.placeholder, g.colEl);
     g.colEl.classList.add('is-drag-source');
     document.body.classList.add('is-dragging', 'is-col-drag'); // is-col-drag: no card drop zones
@@ -3989,8 +4005,44 @@
     return fallback;
   }
 
+  // 1.20.9: a minimized row is moved up and down inside its Minimized card, and leaves the card only once
+  // the pointer is clearly outside it (STACK_EDGE), so the first nudge doesn't shift the whole board.
+  // Anything that moves because a row was dragged slides at a calmer pace (CALM_MS).
+  const STACK_EDGE = 40;
+  const CALM_MS = 340;
+  function stackUnder(g) {
+    for (const s of board.querySelectorAll('.mini-stack')) {
+      const b = s.getBoundingClientRect();
+      const m = g.container === s ? STACK_EDGE : 0;
+      if (g.x > b.left - m && g.x < b.right + m && g.y > b.top - m && g.y < b.bottom + m) return s;
+    }
+    return null;
+  }
+
+  function rowDragMove(g, stack) {
+    const rows = [...stack.children].filter((n) => n.classList.contains('column') && n !== g.colEl);
+    let before = null;
+    for (const r of rows) {
+      const b = r.getBoundingClientRect();
+      const t = getComputedStyle(r).transform;
+      const dy = t && t !== 'none' ? new DOMMatrix(t).m42 : 0; // where it will settle, not mid-slide
+      if (g.y < b.top - dy + b.height / 2) { before = r; break; }
+    }
+    let next = g.placeholder.nextSibling;
+    if (next === g.colEl) next = next.nextSibling;
+    if (g.placeholder.parentNode === stack && next === before) return;
+    const fromOutside = g.placeholder.parentNode !== stack;
+    g.container = stack;
+    const items = fromOutside ? rows.concat(dropUnits(board, [g.colEl, g.placeholder])) : rows;
+    flip(items, () => stack.insertBefore(g.placeholder, before), CALM_MS);
+  }
+
   function columnDragMove(g) {
     positionGhost(g);
+    if (g.colEl.classList.contains('is-minimized')) {
+      const stack = stackUnder(g);
+      if (stack) return rowDragMove(g, stack);
+    }
     const container = dropContainer(g);
     const inBoard = container === board;
     const skip = [g.colEl, g.placeholder];
@@ -4006,7 +4058,7 @@
     // Within a group its columns slide; anything else moves the board's columns and groups.
     const items = same && !inBoard ? cols : dropUnits(board, skip);
     g.container = container;
-    flip(items, () => container.insertBefore(g.placeholder, before), 240);
+    flip(items, () => container.insertBefore(g.placeholder, before), g.colEl.classList.contains('is-minimized') ? CALM_MS : 240);
   }
 
   function columnDragEnd(g, cancelled) {
@@ -4014,15 +4066,16 @@
     cancelAnimationFrame(g.raf);
     clickBlockedUntil = Date.now() + 350;
     if (!cancelled) {
-      const lane = g.placeholder.parentNode;
+      let lane = g.placeholder.parentNode;
+      if (lane?.classList.contains('mini-stack')) lane = lane.parentNode; // dropped among a card's rows
       const into = lane?.classList.contains('group-cols') ? lane.parentNode.dataset.group || '' : '';
       const order = [];
       const walk = (parent) => {
         for (const n of parent.children) {
-          if (n === g.placeholder) order.push(g.id);
-          else if (n.classList.contains('column') && n !== g.colEl) order.push(n.dataset.id);
+          if (n === g.placeholder) order.push(...g.ids);
+          else if (n.classList.contains('column') && !g.ids.includes(n.dataset.id)) order.push(n.dataset.id);
           else if (n.classList.contains('col-group')) walk(n.querySelector('.group-cols'));
-          else if (n.classList.contains('mini-stack')) walk(n);
+          else if (n.classList.contains('mini-stack') && n !== g.colEl) walk(n);
         }
       };
       walk(board);
@@ -4030,12 +4083,15 @@
       const next = order.map((id) => byId.get(id)).filter(Boolean);
       const now = boardProjects();
       const project = byId.get(g.id);
-      const regroup = project && groupOf(project) !== into;
+      const moving = g.ids.map((id) => byId.get(id)).filter(Boolean);
+      const regroup = moving.some((p) => groupOf(p) !== into);
       if (project && next.length === now.length && (regroup || next.some((p, i) => p !== now[i]))) {
         checkpoint(regroup ? (into ? 'Move to group' : 'Remove from group') : 'Reorder projects');
-        if (into) project.group = into;
-        else delete project.group;
-        if (regroup) delete project.groupFolded; // dropped into an open lane or onto the board
+        for (const p of moving) {
+          if (into) p.group = into;
+          else delete p.group;
+          if (regroup) delete p.groupFolded; // dropped into an open lane or onto the board
+        }
         setBoardOrder(next);
         persist();
         if (regroup) {
@@ -4049,8 +4105,9 @@
     document.body.classList.remove('is-dragging', 'is-col-drag');
     dragActive = false;
     render();
-    const to = g.colEl.getBoundingClientRect();
     g.ghost.remove();
+    if (!g.colEl.isConnected) return; // a dragged card that merged into another one
+    const to = g.colEl.getBoundingClientRect();
     g.colEl.style.transition = 'none';
     g.colEl.style.transform = `translate(${from.left - to.left}px, ${from.top - to.top}px)`;
     g.colEl.style.zIndex = '5';
@@ -4501,8 +4558,30 @@
     if (servedImg) return copyStageImage(col, servedImg, e);
     // Clicking the final text copies it all, unless the user is selecting part of it
     // (or dragging the scrollbar of the opened-up text).
-    if (e.target.closest('.final-text') && !String(window.getSelection()) && !onScrollbar(e)) copyFinal(col.id, e);
+    if (e.target.closest('.final-text') && !String(window.getSelection()) && !onScrollbar(e) && Date.now() - selectionClearedAt > 500) copyFinal(col.id, e);
   });
+
+  // 1.20.12: selected text goes away with the next left click anywhere, and with Esc. Cards, the Cooked
+  // note and the board take over a press for copying and dragging, so a selection used to stay until a
+  // click landed inside other text. The click that clears a selection doesn't also copy the Served text.
+  // Fields and the notepad keep their own selections; a Mac's Control+click (a right-click) is left alone.
+  let selectionClearedAt = 0;
+  const clearSelection = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !String(sel).trim()) return false;
+    const node = sel.anchorNode?.nodeType === Node.TEXT_NODE ? sel.anchorNode.parentElement : sel.anchorNode;
+    if (node?.closest?.('input, textarea, [contenteditable="true"], .composer')) return false;
+    sel.removeAllRanges();
+    return true;
+  };
+  document.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || (IS_MAC && e.ctrlKey)) return;
+    if (e.target.closest?.('input, textarea, [contenteditable="true"], .composer')) return;
+    if (clearSelection()) selectionClearedAt = Date.now();
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !isTyping(e.target)) clearSelection();
+  }, true);
 
   // A Mac selects the word under a right-click (or Control+click) before contextmenu fires,
   // so there the selection is read as the button goes down.
@@ -4697,7 +4776,7 @@
     openMenu(anchor, (menu) => {
       menuItem(menu, I.camera, 'New from screenshot', () => openComposer(col.id, { screenshot: true }));
       menuItem(menu, I.pencilLine, 'Rename', () => startRename(col));
-      // the four status colours first, named (1.20.7)
+      // the four status colours, named (1.20.7; since 1.20.10 the only ones offered)
       const statusRow = el('div', 'menu-status');
       for (const st of STATUS) {
         const c = PALETTE.find((x) => x.id === st.id);
@@ -4715,24 +4794,7 @@
         });
         statusRow.appendChild(b);
       }
-      menu.appendChild(statusRow);
-      const swatches = el('div', 'menu-swatches');
-      for (const c of PALETTE) {
-        const s = el('button', `swatch${c.id === project.color ? ' is-active' : ''}`);
-        s.style.setProperty('--c', c.color);
-        s.title = c.name;
-        s.setAttribute('aria-label', c.name);
-        s.addEventListener('click', () => {
-          if (project.color === c.id) return;
-          checkpoint('Change color');
-          project.color = c.id;
-          persist();
-          render();
-          menu.querySelectorAll('.swatch').forEach((n) => n.classList.toggle('is-active', n === s));
-        });
-        swatches.appendChild(s);
-      }
-      menu.appendChild(swatches);
+      menu.appendChild(statusRow); // 1.20.10: the only colours offered
       menu.appendChild(el('div', 'menu-sep'));
       const eatenHere = eatenList().filter((r) => r.project === col.id).length;
       if (eatenHere) menuItem(menu, I.utensils, `Eaten from this column (${eatenHere})`, () => openEaten(col.id));

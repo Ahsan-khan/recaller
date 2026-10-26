@@ -752,7 +752,7 @@ The owner's words are in `10`, messages 80 and 81. Both platforms; nothing is fe
 ### 1.20.7 (fifteenth session, 2026-10-25/26, on a PC)
 
 - **Column header:** right of the name, two quiet buttons: the column's **notepad** and **minimize**. Invisible until the pointer is on the header; the notepad button stays visible once its page has text and looks pressed while it is open.
-- **Minimized columns** are rows in one light **Minimized** card (leaf in the column colour, the name, the count). Click a row to open it; drag it like a column. Several side by side share the card; it scrolls when tall.
+- **Minimized columns** are rows in one light **Minimized** card (leaf in the column colour, the name, the count). Click a row to open it. Drag a row up or down to reorder it inside the card (1.20.9); drag it more than 40 px outside the card to move it onto the board like a column. Several side by side share the card; it scrolls when tall.
 - **Colour legend:** after the search box, Done (green), Blocked (red), Pending (blue), Working (yellow); hover one for its meaning. A column's ⋯ menu names the same four at the top of its colours.
 - **Group folds sync:** folding a group marks every member (`groupFolded`), so it is folded on every computer.
 - **The notepad:** resizable from its left edge (double-click: default width); a toolbar with **B**, **I**, **U** and a bullet list (Ctrl+B / I / U too); pasting brings plain text. **Copy** copies plain text (bullets as "• ").

@@ -2518,6 +2518,16 @@ body.theme-deep .mini-stack { background: #eef2f0; border-color: rgba(0, 0, 0, 0
   border-radius: 10px;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent), var(--shadow-lg);
 }
+/* 1.20.9: a row lifts gently (no tilt), and the slot it leaves in the card is a soft dashed row */
+.drag-ghost > .column.is-minimized { transition: transform 0.3s var(--ease), box-shadow 0.3s; }
+.drag-ghost.is-lifted > .column.is-minimized { transform: scale(1.02); }
+.mini-stack > .col-placeholder, body.theme-deep .mini-stack > .col-placeholder { flex: none; height: 34px !important; min-height: 0; border-radius: 9px; border: 1.5px dashed rgba(12, 42, 29, 0.28); background: rgba(12, 42, 29, 0.04); }
+/* 1.20.10: the card itself is a handle: press its label or the space around the rows and drag to move the
+   whole card (a row moves alone from the row) */
+.mini-stack { cursor: grab; }
+.mini-stack.is-drag-source { display: none; }
+.drag-ghost > .mini-stack { transition: transform 0.3s var(--ease), box-shadow 0.3s; overflow: hidden; }
+.drag-ghost.is-lifted > .mini-stack { transform: scale(1.02); box-shadow: var(--shadow-lg); }
 .mini-stack::-webkit-scrollbar-thumb, body.theme-deep .mini-stack::-webkit-scrollbar-thumb { background: rgba(12, 42, 29, 0.22); background-clip: padding-box; }
 
 /* the colour legend in the top bar: four dots with a word; hover one for its meaning */
@@ -2560,6 +2570,7 @@ body.is-resizing-pad .notepad-panel { transition: none; }
 .notepad-text ul, .notepad-text ol { margin: 2px 0; padding-left: 22px; }
 .notepad-text li { margin: 1px 0; }
 .notepad-text b { font-weight: 700; }
+
 
 /* ------------------------------------------------------------------ macOS (body.is-mac, 1.16 Mac edition) */
 
